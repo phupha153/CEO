@@ -386,14 +386,17 @@ export default function PublicBooking() {
             {/* Tabs for Booking Type */}
             <Tabs 
               value={formData.booking_type} 
+              disabled={isRoomSelected}
               onValueChange={(value) => {
-                setFormData({ 
-                  ...formData, 
-                  booking_type: value,
-                  check_out_date: value === 'monthly' ? '' : formData.check_out_date
-                });
+                if (!isRoomSelected) {
+                  setFormData({ 
+                    ...formData, 
+                    booking_type: value,
+                    check_out_date: value === 'monthly' ? '' : formData.check_out_date
+                  });
+                }
               }}
-              className="mb-4"
+              className="mb-4 opacity-50 cursor-not-allowed"
             >
               <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                 <TabsTrigger value="monthly" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
