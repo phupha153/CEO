@@ -744,10 +744,11 @@ export default function PublicBooking() {
               <Input
                 type="date"
                 value={formData.check_in_date}
-                onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
-                min={new Date().toISOString().split('T')[0]}
-                required
+                readOnly
+                disabled
+                className="bg-slate-100 cursor-not-allowed"
               />
+              <p className="text-xs text-slate-500 mt-1">💡 กดปุ่ม "เปลี่ยนเงื่อนไข" เพื่อเปลี่ยนวันที่</p>
             </div>
 
             {formData.booking_type === 'daily' && (
@@ -758,10 +759,11 @@ export default function PublicBooking() {
                 <Input
                   type="date"
                   value={formData.check_out_date}
-                  onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
-                  min={formData.check_in_date}
-                  required={formData.booking_type === 'daily'}
+                  readOnly
+                  disabled
+                  className="bg-slate-100 cursor-not-allowed"
                 />
+                <p className="text-xs text-slate-500 mt-1">💡 กดปุ่ม "เปลี่ยนเงื่อนไข" เพื่อเปลี่ยนวันที่</p>
               </div>
             )}
 
