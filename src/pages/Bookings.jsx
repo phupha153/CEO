@@ -148,10 +148,10 @@ export default function BookingsPage() {
     queryFn: () => base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 30 * 1000,
+    staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'stale',
   });
 
   const { data: rooms = [] } = useQuery({
@@ -871,9 +871,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   
   const [bookingActionDialog, setBookingActionDialog] = useState(false);
   const [pendingActionBooking, setPendingActionBooking] = useState(null);
-  
-  const [bookingDetailsDialog, setBookingDetailsDialog] = useState(false);
-  const [selectedBookingForDetails, setSelectedBookingForDetails] = useState(null);
   
   const [confirmTenantDialog, setConfirmTenantDialog] = useState(false);
   const [pendingTempBooking, setPendingTempBooking] = useState(null);
@@ -1692,9 +1689,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       onClick={(e) => {
                                         e.stopPropagation();
 
-                                        if (event.type === 'temporary-booking') {
-                                          setSelectedBookingForDetails(event.booking);
-                                          setBookingDetailsDialog(true);
+                                        if (event.type === 'daily-booking' || event.type === 'monthly-booking') {
+                                          setPendingActionBooking(event.booking);
+                                          setBookingActionDialog(true);
                                         }
                                       }}
                                     >
@@ -2631,185 +2628,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
               </Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog ดูรายละเอียดการจอง */}
-      <Dialog open={bookingDetailsDialog} onOpenChange={setBookingDetailsDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              รายละเอียดการจอง
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedBookingForDetails && (() => {
-            const room = getRoomInfo(selectedBookingForDetails.room_id);
-            const bookingTypeLabel = selectedBookingForDetails.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน';
-            const statusConfig = {
-              'active': { label: 'กำลังเข้าพัก', color: 'text-green-600', bg: 'bg-green-50' },
-              'completed': { label: 'เสร็จสิ้น', color: 'text-blue-600', bg: 'bg-blue-50' },
-              'cancelled': { label: 'ยกเลิก', color: 'text-red-600', bg: 'bg-red-50' }
-            };
-            const status = statusConfig[selectedBookingForDetails.status] || statusConfig['active'];
-
-            return (
-              <div className="space-y-4">
-                {/* ห้องและสถานะ */}
-                <div className={`${status.bg} rounded-lg p-4 border-l-4 ${status.color}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-600 mb-1">ห้องเลขที่</p>
-                      <p className="text-2xl font-bold text-slate-800">ห้อง {room?.room_number || 'N/A'} • ชั้น {room?.floor || '-'}</p>
-                      <p className="text-sm text-slate-600 mt-1">{bookingTypeLabel}</p>
-                    </div>
-                    <Badge className={`${status.bg} ${status.color} text-sm px-3 py-1`}>
-                      {status.label}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* ข้อมูลผู้เข้าพัก */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    ข้อมูลผู้เข้าพัก
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-slate-600">ชื่อ-นามสกุล</p>
-                      <p className="font-semibold text-slate-800">{selectedBookingForDetails.guest_name || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-600">เบอร์โทรศัพท์</p>
-                      <p className="font-semibold text-slate-800">{selectedBookingForDetails.guest_phone || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-600">เลขบัตรประชาชน</p>
-                      <p className="font-semibold text-slate-800">{selectedBookingForDetails.guest_national_id || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-600">อีเมล</p>
-                      <p className="font-semibold text-slate-800">{selectedBookingForDetails.guest_email || '-'}</p>
-                    </div>
-                    {selectedBookingForDetails.guest_address && (
-                      <div className="col-span-2">
-                        <p className="text-slate-600">ที่อยู่</p>
-                        <p className="font-semibold text-slate-800">{selectedBookingForDetails.guest_address}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* วันที่พัก */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    วันที่พัก
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-slate-600">วันที่เข้าพัก</p>
-                      <p className="font-semibold text-slate-800">{format(parseISO(selectedBookingForDetails.check_in_date), 'd MMMM yyyy', { locale: th })}</p>
-                    </div>
-                    {selectedBookingForDetails.check_out_date && (
-                      <div>
-                        <p className="text-slate-600">วันที่ออก</p>
-                        <p className="font-semibold text-slate-800">{format(parseISO(selectedBookingForDetails.check_out_date), 'd MMMM yyyy', { locale: th })}</p>
-                      </div>
-                    )}
-                    {selectedBookingForDetails.contract_duration && (
-                      <div>
-                        <p className="text-slate-600">ระยะเวลาสัญญา</p>
-                        <p className="font-semibold text-slate-800">{selectedBookingForDetails.contract_duration}</p>
-                      </div>
-                    )}
-                    {selectedBookingForDetails.contract_deadline && (
-                      <div>
-                        <p className="text-slate-600">กำหนดทำสัญญา</p>
-                        <p className="font-semibold text-slate-800">{format(parseISO(selectedBookingForDetails.contract_deadline), 'd MMMM yyyy', { locale: th })}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* รายละเอียดการชำระเงิน */}
-                {(selectedBookingForDetails.deposit_amount > 0 || selectedBookingForDetails.security_deposit > 0 || selectedBookingForDetails.advance_rent > 0) && (
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                      💰 รายละเอียดการชำระเงิน
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      {selectedBookingForDetails.deposit_amount > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">เงินจองห้อง:</span>
-                          <span className="font-semibold text-slate-800">{selectedBookingForDetails.deposit_amount.toLocaleString()} ฿</span>
-                        </div>
-                      )}
-                      {selectedBookingForDetails.security_deposit > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">เงินประกันห้อง:</span>
-                          <span className="font-semibold text-slate-800">{selectedBookingForDetails.security_deposit.toLocaleString()} ฿</span>
-                        </div>
-                      )}
-                      {selectedBookingForDetails.advance_rent > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">ค่าเช่าล่วงหน้า:</span>
-                          <span className="font-semibold text-slate-800">{selectedBookingForDetails.advance_rent.toLocaleString()} ฿</span>
-                        </div>
-                      )}
-                      {selectedBookingForDetails.common_fee_included > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">ค่าส่วนกลาง:</span>
-                          <span className="font-semibold text-slate-800">{selectedBookingForDetails.common_fee_included.toLocaleString()} ฿</span>
-                        </div>
-                      )}
-                      <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between font-bold text-blue-800">
-                        <span>รวมทั้งสิ้น:</span>
-                        <span>{(
-                          (selectedBookingForDetails.deposit_amount || 0) +
-                          (selectedBookingForDetails.security_deposit || 0) +
-                          (selectedBookingForDetails.advance_rent || 0) +
-                          (selectedBookingForDetails.common_fee_included || 0)
-                        ).toLocaleString()} ฿</span>
-                      </div>
-                    </div>
-                    {selectedBookingForDetails.deposit_slip_url && (
-                      <div className="mt-3 pt-3 border-t border-blue-200">
-                        <p className="text-xs text-slate-600 mb-2">หลักฐานการโอน</p>
-                        <a
-                          href={selectedBookingForDetails.deposit_slip_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
-                        >
-                          <Camera className="w-4 h-4" />
-                          ดูสลิป
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* หมายเหตุ */}
-                {selectedBookingForDetails.notes && (
-                  <div className="border rounded-lg p-4 bg-slate-50">
-                    <h4 className="font-semibold text-slate-800 mb-2">หมายเหตุ</h4>
-                    <p className="text-sm text-slate-700">{selectedBookingForDetails.notes}</p>
-                  </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setBookingDetailsDialog(false)}
-                >
-                  ปิด
-                </Button>
-              </div>
-            );
-          })()}
         </DialogContent>
       </Dialog>
 

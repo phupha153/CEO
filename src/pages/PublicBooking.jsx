@@ -135,20 +135,15 @@ export default function PublicBooking() {
   });
 
   // Create booking mutation
-   const createBookingMutation = useMutation({
-     mutationFn: async (bookingData) => {
-       const response = await base44.functions.invoke('createPublicBooking', bookingData);
-       // ✅ Return full response including success flag
-       if (!response.data?.success) {
-         throw new Error(response.data?.error || 'เกิดข้อผิดพลาดในการจอง');
-       }
-       return response.data;
-     },
-     onSuccess: (data) => {
-       // ✅ Ensure we display success dialog
-       setShowBookingForm(false);
-       setCreatedBooking({...data, room: selectedRoom});
-       setShowSuccessDialog(true);
+  const createBookingMutation = useMutation({
+    mutationFn: async (bookingData) => {
+      const response = await base44.functions.invoke('createPublicBooking', bookingData);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setShowBookingForm(false);
+      setCreatedBooking({...data, room: selectedRoom});
+      setShowSuccessDialog(true);
       setFormData({
         guest_name: '',
         guest_phone: '',
