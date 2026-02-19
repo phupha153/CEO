@@ -450,9 +450,9 @@ export default function ChatWindow({
                       msg.media_url ? (
                         <ImageWithLoader url={msg.media_url} />
                       ) : (
-                        <div className="bg-slate-100 rounded-lg w-40 h-32 flex flex-col items-center justify-center mb-2">
-                          <ImageIcon className="w-6 h-6 text-slate-400 mb-1" />
-                          <p className="text-xs text-slate-500">กำลังโหลดรูป...</p>
+                        <div className="bg-slate-100 rounded-lg px-4 py-3 flex items-center gap-2 mb-2">
+                          <ImageIcon className="w-5 h-5 text-slate-400" />
+                          <p className="text-xs text-slate-500">รูปภาพไม่พร้อมใช้งาน</p>
                         </div>
                       )
                     )}
