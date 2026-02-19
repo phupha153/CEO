@@ -446,10 +446,19 @@ export default function ChatWindow({
                     }`}
                     style={{ maxWidth: '85%' }}
                   >
-                    {msg.message_type === 'image' && msg.media_url && (
-                      <ImageWithLoader url={msg.media_url} />
+                    {msg.message_type === 'image' && (
+                      msg.media_url ? (
+                        <ImageWithLoader url={msg.media_url} />
+                      ) : (
+                        <div className="bg-slate-100 rounded-lg w-40 h-32 flex flex-col items-center justify-center mb-2">
+                          <ImageIcon className="w-6 h-6 text-slate-400 mb-1" />
+                          <p className="text-xs text-slate-500">กำลังโหลดรูป...</p>
+                        </div>
+                      )
                     )}
-                    <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                    {msg.message_type !== 'image' && (
+                      <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                    )}
                     <div className={`flex items-center gap-1.5 mt-1 ${
                       isOutgoing ? 'text-blue-100' : 'text-slate-400'
                     }`}>
