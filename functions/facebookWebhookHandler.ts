@@ -515,12 +515,41 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
 }
 
 async function handleAttachments(base44, senderPsid, attachments, branchId, tenant, userProfile = null) {
-    // ⭐ สร้างชื่อจากโปรไฟล์
+    const imageAttachment = attachments.find(a => a.type === 'image');
+    
+    if (!imageAttachment) return;
+    
+    if (!tenant) {
+        await sendFacebookMessage(base44, senderPsid, '❌ กรุณาลงทะเบียนก่อนส่งรูปภาพ', branchId);
+        return;
+    }
+
+    // ⭐ ดาวน์โหลดและอัปโหลดรูปก่อน (เพื่อให้ได้ media_url)
+    const imageUrl = imageAttachment.payload.url;
+    console.log(`📸 Facebook Image URL: ${imageUrl}`);
+    
+    let uploadedImageUrl = null;
+    try {
+        // Download image from Facebook
+        const imageRes = await fetch(imageUrl);
+        if (!imageRes.ok) {
+            console.error('❌ Failed to download Facebook image');
+            return;
+        }
+        const imageBlob = await imageRes.blob();
+        
+        // Upload to Base44
+        const file = new File([imageBlob], `fb-slip-${Date.now()}.jpg`, { type: imageBlob.type });
+        const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+        uploadedImageUrl = uploadRes.file_url;
+        console.log(`✅ Uploaded Facebook image: ${uploadedImageUrl}`);
+    } catch (uploadError) {
+        console.error('❌ Failed to upload Facebook image:', uploadError);
+    }
+    
+    // ⭐ บันทึกข้อความรูปภาพลง FacebookMessage entity (หลังได้ media_url แล้ว)
     const displayName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : (tenant?.full_name || null);
     const pictureUrl = userProfile?.profile_pic || null;
-    
-    // ⭐⭐⭐ บันทึกข้อความรูปภาพลง FacebookMessage entity
-    const imageAttachment = attachments.find(a => a.type === 'image');
     
     try {
         await base44.asServiceRole.entities.FacebookMessage.create({
@@ -532,33 +561,17 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
             direction: 'incoming',
             message_type: 'image',
             content: '[รูปภาพ]',
-            media_url: imageAttachment?.payload?.url || null,
+            media_url: uploadedImageUrl,
             is_read: false
         });
-        console.log('✅ Saved incoming Facebook image to FacebookMessage entity');
+        console.log(`✅ Saved incoming Facebook image to FacebookMessage entity with media_url: ${uploadedImageUrl ? 'YES' : 'NO'}`);
     } catch (saveError) {
         console.error('❌ Failed to save Facebook image message:', saveError);
     }
-    
-    if (!tenant) {
-        await sendFacebookMessage(base44, senderPsid, '❌ กรุณาลงทะเบียนก่อนส่งรูปภาพ', branchId);
-        return;
-    }
 
-    if (imageAttachment) {
-        // Process Slip Logic (Simplified from LINE)
-        const imageUrl = imageAttachment.payload.url;
-        console.log(`📸 Image URL: ${imageUrl}`);
-        
-        // Download image
-        const imageRes = await fetch(imageUrl);
-        if (!imageRes.ok) return;
-        const imageBlob = await imageRes.blob();
-        
-        // Upload to Base44
-        const file = new File([imageBlob], `fb-slip-${Date.now()}.jpg`, { type: imageBlob.type });
-        const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-        const slipUrl = uploadRes.file_url;
+    // ⭐ ประมวลผลสลิปต่อ
+    if (uploadedImageUrl) {
+        const slipUrl = uploadedImageUrl;
 
         // Check Pending Payment
         const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 20);
