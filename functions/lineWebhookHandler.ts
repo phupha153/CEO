@@ -644,73 +644,73 @@ Deno.serve(async (req) => {
                                             console.log('⚠️ Could not check payments:', e.message);
                                         }
 
-                                        // ⭐ ถ้าไม่มี payment ที่ต้องชำระ → ไม่ตอบอะไรเลย
-                                        if (!hasPendingPayment) {
-                                            console.log(`ℹ️ User ${lineUserId} has no outstanding payment - ignoring image, no response`);
-                                            continue;
+                                        // ⭐ ดาวน์โหลดและอัปโหลดรูปก่อน (เพื่อให้ได้ media_url)
+                                        let imageUrl = null;
+                                        try {
+                                            const lineToken = await getLineToken(base44, branchId);
+                                            if (lineToken) {
+                                                const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+                                                    headers: { 'Authorization': `Bearer ${lineToken}` }
+                                                });
+                                                if (imageResponse.ok) {
+                                                    const imageBlob = await imageResponse.blob();
+                                                    const file = new File([imageBlob], `line-image-${Date.now()}.jpg`, { type: imageBlob.type });
+                                                    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+                                                    imageUrl = uploadResult.file_url;
+                                                    console.log(`✅ Uploaded image: ${imageUrl}`);
+                                                }
+                                            }
+                                        } catch (uploadError) {
+                                            console.log('⚠️ Could not upload image:', uploadError.message);
                                         }
 
-                        // ⭐ บันทึกข้อความประเภทรูปภาพลง LineMessage ก่อนประมวลผล
-                        try {
-                            // ดึง LINE Profile (ถ้ามี)
-                            let displayName = tenant?.full_name;
-                            let pictureUrl = null;
+                                        // ⭐ บันทึกข้อความประเภทรูปภาพลง LineMessage (หลังได้ media_url แล้ว)
+                                        try {
+                                            // ดึง LINE Profile (ถ้ามี)
+                                            let displayName = tenant?.full_name;
+                                            let pictureUrl = null;
 
-                            try {
-                                const lineToken = await getLineToken(base44, branchId);
-                                if (lineToken) {
-                                    const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
-                                        headers: { 'Authorization': `Bearer ${lineToken}` }
-                                    });
-                                    if (profileRes.ok) {
-                                        const profile = await profileRes.json();
-                                        displayName = profile.displayName || displayName;
-                                        pictureUrl = profile.pictureUrl;
-                                    }
-                                }
-                            } catch (profileError) {
-                                console.log('⚠️ Could not fetch LINE profile:', profileError.message);
-                            }
+                                            try {
+                                                const lineToken = await getLineToken(base44, branchId);
+                                                if (lineToken) {
+                                                    const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
+                                                        headers: { 'Authorization': `Bearer ${lineToken}` }
+                                                    });
+                                                    if (profileRes.ok) {
+                                                        const profile = await profileRes.json();
+                                                        displayName = profile.displayName || displayName;
+                                                        pictureUrl = profile.pictureUrl;
+                                                    }
+                                                }
+                                            } catch (profileError) {
+                                                console.log('⚠️ Could not fetch LINE profile:', profileError.message);
+                                            }
 
-                            // ⭐ ดาวน์โหลดรูปและเก็บ URL
-                            let imageUrl = null;
-                            try {
-                                const lineToken = await getLineToken(base44, branchId);
-                                if (lineToken) {
-                                    const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
-                                        headers: { 'Authorization': `Bearer ${lineToken}` }
-                                    });
-                                    if (imageResponse.ok) {
-                                        const imageBlob = await imageResponse.blob();
-                                        const file = new File([imageBlob], `line-image-${Date.now()}.jpg`, { type: imageBlob.type });
-                                        const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-                                        imageUrl = uploadResult.file_url;
-                                        console.log(`✅ Uploaded image: ${imageUrl}`);
-                                    }
-                                }
-                            } catch (uploadError) {
-                                console.log('⚠️ Could not upload image:', uploadError.message);
-                            }
+                                            await base44.asServiceRole.entities.LineMessage.create({
+                                                branch_id: branchId,
+                                                tenant_id: tenant?.id || null,
+                                                line_user_id: lineUserId,
+                                                line_display_name: displayName,
+                                                line_picture_url: pictureUrl,
+                                                direction: 'incoming',
+                                                message_type: 'image',
+                                                content: '[รูปภาพ]',
+                                                media_url: imageUrl,
+                                                reply_token: replyToken
+                                            });
+                                            console.log(`💾 Saved incoming image to LineMessage entity with media_url: ${imageUrl ? 'YES' : 'NO'}`);
+                                        } catch (saveError) {
+                                            console.error('⚠️ Failed to save image message to LineMessage:', saveError.message);
+                                        }
 
-                            await base44.asServiceRole.entities.LineMessage.create({
-                                branch_id: branchId,
-                                tenant_id: tenant?.id || null,
-                                line_user_id: lineUserId,
-                                line_display_name: displayName,
-                                line_picture_url: pictureUrl,
-                                direction: 'incoming',
-                                message_type: 'image',
-                                content: '[รูปภาพ]',
-                                media_url: imageUrl,
-                                reply_token: replyToken
-                            });
-                            console.log(`💾 Saved incoming image to LineMessage entity`);
-                        } catch (saveError) {
-                            console.error('⚠️ Failed to save image message to LineMessage:', saveError.message);
-                        }
+                                        // ⭐ ถ้ามี payment ที่ต้องชำระ → ประมวลผลสลิป
+                                        if (hasPendingPayment) {
+                                            await handleSlipImage(base44, lineUserId, messageId, branchId, replyToken);
+                                        } else {
+                                            console.log(`ℹ️ User ${lineUserId} has no outstanding payment - image saved but no slip processing`);
+                                        }
 
-                        await handleSlipImage(base44, lineUserId, messageId, branchId, replyToken);
-                        continue;
+                                        continue;
                     }
                 }
             }
