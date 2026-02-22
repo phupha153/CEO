@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
         let failCount = 0;
         const errors = [];
 
-        const lineRecipients = recipients.filter(r => r.lineUserId);
+        // ⭐ ลบออก - เช็คก่อนหน้านี้แล้ว
         const facebookRecipients = recipients.filter(r => r.facebookUserId);
 
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
