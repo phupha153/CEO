@@ -1038,12 +1038,8 @@ export default function Settings() {
       }
     },
     onSuccess: () => {
-      // ⭐ ULTIMATE FIX: ไม่ invalidate เลย เพราะ:
-      // 1. UI ใช้ local state (buildingInfo, billingRates, etc.)
-      // 2. กด Save = อัปเดต DB แล้ว, local state ถูกต้องอยู่แล้ว
-      // 3. Reload หน้าถึงจะโหลด config ใหม่จาก DB (ไม่มีปัญหา)
-      
-      // ⭐ ผลลัพธ์: ไม่มี refetch cascade → ไม่มี 429 Rate Limit
+      // ⭐ Invalidate เฉพาะ configs query (จำเป็นสำหรับ validation bank config)
+      queryClient.invalidateQueries({ queryKey: ['configs'], refetchType: 'none' });
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
