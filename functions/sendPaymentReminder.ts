@@ -560,6 +560,23 @@ Deno.serve(async (req) => {
 
         console.log(`📤 Sending payment reminders to ${recipients.length} recipients...`);
 
+        // ⭐ CRITICAL: ตรวจสอบว่ามี LINE token หรือไม่ (ถ้ามีคนใช้ LINE)
+        const lineRecipients = recipients.filter(r => r.lineUserId);
+        if (lineRecipients.length > 0) {
+            const lineToken = await getLineToken(base44, branch_id);
+            if (!lineToken) {
+                console.error('❌ CRITICAL: No LINE token configured - cannot send reminders');
+                return Response.json({
+                    success: false,
+                    error: 'MISSING_LINE_CONFIG',
+                    message: '⚠️ ยังไม่ได้ตั้งค่า LINE Official Account',
+                    details: `ระบบไม่สามารถส่งข้อความ LINE ได้ เนื่องจากยังไม่มีการตั้งค่า LINE Channel Access Token\n\nกรุณาไปที่:\nSettings → แท็บ "ช่องทางสื่อสาร" → LINE → กรอก Channel Access Token`,
+                    action: 'กรุณาตั้งค่า LINE ก่อนส่ง reminder',
+                    recipients_affected: lineRecipients.length
+                }, { status: 400 });
+            }
+        }
+
         // Update bill_sent_date และ overdue_reminder_sent_date (ถ้าเป็น template overdue)
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
         const now = new Date().toISOString();
