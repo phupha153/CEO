@@ -1037,9 +1037,9 @@ export default function Settings() {
           return result;
       }
     },
-    onSuccess: () => {
-      // ⭐ Invalidate เฉพาะ configs query (จำเป็นสำหรับ validation bank config)
-      queryClient.invalidateQueries({ queryKey: ['configs'], refetchType: 'none' });
+    onSuccess: async () => {
+      // ⭐ Refetch ทันทีเพื่อให้ useEffect เห็นค่าใหม่และอัปเดต local state
+      await queryClient.refetchQueries({ queryKey: ['configs'], type: 'active' });
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
