@@ -233,7 +233,10 @@ Deno.serve(async (req) => {
                 console.error(`❌ Missing bank config for branch ${branch_id} - ABORT`);
                 return Response.json({
                     success: false,
-                    message: 'ไม่พบข้อมูลบัญชีธนาคาร กรุณาตั้งค่าในแท็บ "ธนาคาร" ก่อน'
+                    error: 'MISSING_BANK_CONFIG',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
+                    action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
 
