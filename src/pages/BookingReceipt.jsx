@@ -545,7 +545,7 @@ export default function BookingReceiptPage() {
                   <img 
                     src={buildingLogo} 
                     alt={buildingName}
-                    className="h-10 object-contain"
+                    className="h-8 print:h-6 object-contain"
                   />
                 </div>
               )}
@@ -981,6 +981,7 @@ export default function BookingReceiptPage() {
           
           /* Image sizing */
           img { max-width: 100% !important; height: auto !important; }
+          .print\\:h-6 { height: 15mm !important; }
           
           /* Fix inline-block for dotted lines */
           .inline-block { display: inline-block !important; }
