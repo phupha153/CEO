@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   SidebarMenuItem,
   SidebarMenuButton,
@@ -11,12 +12,7 @@ import { ChevronDown } from "lucide-react";
 
 export default function CollapsibleMenuItem({ item }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-
-  const hasActiveSubItem = item.subItems?.some(
-    (sub) => location.pathname === sub.url.split("?")[0]
-  );
 
   return (
     <SidebarMenuItem>
@@ -41,16 +37,18 @@ export default function CollapsibleMenuItem({ item }) {
             const isSubActive = location.pathname === subItem.url.split("?")[0];
             return (
               <SidebarMenuSubItem key={subItem.title}>
-                <SidebarMenuSubButton
-                  onClick={() => navigate(subItem.url)}
-                  className={`cursor-pointer ${
-                    isSubActive
-                      ? "bg-blue-100 text-blue-700 font-medium"
-                      : ""
-                  }`}
-                >
-                  <subItem.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{subItem.title}</span>
+                <SidebarMenuSubButton asChild>
+                  <Link
+                    to={subItem.url}
+                    className={`cursor-pointer ${
+                      isSubActive
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : ""
+                    }`}
+                  >
+                    <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{subItem.title}</span>
+                  </Link>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             );
