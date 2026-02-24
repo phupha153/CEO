@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
-import { FileText } from "lucide-react";
 
 export default function Contracts() {
   const navigate = useNavigate();
