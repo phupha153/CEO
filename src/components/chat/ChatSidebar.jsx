@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, User, MessageCircle, Trash2, Facebook } from "lucide-react";
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInMinutes, differenceInHours, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
 export default function ChatSidebar({ 
@@ -154,20 +154,35 @@ export default function ChatSidebar({
                         </p>
                         <span className="text-xs text-slate-400 flex-shrink-0">
                           {conv.last_message_time && (() => {
-                            const msgDate = new Date(conv.last_message_time);
-                            const now = new Date();
-                            const diffMs = now - msgDate;
-                            const diffMins = Math.floor(diffMs / 60000);
-                            const diffHours = Math.floor(diffMs / 3600000);
-                            const diffDays = Math.floor(diffMs / 86400000);
-                            
-                            if (diffMins < 1) return 'เพิ่งทักมา';
-                            if (diffMins < 60) return `${diffMins} นาที`;
-                            if (diffHours < 12) return `${diffHours} ชั่วโมง`;
-                            if (diffHours < 24) return 'วันนี้';
-                            if (diffDays === 1) return 'เมื่อวาน';
-                            if (diffDays < 7) return `${diffDays} วัน`;
-                            return formatDistanceToNow(msgDate, { addSuffix: false, locale: th });
+                            try {
+                              const msgDate = new Date(conv.last_message_time);
+                              const now = new Date();
+                              
+                              // Debug logging
+                              if (conv.line_user_id?.includes('U')) {
+                                console.log('🕐 Time Debug:', {
+                                  raw: conv.last_message_time,
+                                  msgDate: msgDate.toISOString(),
+                                  now: now.toISOString(),
+                                  diffMin: differenceInMinutes(now, msgDate)
+                                });
+                              }
+                              
+                              const diffMins = differenceInMinutes(now, msgDate);
+                              const diffHours = differenceInHours(now, msgDate);
+                              const diffDays = differenceInDays(now, msgDate);
+                              
+                              if (diffMins < 1) return 'เพิ่งทักมา';
+                              if (diffMins < 60) return `${diffMins} นาที`;
+                              if (diffHours < 12) return `${diffHours} ชั่วโมง`;
+                              if (diffHours < 24) return 'วันนี้';
+                              if (diffDays === 1) return 'เมื่อวาน';
+                              if (diffDays < 7) return `${diffDays} วัน`;
+                              return formatDistanceToNow(msgDate, { addSuffix: false, locale: th });
+                            } catch (error) {
+                              console.error('Time format error:', error);
+                              return '';
+                            }
                           })()}
                         </span>
                       </div>
