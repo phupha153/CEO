@@ -41,6 +41,8 @@ export const templateData = [
   }
 ];
 
+export const templateFilename = 'room_template.xlsx';
+
 export const transformRoomData = (data) => {
   const mapRoomType = { 'รายเดือน': 'monthly', 'รายวัน': 'daily' };
   const mapStatus = { 'ว่าง': 'available', 'มีผู้เช่า': 'occupied', 'จอง': 'reserved' };
