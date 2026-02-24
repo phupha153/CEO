@@ -58,9 +58,6 @@ import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
-import ContractEditor from './pages/ContractEditor';
-import ContractTemplate from './pages/ContractTemplate';
-import Contracts from './pages/Contracts';
 import CronJobDashboard from './pages/CronJobDashboard';
 import CronJobSettings from './pages/CronJobSettings';
 import CustomTestDataGenerator from './pages/CustomTestDataGenerator';
@@ -106,6 +103,9 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import Contracts from './pages/Contracts';
+import ContractTemplate from './pages/ContractTemplate';
+import ContractEditor from './pages/ContractEditor';
 import __Layout from './Layout.jsx';
 
 
@@ -121,9 +121,6 @@ export const PAGES = {
     "Bookings": Bookings,
     "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
-    "ContractEditor": ContractEditor,
-    "ContractTemplate": ContractTemplate,
-    "Contracts": Contracts,
     "CronJobDashboard": CronJobDashboard,
     "CronJobSettings": CronJobSettings,
     "CustomTestDataGenerator": CustomTestDataGenerator,
@@ -169,6 +166,9 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "Contracts": Contracts,
+    "ContractTemplate": ContractTemplate,
+    "ContractEditor": ContractEditor,
 }
 
 export const pagesConfig = {
