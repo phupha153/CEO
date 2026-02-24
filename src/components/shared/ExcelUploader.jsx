@@ -19,13 +19,16 @@ export default function ExcelUploader({
   hideDownloadTemplate = false,
   buttonVariant = "default",
   buttonClassName = "",
-  onImport
+  onImport,
+  useBackendImport = false, // ⭐ NEW: Enable faster backend processing
+  backendImportFunction = '' // ⭐ NEW: Backend function name
 }) {
   const [showDialog, setShowDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [importing, setImporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState(null); // ⭐ Store file URL for backend
 
   const downloadTemplate = () => {
     try {
@@ -114,7 +117,7 @@ export default function ExcelUploader({
         }
       }
 
-      // Step 1: Upload file (for non-Tenant entities)
+      // Step 1: Upload file
       console.log('Uploading file...');
       toast.info('กำลังอัปโหลดไฟล์...');
 
@@ -127,6 +130,17 @@ export default function ExcelUploader({
 
       const fileUrl = uploadResult.file_url;
       console.log('File uploaded to:', fileUrl);
+      setUploadedFileUrl(fileUrl); // ⭐ Store for backend import
+
+      // ⭐ If using backend import, skip extraction and go straight to preview
+      if (useBackendImport && backendImportFunction) {
+        console.log('🚀 Using fast backend import...');
+        setUploading(false);
+        setExtractedData([{ message: 'กดปุ่ม "นำเข้าข้อมูล" เพื่อดำเนินการ' }]);
+        toast.success('อัปโหลดไฟล์สำเร็จ พร้อมนำเข้า');
+        e.target.value = '';
+        return;
+      }
 
       // Step 2: Extract data
       console.log('Extracting data from file...');
@@ -238,6 +252,35 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
+      // ⭐ NEW: Use backend import for faster processing
+      if (useBackendImport && backendImportFunction && uploadedFileUrl) {
+        console.log('🚀 Backend import:', backendImportFunction);
+        const response = await base44.functions.invoke(backendImportFunction, {
+          file_url: uploadedFileUrl,
+          ...additionalData
+        });
+
+        if (response.data.success) {
+          toast.success(
+            response.data.message || `นำเข้าสำเร็จ: ${response.data.imported} รายการ`,
+            { duration: 5000 }
+          );
+          
+          if (response.data.errors && response.data.errors.length > 0) {
+            toast.warning(`ข้าม ${response.data.errors.length} รายการที่มีข้อผิดพลาด`);
+          }
+
+          setShowDialog(false);
+          setExtractedData(null);
+          setUploadedFileUrl(null);
+          setErrorMessage(null);
+          if (onSuccess) onSuccess();
+          return;
+        } else {
+          throw new Error(response.data.error || 'Backend import failed');
+        }
+      }
+
       // ⚡ OPTIMIZATION: Use bulk import function for Tenant entity (10+ records)
       if (entityName === 'Tenant' && extractedData.length >= 10 && additionalData?.branch_id) {
         const response = await base44.functions.invoke('bulkImportTenants', {
