@@ -266,6 +266,7 @@ export default function ContractsTab({
                           size="sm"
                           className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                           onClick={() => handleRenewContract(contract)}
+                          disabled={!isDeveloper}
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
                           ต่อสัญญา
@@ -299,6 +300,7 @@ export default function ContractsTab({
               <Button
                 onClick={() => navigate(createPageUrl('ContractEditor'))}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                disabled={!isDeveloper}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 สร้างสัญญาแรก
@@ -384,7 +386,7 @@ export default function ContractsTab({
             </Button>
             <Button
               onClick={() => renewContractMutation.mutate({ originalContract: selectedContract, months: renewMonths })}
-              disabled={renewContractMutation.isPending}
+              disabled={renewContractMutation.isPending || !isDeveloper}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               {renewContractMutation.isPending ? (
