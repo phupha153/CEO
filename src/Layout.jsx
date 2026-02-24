@@ -37,7 +37,9 @@ import {
         Sparkles,
         Clock,
         Trash2,
-        LogOut
+        LogOut,
+        ChevronDown,
+        MessageCircle
       } from "lucide-react";
 import {
         Sidebar,
@@ -52,6 +54,9 @@ import {
         SidebarFooter,
         SidebarProvider,
         SidebarTrigger,
+        SidebarMenuSub,
+        SidebarMenuSubItem,
+        SidebarMenuSubButton,
       } from "@/components/ui/sidebar";
       import {
         Popover,
@@ -163,11 +168,23 @@ const navigationItems = [
     hideOnMobile: true
   },
   {
-    title: "ช่องทางสื่อสาร",
-    url: createPageUrl("Announcements"),
+    title: "สื่อสาร",
     icon: MessageSquare,
     requiredPermission: "announcements_send",
-    requiredFeature: "announcements_send"
+    requiredFeature: "announcements_send",
+    isCollapsible: true,
+    subItems: [
+      {
+        title: "ข้อความ LINE",
+        url: createPageUrl("Announcements") + "?tab=chat",
+        icon: MessageCircle,
+      },
+      {
+        title: "ส่งประกาศ",
+        url: createPageUrl("Announcements") + "?tab=broadcast",
+        icon: Megaphone,
+      }
+    ]
   },
   {
     title: "ประวัติการจัดการ",
