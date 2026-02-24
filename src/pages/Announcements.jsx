@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook } from "lucide-react";
+import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
