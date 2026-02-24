@@ -189,7 +189,7 @@ export default function TenantsPage() {
   }, [branches, selectedBranchId]);
 
   const userPermissions = currentUser?.permissions || [];
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const isDeveloper = userRole === 'developer';
 
   const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('tenants_view');
