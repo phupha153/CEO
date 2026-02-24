@@ -88,8 +88,8 @@ export default function ContractsTab({
     return filtered;
   }, [contracts, contractSearchQuery, contractStatusFilter, getTenantInfo, getRoomInfo]);
 
-  // แสดงข้อความกำลังปรับปรุง (ซ่อนได้ถ้าเป็น developer)
-  if (showMaintenanceNotice && !isDeveloper) {
+  // ผู้ใช้ทั่วไป - แสดงข้อความกำลังปรับปรุง
+  if (!isDeveloper) {
     return (
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-xl">
         <CardContent className="p-12 text-center relative overflow-hidden">
@@ -108,7 +108,7 @@ export default function ContractsTab({
   }
 
   // Developer - แสดงข้อความพร้อมปุ่มปิด
-  if (showMaintenanceNotice && isDeveloper) {
+  if (showMaintenanceNotice) {
     return (
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-xl">
         <CardContent className="p-12 text-center relative overflow-hidden">
