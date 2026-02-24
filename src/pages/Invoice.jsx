@@ -364,6 +364,9 @@ export default function Invoice() {
           .border { border-width: 0.5pt !important; border-color: #888 !important; }
           .border-b { border-bottom-width: 0.5pt !important; }
           .border-t-2 { border-top-width: 1pt !important; }
+          
+          /* ซ่อน notifications ขณะปริ้น */
+          .sonner-toaster { display: none !important; }
         }
         
         @media screen {
