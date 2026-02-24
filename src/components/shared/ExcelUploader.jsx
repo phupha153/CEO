@@ -424,7 +424,7 @@ export default function ExcelUploader({
 
                   <div className="border rounded-xl overflow-hidden">
                     <div className="bg-slate-50 p-3 border-b">
-                      <h4 className="font-semibold text-slate-800">ตัวอย่างข้อมูล (5 รายการแรก)</h4>
+                      <h4 className="font-semibold text-slate-800">ตัวอย่างข้อมูล</h4>
                     </div>
                     <div className="overflow-x-auto overflow-y-auto max-h-96">
                       <table className="w-full">
