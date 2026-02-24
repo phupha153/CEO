@@ -18,6 +18,22 @@ export default function ContractTemplate() {
   const queryClient = useQueryClient();
   const contractId = searchParams.get('contractId');
   const printRef = useRef(null);
+  const [currentUser, setCurrentUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Failed to get user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getUser();
+  }, []);
 
   const [formData, setFormData] = useState({
     contract_no: '',
