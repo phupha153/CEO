@@ -299,6 +299,32 @@ export default function ExcelUploader({
         }
       }
 
+      // ⚠️ Fallback for backend import without csvText (shouldn't happen but handle gracefully)
+      if (useBackendImport && backendImportFunction && !csvText && uploadedFileUrl) {
+        console.warn('⚠️ csvText not found, falling back to fetch from URL');
+        const fileResponse = await fetch(uploadedFileUrl);
+        const fetchedCsvText = await fileResponse.text();
+        
+        const response = await base44.functions.invoke(backendImportFunction, {
+          csv_text: fetchedCsvText,
+          ...additionalData,
+          preview_only: false
+        });
+
+        if (response.data.success) {
+          toast.success(response.data.message || `นำเข้าสำเร็จ: ${response.data.imported} รายการ`);
+          setShowDialog(false);
+          setExtractedData(null);
+          setUploadedFileUrl(null);
+          setCsvText(null);
+          setErrorMessage(null);
+          if (onSuccess) onSuccess();
+          return;
+        } else {
+          throw new Error(response.data.error || 'Backend import failed');
+        }
+      }
+
       // ⚡ OPTIMIZATION: Use bulk import function for Tenant entity (10+ records)
       if (entityName === 'Tenant' && extractedData.length >= 10 && additionalData?.branch_id) {
         const response = await base44.functions.invoke('bulkImportTenants', {
