@@ -2,9 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import * as XLSX from 'npm:xlsx@0.18.5';
 
 /**
- * ⭐ Fast Room Import (Excel/CSV) - NO AI EXTRACTION
- * Direct file parsing for 10x faster imports
- * Handles all data transformation and validation server-side
+ * ⭐ Fast Room Import (Excel/CSV) - Direct CSV Parsing
+ * Supports both CSV text (preview) and pre-transformed data (import)
+ * 10x faster than AI extraction
  */
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -19,55 +19,86 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url, branch_id, preview_only } = await req.json();
+    const { csv_text, data, branch_id, preview_only } = await req.json();
 
-    if (!file_url || !branch_id) {
-      return Response.json(
-        { error: 'Missing file_url or branch_id' },
-        { status: 400 }
-      );
+    if (!branch_id) {
+      return Response.json({ error: 'Missing branch_id' }, { status: 400 });
     }
 
-    console.log('🏠 Starting FAST room import:', { file_url, branch_id, preview_only });
-
-    // ⭐ STEP 1: Download and parse Excel/CSV directly (NO AI)
-    console.log('📥 Downloading file from:', file_url);
-    const fileResponse = await fetch(file_url);
-    if (!fileResponse.ok) {
-      throw new Error(`Failed to download file: ${fileResponse.statusText}`);
-    }
-
-    const fileBuffer = await fileResponse.arrayBuffer();
-    console.log('📊 File size:', fileBuffer.byteLength, 'bytes');
-
-    // Parse Excel/CSV with XLSX library
-    const workbook = XLSX.read(fileBuffer, { type: 'array' });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rawData = XLSX.utils.sheet_to_json(firstSheet);
-
-    console.log(`✅ Parsed ${rawData.length} rows from Excel/CSV`);
-
-    // ⭐ STEP 2: Clean headers (remove BOM, ZWNBSP, etc.)
-    const cleanedData = rawData.map(row => {
-      const cleanRow = {};
-      Object.keys(row).forEach(key => {
-        const cleanKey = key
-          .replace(/^\ufeff/, '')      // BOM
-          .replace(/\u200b/g, '')      // Zero-Width Space
-          .replace(/\t/g, ' ')         // Tab → Space
-          .trim();
-        cleanRow[cleanKey] = row[key];
+    // ⭐ MODE 1: Import already-transformed data (from preview)
+    if (!preview_only && data && Array.isArray(data)) {
+      console.log(`💾 Direct import mode: ${data.length} rooms`);
+      
+      const createdRooms = await base44.entities.Room.bulkCreate(data);
+      
+      return Response.json({
+        success: true,
+        imported: createdRooms.length,
+        message: `นำเข้าข้อมูลสำเร็จ: ${createdRooms.length} ห้อง`
       });
-      return cleanRow;
-    });
+    }
 
-    // ⭐ STEP 3: Transform data (ported from RoomImportConfig.jsx)
-    const transformedRooms = cleanedData.map(row => {
+    // ⭐ MODE 2: Parse CSV and return preview
+    if (!csv_text) {
+      return Response.json({ error: 'Missing csv_text or data' }, { status: 400 });
+    }
+
+    console.log('🏠 CSV parsing mode:', { branch_id, csv_length: csv_text.length });
+
+    // Parse CSV/TSV with flexible delimiter detection
+    const lines = csv_text.trim().split('\n');
+    if (lines.length < 2) {
+      return Response.json({ error: 'CSV must have headers and data' }, { status: 400 });
+    }
+
+    // Detect delimiter (tab or comma)
+    const delimiter = lines[0].includes('\t') ? '\t' : ',';
+    console.log('🔍 Delimiter detected:', delimiter === '\t' ? 'TAB' : 'COMMA');
+    
+    // Parse headers - Clean BOM, ZWNBSP, tabs, spaces
+    const headers = lines[0]
+      .split(delimiter)
+      .map(h => h
+        .replace(/^\ufeff/, '')
+        .replace(/\u200b/g, '')
+        .replace(/\t/g, ' ')
+        .replace(/"/g, '')
+        .trim()
+      );
+
+    console.log('📋 Headers:', headers);
+
+    // Parse data rows
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const values = line.split(delimiter).map(v => v.replace(/"/g, '').trim());
+      const record = {};
+      
+      headers.forEach((header, idx) => {
+        record[header] = values[idx] || '';
+      });
+
+      // Skip empty rows
+      const hasData = Object.values(record).some(v => v && v !== '-' && String(v).trim() !== '');
+      if (!hasData) continue;
+
+      rows.push(record);
+    }
+
+    console.log(`📊 Parsed ${rows.length} records`);
+
+    // ⭐ Transform data
+    const transformedRooms = rows.map(row => {
       const room = {
         branch_id: branch_id,
-        room_number: String(row['เลขห้อง'] || '').trim(),
+        room_number: String(row['หมายเลขห้อง'] || row['เลขห้อง'] || '').trim(),
         floor: parseInt(row['ชั้น']) || 1,
-        status: 'available'
+        status: String(row['สถานะ'] || 'available').toLowerCase() === 'ว่าง' ? 'available' : 
+                String(row['สถานะ'] || 'available').toLowerCase() === 'มีผู้เช่า' ? 'occupied' : 
+                String(row['สถานะ'] || 'available').toLowerCase()
       };
 
       // Room type mapping
@@ -80,43 +111,31 @@ Deno.serve(async (req) => {
         room.room_type = 'monthly'; // Default
       }
 
-      // Price
-      if (row['ราคาห้อง']) {
+      // Price - รองรับทั้ง "ราคา" และ "ราคาห้อง"
+      if (row['ราคา']) {
+        room.price = parseFloat(row['ราคา']);
+      } else if (row['ราคาห้อง']) {
         room.price = parseFloat(row['ราคาห้อง']);
       }
 
       // Water rate - flat or per unit
-      const isFlatRateWater = String(row['ค่าน้ำเหมา'] || '').toLowerCase();
-      if (isFlatRateWater === 'ใช่' || isFlatRateWater === 'yes' || isFlatRateWater === 'เหมา') {
+      const isFlatRateWater = String(row['ค่าน้ำเหมา'] || 'ไม่ใช่').toLowerCase();
+      if (isFlatRateWater === 'ใช่' || isFlatRateWater === 'yes' || isFlatRateWater === 'เหมา' || isFlatRateWater === 'true') {
         room.is_flat_rate_water = true;
-        room.flat_rate_water_amount = parseFloat(row['จำนวนเงินค่าน้ำเหมา']) || 0;
+        room.flat_rate_water_amount = parseFloat(row['จำนวนค่าน้ำเหมา'] || row['จำนวนเงินค่าน้ำเหมา']) || 0;
       } else {
         room.is_flat_rate_water = false;
-        room.water_rate = parseFloat(row['ค่าน้ำต่อหน่วย']) || 0;
+        room.water_rate = parseFloat(row['ค่าน้ำต่อหน่วย']) || null;
       }
 
       // Electricity rate - flat or per unit
-      const isFlatRateElec = String(row['ค่าไฟเหมา'] || '').toLowerCase();
-      if (isFlatRateElec === 'ใช่' || isFlatRateElec === 'yes' || isFlatRateElec === 'เหมา') {
+      const isFlatRateElec = String(row['ค่าไฟเหมา'] || 'ไม่ใช่').toLowerCase();
+      if (isFlatRateElec === 'ใช่' || isFlatRateElec === 'yes' || isFlatRateElec === 'เหมา' || isFlatRateElec === 'true') {
         room.is_flat_rate_electricity = true;
-        room.flat_rate_electricity_amount = parseFloat(row['จำนวนเงินค่าไฟเหมา']) || 0;
+        room.flat_rate_electricity_amount = parseFloat(row['จำนวนค่าไฟเหมา'] || row['จำนวนเงินค่าไฟเหมา']) || 0;
       } else {
         room.is_flat_rate_electricity = false;
-        room.electricity_rate = parseFloat(row['ค่าไฟต่อหน่วย']) || 0;
-      }
-
-      // Minimum charges
-      if (row['ค่าน้ำขั้นต่ำ (หน่วย)']) {
-        room.min_water_units = parseFloat(row['ค่าน้ำขั้นต่ำ (หน่วย)']);
-      }
-      if (row['ค่าน้ำขั้นต่ำ (บาท)']) {
-        room.min_water_charge = parseFloat(row['ค่าน้ำขั้นต่ำ (บาท)']);
-      }
-      if (row['ค่าไฟขั้นต่ำ (หน่วย)']) {
-        room.min_electricity_units = parseFloat(row['ค่าไฟขั้นต่ำ (หน่วย)']);
-      }
-      if (row['ค่าไฟขั้นต่ำ (บาท)']) {
-        room.min_electricity_charge = parseFloat(row['ค่าไฟขั้นต่ำ (บาท)']);
+        room.electricity_rate = parseFloat(row['ค่าไฟต่อหน่วย']) || null;
       }
 
       // Common fee
@@ -124,56 +143,23 @@ Deno.serve(async (req) => {
         room.common_fee = parseFloat(row['ค่าส่วนกลาง']);
       }
 
-      // Other monthly fees (parse JSON string or comma-separated)
-      if (row['ค่าใช้จ่ายอื่นๆ']) {
-        const otherFeesStr = String(row['ค่าใช้จ่ายอื่นๆ']).trim();
-        if (otherFeesStr && otherFeesStr !== '-') {
-          try {
-            // Try parsing as JSON first
-            room.other_monthly_fees = JSON.parse(otherFeesStr);
-          } catch {
-            // Parse comma-separated: "ค่าอินเทอร์เน็ต:200, ค่าจอดรถ:300"
-            const fees = [];
-            const items = otherFeesStr.split(',');
-            for (const item of items) {
-              const [name, amount] = item.split(':').map(s => s.trim());
-              if (name && amount) {
-                fees.push({ name, amount: parseFloat(amount) || 0 });
-              }
-            }
-            if (fees.length > 0) {
-              room.other_monthly_fees = fees;
-            }
-          }
-        }
-      }
-
       // Size
-      if (row['ขนาดห้อง']) {
-        room.size = parseFloat(row['ขนาดห้อง']);
-      }
-
-      // Amenities (parse comma-separated or JSON array)
-      if (row['สิ่งอำนวยความสะดวก']) {
-        const amenitiesStr = String(row['สิ่งอำนวยความสะดวก']).trim();
-        if (amenitiesStr && amenitiesStr !== '-') {
-          try {
-            room.amenities = JSON.parse(amenitiesStr);
-          } catch {
-            room.amenities = amenitiesStr.split(',').map(a => a.trim()).filter(a => a);
-          }
-        }
+      if (row['ขนาด']) {
+        room.size = parseFloat(row['ขนาด']);
       }
 
       // Description
-      if (row['รายละเอียดห้อง']) {
-        room.description = String(row['รายละเอียดห้อง']).trim();
+      if (row['รายละเอียด']) {
+        room.description = String(row['รายละเอียด']).trim();
       }
 
       return room;
     });
 
     console.log('✅ Transformed rooms:', transformedRooms.length);
+    if (transformedRooms.length > 0) {
+      console.log('Sample room:', JSON.stringify(transformedRooms[0], null, 2));
+    }
 
     // ⭐ STEP 4: Validate required fields
     const validRooms = [];
@@ -181,31 +167,35 @@ Deno.serve(async (req) => {
 
     for (let i = 0; i < transformedRooms.length; i++) {
       const room = transformedRooms[i];
-      const rowNum = i + 2; // Excel row number (header = 1)
+      const rowNum = i + 2;
 
       // Required fields validation
       if (!room.room_number || !room.floor || !room.room_type || !room.price) {
         errors.push({
           row: rowNum,
           room_number: room.room_number || '(ไม่ระบุ)',
-          error: 'ข้อมูลไม่ครบ: ต้องมี เลขห้อง, ชั้น, ประเภทห้อง, และราคาห้อง'
+          error: 'ข้อมูลไม่ครบ: ต้องมี หมายเลขห้อง, ชั้น, ประเภทห้อง, และราคา'
         });
+        console.warn(`❌ Row ${rowNum} validation failed:`, room);
         continue;
       }
 
       validRooms.push(room);
     }
 
+    console.log(`✅ Valid rooms: ${validRooms.length}, Errors: ${errors.length}`);
+
     if (validRooms.length === 0) {
       return Response.json({
+        success: false,
         error: 'ไม่มีข้อมูลห้องพักที่ถูกต้อง',
         errors: errors
       }, { status: 400 });
     }
 
-    // ⭐ NEW: If preview_only, return data for user to confirm
+    // ⭐ Preview mode - return data for user to confirm
     if (preview_only) {
-      console.log('👁️ Preview mode - returning data without importing');
+      console.log('👁️ Preview mode - returning data');
       return Response.json({
         success: true,
         data: validRooms,
@@ -216,12 +206,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ⭐ STEP 5: Bulk create rooms (only if NOT preview_only)
+    // ⭐ Import mode - should not reach here (we use direct import mode now)
     console.log(`💾 Importing ${validRooms.length} rooms to database...`);
-    
     const createdRooms = await base44.entities.Room.bulkCreate(validRooms);
-
-    console.log('✅ Import completed:', createdRooms.length, 'rooms');
 
     return Response.json({
       success: true,

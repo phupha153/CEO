@@ -117,7 +117,31 @@ export default function ExcelUploader({
         }
       }
 
-      // Step 1: Upload file
+      // ⭐ NEW: Use direct CSV parsing for Room (same as Tenant)
+      if (useBackendImport && backendImportFunction) {
+        console.log('🚀 Using FAST backend import with CSV text...');
+        toast.info('กำลังอ่านข้อมูลจากไฟล์...');
+
+        const previewResult = await base44.functions.invoke(backendImportFunction, {
+          csv_text,
+          branch_id: additionalData?.branch_id,
+          preview_only: true
+        });
+
+        console.log('Preview result:', previewResult.data);
+
+        if (previewResult.data.success && previewResult.data.data) {
+          setUploading(false);
+          setExtractedData(previewResult.data.data);
+          toast.success(previewResult.data.message || `พบข้อมูล ${previewResult.data.data.length} รายการ`);
+          e.target.value = '';
+          return;
+        } else {
+          throw new Error(previewResult.data.error || 'ไม่สามารถอ่านข้อมูลได้');
+        }
+      }
+
+      // Step 1: Upload file (for old method)
       console.log('Uploading file...');
       toast.info('กำลังอัปโหลดไฟล์...');
 
@@ -131,28 +155,6 @@ export default function ExcelUploader({
       const fileUrl = uploadResult.file_url;
       console.log('File uploaded to:', fileUrl);
       setUploadedFileUrl(fileUrl); // ⭐ Store for backend import
-
-      // ⭐ If using backend import, call preview first
-      if (useBackendImport && backendImportFunction) {
-        console.log('🚀 Using backend import with preview...');
-        toast.info('กำลังอ่านข้อมูลจากไฟล์...');
-
-        const previewResult = await base44.functions.invoke(backendImportFunction, {
-          file_url: fileUrl,
-          branch_id: additionalData?.branch_id,
-          preview_only: true
-        });
-
-        if (previewResult.data.success && previewResult.data.data) {
-          setUploading(false);
-          setExtractedData(previewResult.data.data);
-          toast.success(previewResult.data.message || `พบข้อมูล ${previewResult.data.data.length} รายการ`);
-          e.target.value = '';
-          return;
-        } else {
-          throw new Error(previewResult.data.error || 'ไม่สามารถอ่านข้อมูลได้');
-        }
-      }
 
       // Step 2: Extract data
       console.log('Extracting data from file...');
@@ -264,12 +266,15 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
-      // ⭐ NEW: Use backend import for faster processing (without preview_only)
-      if (useBackendImport && backendImportFunction && uploadedFileUrl) {
-        console.log('🚀 Backend import (final):', backendImportFunction);
+      // ⭐ NEW: Use backend import for faster processing (re-send csv_text for actual import)
+      if (useBackendImport && backendImportFunction) {
+        console.log('🚀 Backend import (final - no preview):', backendImportFunction);
+        
+        // Note: extractedData already contains the transformed data from preview
+        // We need to call the backend again with preview_only=false
         const response = await base44.functions.invoke(backendImportFunction, {
-          file_url: uploadedFileUrl,
-          ...additionalData,
+          data: extractedData, // Send the already-transformed data
+          branch_id: additionalData?.branch_id,
           preview_only: false
         });
 

@@ -1,4 +1,5 @@
 // Room Import Configuration - Schema & Template Data
+// ⚠️ NOT USED when useBackendImport=true (backend parses directly)
 export const roomSchema = {
   type: "object",
   properties: {
