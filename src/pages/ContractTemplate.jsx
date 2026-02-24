@@ -222,6 +222,7 @@ export default function ContractTemplate() {
 
   // Developer check - must be explicit role check
   const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
+  console.log('🔍 ContractTemplate Check:', { currentUser: currentUser?.email, role: currentUser?.role, custom_role: currentUser?.custom_role, isDeveloper });
 
   if (!isDeveloper) {
     return (
