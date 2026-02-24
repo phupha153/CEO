@@ -1593,7 +1593,7 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMM yy', { locale: th }) : '-'}
+                               {safeFormatDate(payment.payment_date, 'd MMM yy', { locale: th })}
                               </td>
                               <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
@@ -1737,7 +1737,7 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yy', { locale: th }) : '-'}
+                               {safeFormatDate(payment.due_date, 'd MMM yy', { locale: th })}
                               </td>
                               <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
@@ -1827,10 +1827,10 @@ export default function AccountingData() {
                               <td className="px-4 py-3 text-sm">{tenant?.full_name || booking.guest_name || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || booking.guest_phone || '-'}</td>
                               <td className="px-4 py-3 text-sm">
-                                {booking.check_in_date ? format(parseISO(booking.check_in_date), 'd MMM yy', { locale: th }) : '-'}
+                               {safeFormatDate(booking.check_in_date, 'd MMM yy', { locale: th })}
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                {booking.check_out_date ? format(parseISO(booking.check_out_date), 'd MMM yy', { locale: th }) : '-'}
+                               {safeFormatDate(booking.check_out_date, 'd MMM yy', { locale: th })}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
@@ -1932,7 +1932,7 @@ export default function AccountingData() {
                               <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm">
-                                {booking.check_in_date ? format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th }) : '-'}
+                               {safeFormatDate(booking.check_in_date, 'd MMM yyyy', { locale: th })}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-bold text-blue-600">
                                 {(booking.deposit_amount || 0).toLocaleString()} ฿
@@ -2004,7 +2004,7 @@ export default function AccountingData() {
                         {filteredExpenses.map((expense) => (
                           <tr key={expense.id} className="hover:bg-slate-50">
                             <td className="px-4 py-3 text-sm">
-                              {expense.date ? format(parseISO(expense.date), 'd MMM yy', { locale: th }) : '-'}
+                              {safeFormatDate(expense.date, 'd MMM yy', { locale: th })}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium">{expense.title || '-'}</td>
                             <td className="px-4 py-3 text-sm">
@@ -2067,8 +2067,8 @@ export default function AccountingData() {
                           </p>
                           <p className="text-xs text-slate-500">
                             {activeTab === 'invoices' 
-                              ? (payment.due_date ? `ครบกำหนด: ${format(parseISO(payment.due_date), 'd MMMM yyyy', { locale: th })}` : 'N/A')
-                              : (payment.payment_date ? format(parseISO(payment.payment_date), 'd MMMM yyyy', { locale: th }) : 'N/A')
+                              ? (payment.due_date ? `ครบกำหนด: ${safeFormatDate(payment.due_date, 'd MMMM yyyy', { locale: th })}` : 'N/A')
+                              : (payment.payment_date ? safeFormatDate(payment.payment_date, 'd MMMM yyyy', { locale: th }) : 'N/A')
                             }
                           </p>
                         </div>
