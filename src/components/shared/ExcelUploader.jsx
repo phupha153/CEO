@@ -28,7 +28,8 @@ export default function ExcelUploader({
   const [extractedData, setExtractedData] = useState(null);
   const [importing, setImporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState(null); // ⭐ Store file URL for backend
+  const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
+  const [csvText, setCsvText] = useState(null); // ⭐ Store CSV text for fast backend import
 
   const downloadTemplate = () => {
     try {
@@ -136,6 +137,8 @@ export default function ExcelUploader({
       if (useBackendImport && backendImportFunction) {
         console.log('⚡ Fast backend parsing...');
         toast.info('กำลังประมวลผลข้อมูล...');
+        
+        setCsvText(csv_text); // ⭐ Store for final import
 
         const previewResult = await base44.functions.invoke(backendImportFunction, {
           csv_text: csv_text,
@@ -264,16 +267,12 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
-      // ⭐ Backend import (final) - use CSV text stored in component state
-      if (useBackendImport && backendImportFunction) {
+      // ⭐ Backend import (final) - use CSV text from state
+      if (useBackendImport && backendImportFunction && csvText) {
         console.log('⚡ Fast backend import (final)');
         
-        // We need csv_text - read from uploaded file
-        const fileResponse = await fetch(uploadedFileUrl);
-        const csv_text = await fileResponse.text();
-        
         const response = await base44.functions.invoke(backendImportFunction, {
-          csv_text: csv_text,
+          csv_text: csvText,
           ...additionalData,
           preview_only: false
         });
@@ -291,6 +290,7 @@ export default function ExcelUploader({
           setShowDialog(false);
           setExtractedData(null);
           setUploadedFileUrl(null);
+          setCsvText(null);
           setErrorMessage(null);
           if (onSuccess) onSuccess();
           return;
