@@ -3667,7 +3667,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       <div>
                                         <Label className="text-slate-600">วันเช็คอิน</Label>
                                         <p className="font-semibold text-slate-800">
-                                          {format(parseISO(displayBooking.check_in_date), 'd MMM yyyy', { locale: th })}
+                                          {(() => { try { const d = parseISO(displayBooking.check_in_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                                         </p>
                                       </div>
                                     )}
@@ -3675,7 +3675,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       <div>
                                         <Label className="text-slate-600">เข้าพักจริง</Label>
                                         <p className="font-semibold text-green-700">
-                                          {format(parseISO(displayBooking.actual_check_in_date), 'd MMM yyyy', { locale: th })}
+                                          {(() => { try { const d = parseISO(displayBooking.actual_check_in_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                                         </p>
                                       </div>
                                     )}
@@ -3683,7 +3683,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       <div>
                                         <Label className="text-slate-600">วันเช็คเอาท์</Label>
                                         <p className="font-semibold text-slate-800">
-                                          {format(parseISO(displayBooking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                          {(() => { try { const d = parseISO(displayBooking.check_out_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                                         </p>
                                       </div>
                                     )}
@@ -3722,8 +3722,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       {tenant.line_id && <div><Label className="text-slate-600">LINE ID</Label><p className="font-semibold">{tenant.line_id}</p></div>}
                                       {tenant.email && <div><Label className="text-slate-600">อีเมล</Label><p className="font-semibold">{tenant.email}</p></div>}
                                       {tenant.national_id && <div><Label className="text-slate-600">เลขบัตรประชาชน</Label><p className="font-semibold">{tenant.national_id}</p></div>}
-                                      {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
-                                      {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
+                                      {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{(() => { try { const d = parseISO(booking.check_in_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}</p></div>}
+                                      {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{(() => { try { const d = parseISO(booking.check_out_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -3771,13 +3771,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   <div key={payment.id} className="bg-white rounded-lg p-3 border border-green-200 shadow-sm">
                                     <div className="flex justify-between items-center text-sm">
                                       <span className="font-semibold text-slate-700">
-                                        {format(parseISO(payment.payment_date), 'd MMM yyyy', { locale: th })}
+                                        {(() => { try { const d = parseISO(payment.payment_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                                       </span>
                                       <span className="font-bold text-green-700">
                                         {payment.total_amount?.toLocaleString()} ฿
                                       </span>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1">ครบกำหนด: {format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th })}</p>
+                                    <p className="text-xs text-slate-500 mt-1">ครบกำหนด: {(() => { try { const d = parseISO(payment.due_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}</p>
                                   </div>
                                 ))}
                               </div>
@@ -3801,8 +3801,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   <div key={reading.id} className="bg-white rounded-lg p-3 border border-purple-200 shadow-sm">
                                     <div className="flex justify-between items-center text-sm mb-2">
                                        <span className="font-semibold text-slate-700">
-                                        {format(parseISO(reading.reading_date), 'd MMMM yyyy', { locale: th })}
-                                      </span>
+                                        {(() => { try { const d = parseISO(reading.reading_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMMM yyyy', { locale: th }); } catch { return '-'; } })()}
+                                       </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
                                         <p>💧 ค่าน้ำ: <span className="font-semibold text-blue-700">{reading.water_units || 0}</span> หน่วย</p>
@@ -3838,7 +3838,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           <div>
                                             <p className="font-semibold text-slate-800">{request.title}</p>
                                             <p className="text-xs text-slate-500 mt-1">
-                                              {format(parseISO(request.created_date), 'd MMM yyyy', { locale: th })}
+                                              {(() => { try { const d = parseISO(request.created_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                                             </p>
                                           </div>
                                           <Badge className={`text-xs flex-shrink-0 ${
@@ -4772,7 +4772,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               <div className="bg-slate-50 p-4 rounded-lg space-y-2 border">
                 <p className="text-sm"><span className="text-slate-600">ห้อง:</span> <span className="font-semibold">{selectedRoom?.room_number}</span></p>
                 <p className="text-sm"><span className="text-slate-600">ผู้เช่า:</span> <span className="font-semibold">{getTenantInfo(renewBooking.tenant_id)?.full_name}</span></p>
-                <p className="text-sm"><span className="text-slate-600">วันหมดอายุเดิม:</span> <span className="font-semibold">{format(parseISO(renewBooking.check_out_date), 'd MMM yyyy', { locale: th })}</span></p>
+                <p className="text-sm"><span className="text-slate-600">วันหมดอายุเดิม:</span> <span className="font-semibold">{(() => { try { const d = parseISO(renewBooking.check_out_date); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}</span></p>
               </div>
 
               <div>
@@ -4892,7 +4892,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     <p><span className="text-slate-600">ห้อง:</span> <span className="font-semibold">{connectingRoom?.room_number} (ชั้น {connectingRoom?.floor})</span></p>
                     <p><span className="text-slate-600">ราคา:</span> <span className="font-semibold">{connectingRoom?.price?.toLocaleString()} บาท/{connectingRoom?.room_type === 'monthly' ? 'เดือน' : 'วัน'}</span></p>
                     <p><span className="text-slate-600">ระยะเวลา:</span> <span className="font-semibold">
-                      {format(parseISO(connectCheckInDate), 'd MMM yyyy', { locale: th })} - {format(parseISO(connectCheckOutDate), 'd MMM yyyy', { locale: th })}
+                      {(() => { try { const d = parseISO(connectCheckInDate); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()} - {(() => { try { const d = parseISO(connectCheckOutDate); return isNaN(d.getTime()) ? '-' : format(d, 'd MMM yyyy', { locale: th }); } catch { return '-'; } })()}
                     </span></p>
                   </div>
                 </CardContent>
