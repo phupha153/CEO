@@ -30,6 +30,7 @@ export default function ContractsTab({
   const [renewDialogOpen, setRenewDialogOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [renewMonths, setRenewMonths] = useState(12);
+  const [showMaintenanceNotice, setShowMaintenanceNotice] = useState(true);
 
   const getContractStatusBadge = (status) => {
     const configs = {
@@ -87,8 +88,8 @@ export default function ContractsTab({
     return filtered;
   }, [contracts, contractSearchQuery, contractStatusFilter, getTenantInfo, getRoomInfo]);
 
-  // ผู้ใช้ทั่วไป - แสดงข้อความกำลังปรับปรุง
-  if (!isDeveloper) {
+  // แสดงข้อความกำลังปรับปรุง (ซ่อนได้ถ้าเป็น developer)
+  if (showMaintenanceNotice && !isDeveloper) {
     return (
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-xl">
         <CardContent className="p-12 text-center relative overflow-hidden">
@@ -100,6 +101,35 @@ export default function ContractsTab({
             <h3 className="text-2xl font-bold text-slate-800 mb-3">🚧 กำลังปรับปรุง</h3>
             <p className="text-slate-600 mb-2">หน้าสัญญาเช่ากำลังอยู่ระหว่างการพัฒนา</p>
             <p className="text-sm text-slate-500">เร็วๆ นี้...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Developer - แสดงข้อความพร้อมปุ่มปิด
+  if (showMaintenanceNotice && isDeveloper) {
+    return (
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-xl">
+        <CardContent className="p-12 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-orange-400/10" />
+          <div className="relative z-10">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+              <Sparkles className="w-12 h-12 text-white animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-800 mb-3">🚧 กำลังปรับปรุง</h3>
+            <p className="text-slate-600 mb-2">หน้าสัญญาเช่ากำลังอยู่ระหว่างการพัฒนา</p>
+            <p className="text-sm text-slate-500 mb-6">เร็วๆ นี้...</p>
+            
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => setShowMaintenanceNotice(false)}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                เข้าสู่หน้าสัญญา (Developer)
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
