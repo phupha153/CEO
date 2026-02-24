@@ -2241,27 +2241,27 @@ const tenantSchema = {
     toast.success('ดาวน์โหลดข้อมูลผู้เช่าสำเร็จ (Excel)');
     };
 
-  // ⭐ จุดแก้ไข: เปลี่ยนฟังก์ชันนี้ใหม่ทั้งหมด เพื่อให้รับไฟล์จาก Google Sheets ได้
-  const handleTenantImport = async (importedData) => {
-    if (!selectedBranchId) throw new Error('ไม่พบสาขา');
+    // ⭐ จุดแก้ไข: เปลี่ยนฟังก์ชันนี้ใหม่ทั้งหมด เพื่อให้รับไฟล์จาก Google Sheets ได้
+    const handleTenantImport = async (importedData) => {
+    if (!selectedBranchId) throw new Error('ไม่พบสาขา');
 
-    // ✅ ไม่ต้องทำความสะอาดอีก - ExcelUploader ทำให้แล้ว
-    const cleanData = importedData;
+    // ✅ ไม่ต้องทำความสะอาดอีก - ExcelUploader ทำให้แล้ว
+    const cleanData = importedData;
 
-    // Fetch rooms for validation
-    const branchRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
-    const existingTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
-    const existingBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId, booking_type: 'monthly' }, '-created_date', 1000);
+    // Fetch rooms for validation
+    const branchRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
+    const existingTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
+    const existingBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId, booking_type: 'monthly' }, '-created_date', 1000);
 
-    let updatedCount = 0;
-    let createdCount = 0;
-    let skippedCount = 0;
-    let bookingUpdatedCount = 0;
-    let bookingFixedCount = 0;
+    let updatedCount = 0;
+    let createdCount = 0;
+    let skippedCount = 0;
+    let bookingUpdatedCount = 0;
+    let bookingFixedCount = 0;
 
-    // ⭐ Loop ผ่านข้อมูลที่ล้างสะอาดแล้ว
-    for (const record of cleanData) {
-      console.log('🔍 [CSV Import] Processing record:', record);
+    // ⭐ Loop ผ่านข้อมูลที่ล้างสะอาดแล้ว
+    for (const record of cleanData) {
+      console.log('🔍 [Excel Import] Processing record:', record);
       
       // ดึงข้อมูล (รองรับทั้งภาษาไทยและอังกฤษ) + แปลงตัวเลขให้เป็น string
       const tenantId = record.id || record['รหัส'];
@@ -2314,7 +2314,7 @@ const tenantSchema = {
         branch_id: selectedBranchId
       };
       
-      console.log('📝 [CSV] Tenant data prepared:', tenantData);
+      console.log('📝 [Excel] Tenant data prepared:', tenantData);
 
       let finalTenant;
       if (existingTenant) {
@@ -2337,7 +2337,7 @@ const tenantSchema = {
         if (!room) {
           console.warn(`⚠️ Room not found: ${roomNumStr} - Skipping booking creation`);
         } else {
-          console.log('✅ [CSV] Found room:', room.room_number, 'Creating booking...');
+          console.log('✅ [Excel] Found room:', room.room_number, 'Creating booking...');
           
           // ✅ SAFE DATE PARSING: รองรับหลายรูปแบบ (YYYY-MM-DD, DD/MM/YYYY, Excel serial)
           const parseDate = (dateValue) => {

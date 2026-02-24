@@ -1737,7 +1737,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
   };
 
-  const { roomSchema, templateData, transformRoomData } = require('../components/rooms/RoomImportConfig');
+  const { roomSchema, templateData, transformRoomData, templateFilename } = require('../components/rooms/RoomImportConfig');
 
 
 

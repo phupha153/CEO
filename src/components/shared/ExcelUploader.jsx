@@ -335,7 +335,7 @@ export default function ExcelUploader({
           className={buttonClassName || "gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"}
         >
           <Upload className="w-4 h-4" />
-          อัปโหลด CSV
+          อัปโหลด Excel
         </Button>
       </div>
 
@@ -344,7 +344,7 @@ export default function ExcelUploader({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5" />
-              นำเข้าข้อมูลจาก CSV / Excel
+              นำเข้าข้อมูลจาก Excel
             </DialogTitle>
           </DialogHeader>
 
@@ -354,7 +354,7 @@ export default function ExcelUploader({
               <div className="text-sm text-amber-800">
                 <p className="font-semibold mb-1">ข้อควรทราบ:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>ระบบรองรับไฟล์ <strong>CSV (.csv)</strong> และ <strong>Excel (.xlsx)</strong></li>
+                  <li>ระบบรองรับไฟล์ <strong>Excel (.xlsx)</strong> และ <strong>CSV (.csv)</strong></li>
                   <li>ควรดาวน์โหลด Template และกรอกข้อมูลตามรูปแบบที่กำหนด</li>
                   <li>ตรวจสอบให้แน่ใจว่าข้อมูลครบถ้วนและถูกต้องก่อนอัปโหลด</li>
                 </ul>
@@ -385,7 +385,7 @@ export default function ExcelUploader({
                       {uploading ? 'กำลังอ่านไฟล์...' : 'คลิกเพื่อเลือกไฟล์'}
                     </p>
                     <p className="text-sm text-slate-500 mt-1">
-                      รองรับ CSV (.csv) และ Excel (.xlsx)
+                      รองรับ Excel (.xlsx) และ CSV (.csv)
                     </p>
                   </div>
                 </div>

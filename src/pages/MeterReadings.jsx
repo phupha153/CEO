@@ -325,7 +325,7 @@ export default function MeterReadings() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `บันทึกมิเตอร์_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `บันทึกมิเตอร์_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -461,7 +461,7 @@ export default function MeterReadings() {
             water_units: item.waterUnits,
             electricity_units: item.electricityUnits,
             branch_id: selectedBranchId,
-            notes: 'นำเข้าจาก CSV'
+            notes: 'นำเข้าจาก Excel'
           });
           successCount++;
         } catch (e) {
