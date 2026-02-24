@@ -25,7 +25,9 @@ export default function Contracts() {
   const { data: currentUser, isLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
