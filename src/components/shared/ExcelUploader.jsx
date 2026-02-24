@@ -132,13 +132,13 @@ export default function ExcelUploader({
       console.log('File uploaded to:', fileUrl);
       setUploadedFileUrl(fileUrl); // ⭐ Store for backend import
 
-      // ⭐ If using backend import, call preview first
+      // ⭐ If using backend import, send CSV text directly (NO AI - super fast!)
       if (useBackendImport && backendImportFunction) {
-        console.log('🚀 Using backend import with preview...');
-        toast.info('กำลังอ่านข้อมูลจากไฟล์...');
+        console.log('⚡ Fast backend parsing...');
+        toast.info('กำลังประมวลผลข้อมูล...');
 
         const previewResult = await base44.functions.invoke(backendImportFunction, {
-          file_url: fileUrl,
+          csv_text: csv_text,
           branch_id: additionalData?.branch_id,
           preview_only: true
         });
@@ -264,11 +264,16 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
-      // ⭐ NEW: Use backend import for faster processing (without preview_only)
-      if (useBackendImport && backendImportFunction && uploadedFileUrl) {
-        console.log('🚀 Backend import (final):', backendImportFunction);
+      // ⭐ Backend import (final) - use CSV text stored in component state
+      if (useBackendImport && backendImportFunction) {
+        console.log('⚡ Fast backend import (final)');
+        
+        // We need csv_text - read from uploaded file
+        const fileResponse = await fetch(uploadedFileUrl);
+        const csv_text = await fileResponse.text();
+        
         const response = await base44.functions.invoke(backendImportFunction, {
-          file_url: uploadedFileUrl,
+          csv_text: csv_text,
           ...additionalData,
           preview_only: false
         });

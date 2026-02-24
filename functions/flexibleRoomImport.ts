@@ -1,9 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 /**
- * ⭐ Flexible Room Import (Excel/CSV)
- * Optimized backend processing for faster room imports
- * Handles all data transformation and validation server-side
+ * ⚡ Fast Room Import - CSV Parser (NO AI)
+ * Same approach as flexibleTenantImport for maximum speed
  */
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -18,61 +17,59 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url, branch_id, preview_only } = await req.json();
+    const { csv_text, branch_id, preview_only } = await req.json();
 
-    if (!file_url || !branch_id) {
+    if (!csv_text || !branch_id) {
       return Response.json(
-        { error: 'Missing file_url or branch_id' },
+        { error: 'Missing csv_text or branch_id' },
         { status: 400 }
       );
     }
 
-    console.log('🏠 Starting room import:', { file_url, branch_id, preview_only });
+    console.log('🏠 Fast room import:', { branch_id, preview_only, csv_length: csv_text.length });
 
-    // ⭐ STEP 1: Extract data from uploaded file using AI
-    const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url: file_url,
-      json_schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            'เลขห้อง': { type: 'string' },
-            'ชั้น': { type: 'number' },
-            'ประเภทห้อง': { type: 'string' },
-            'ราคาห้อง': { type: 'number' },
-            'ค่าน้ำต่อหน่วย': { type: 'number' },
-            'ค่าไฟต่อหน่วย': { type: 'number' },
-            'ค่าน้ำเหมา': { type: 'string' },
-            'ค่าไฟเหมา': { type: 'string' },
-            'จำนวนเงินค่าน้ำเหมา': { type: 'number' },
-            'จำนวนเงินค่าไฟเหมา': { type: 'number' },
-            'ค่าน้ำขั้นต่ำ (หน่วย)': { type: 'number' },
-            'ค่าน้ำขั้นต่ำ (บาท)': { type: 'number' },
-            'ค่าไฟขั้นต่ำ (หน่วย)': { type: 'number' },
-            'ค่าไฟขั้นต่ำ (บาท)': { type: 'number' },
-            'ค่าส่วนกลาง': { type: 'number' },
-            'ค่าใช้จ่ายอื่นๆ': { type: 'string' },
-            'ขนาดห้อง': { type: 'number' },
-            'สิ่งอำนวยความสะดวก': { type: 'string' },
-            'รายละเอียดห้อง': { type: 'string' }
-          }
-        }
-      }
-    });
-
-    if (extractResponse.status !== 'success' || !extractResponse.output) {
-      return Response.json(
-        { error: 'Failed to extract data from file', details: extractResponse.details },
-        { status: 400 }
-      );
+    // ⭐ STEP 1: Parse CSV manually (NO AI - super fast!)
+    const lines = csv_text.trim().split('\n');
+    if (lines.length < 2) {
+      return Response.json({ error: 'ไฟล์ต้องมีหัวตารางและข้อมูลอย่างน้อย 1 แถว' }, { status: 400 });
     }
 
-    const rawData = Array.isArray(extractResponse.output) 
-      ? extractResponse.output 
-      : [extractResponse.output];
+    // Detect delimiter
+    const delimiter = lines[0].includes('\t') ? '\t' : ',';
+    
+    // Parse headers - Clean BOM, spaces, quotes
+    const headers = lines[0]
+      .split(delimiter)
+      .map(h => h
+        .replace(/^\ufeff/, '')
+        .replace(/\u200b/g, '')
+        .replace(/"/g, '')
+        .trim()
+      );
 
-    console.log(`📊 Extracted ${rawData.length} rooms`);
+    console.log('📋 Headers:', headers);
+
+    // Parse data rows
+    const rawData = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const values = line.split(delimiter).map(v => v.replace(/"/g, '').trim());
+      const record = {};
+      
+      headers.forEach((header, idx) => {
+        record[header] = values[idx] || '';
+      });
+
+      // Skip empty rows
+      const hasData = Object.values(record).some(v => v && v !== '-' && String(v).trim() !== '');
+      if (!hasData) continue;
+
+      rawData.push(record);
+    }
+
+    console.log(`📊 Parsed ${rawData.length} rooms from CSV`);
 
     // ⭐ STEP 2: Transform data (ported from RoomImportConfig.jsx)
     const transformedRooms = rawData.map(row => {
