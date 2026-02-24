@@ -27,6 +27,7 @@ import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ReservationDialog from "../components/rooms/ReservationDialog";
 import { addMonths } from "date-fns";
 import BulkRoomGenerator from "../components/rooms/BulkRoomGenerator";
+import RoomImportDialog from "../components/rooms/RoomImportDialog";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { roomSchema, templateData, transformRoomData, templateFilename } from '../components/rooms/RoomImportConfig';
@@ -3933,28 +3934,17 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>นำเข้าข้อมูลห้องพัก</DialogTitle>
-              </DialogHeader>
-
-              <ExcelUploader
-                entityName="Room"
-                schema={roomSchema}
-                templateData={templateData}
-                templateFilename={templateFilename}
-                onSuccess={() => {
-                  queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
-                  queryClient.invalidateQueries(['allRooms', 'v2']);
-                  setShowUploadDialog(false);
-                  toast.success('นำเข้าข้อมูลห้องพักสำเร็จ!');
-                }}
-                additionalData={{ branch_id: selectedBranchId }}
-                onTransformData={transformRoomData}
-              />
-            </DialogContent>
-          </Dialog>
+          <RoomImportDialog
+            open={showUploadDialog}
+            onOpenChange={setShowUploadDialog}
+            selectedBranchId={selectedBranchId}
+            onSuccess={() => {
+              queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
+              queryClient.invalidateQueries(['allRooms', 'v2']);
+              setShowUploadDialog(false);
+              toast.success('นำเข้าข้อมูลห้องพักสำเร็จ!');
+            }}
+          />
 
           <Dialog open={showReservationDialog} onOpenChange={(open) => {
             setShowReservationDialog(open);
