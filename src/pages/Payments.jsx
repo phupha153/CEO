@@ -102,14 +102,9 @@ export default function PaymentsPage() {
   const [longPressTarget, setLongPressTarget] = useState(null);
 
   useEffect(() => {
-    window.resetPaymentsAI = () => {
-      setAiResult(null);
-      setAiAction(null);
-      setSearchQuery('');
-    };
-    return () => {
-      delete window.resetPaymentsAI;
-    };
+    window.resetPaymentsAI = () => { setAiResult(null); setAiAction(null); setSearchQuery(''); };
+    window.moveToNextMonth = () => { setRoomViewMonth(p => format(new Date(p.split('-')[0], p.split('-')[1], 1), 'yyyy-MM')); toast.success('เลื่อนเดือนแล้ว'); };
+    return () => { delete window.resetPaymentsAI; delete window.moveToNextMonth; };
   }, []);
 
   useEffect(() => {
