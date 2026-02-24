@@ -401,7 +401,16 @@ export default function ExcelUploader({
       console.error('Error response:', error.response);
       console.error('Error data:', error.response?.data);
       console.error('==================================');
-      toast.error(error.message || "เกิดข้อผิดพลาดในการนำเข้าข้อมูล");
+      
+      // ⭐ Better error messages with details
+      let errorMsg = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
+      if (error.response?.status === 400) {
+        errorMsg = 'รูปแบบข้อมูลไม่ถูกต้อง - กรุณาตรวจสอบไฟล์และดาวน์โหลด Template';
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      toast.error(errorMsg, { duration: 6000 });
     } finally {
       setImporting(false);
     }
