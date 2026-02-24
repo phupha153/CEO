@@ -99,15 +99,15 @@ export default function ExcelUploader({
       if (entityName === 'Tenant') {
         console.log('🔧 Using flexible CSV parser for Tenants...');
 
-        // Use custom import function to PARSE (not import yet)
+        // Use custom import function to PARSE (preview only)
         const result = await base44.functions.invoke('flexibleTenantImport', {
           csv_text,
-          branch_id: additionalData?.branch_id
+          branch_id: additionalData?.branch_id,
+          preview_only: true
         });
 
         if (result.data.success) {
           setUploading(false);
-          // Show preview table - don't auto-import yet
           setExtractedData(result.data.data);
           toast.success(result.data.message);
           e.target.value = '';
@@ -266,21 +266,19 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
-      // ⭐ NEW: Use backend import for faster processing (re-send csv_text for actual import)
+      // ⭐ NEW: Use backend import for faster processing
       if (useBackendImport && backendImportFunction) {
         console.log('🚀 Backend import (final - no preview):', backendImportFunction);
         
-        // Note: extractedData already contains the transformed data from preview
-        // We need to call the backend again with preview_only=false
         const response = await base44.functions.invoke(backendImportFunction, {
-          data: extractedData, // Send the already-transformed data
+          data: extractedData,
           branch_id: additionalData?.branch_id,
           preview_only: false
         });
 
         if (response.data.success) {
           toast.success(
-            response.data.message || `นำเข้าสำเร็จ: ${response.data.imported} รายการ`,
+            response.data.message || `นำเข้าสำเร็จ: ${response.data.imported || response.data.created} รายการ`,
             { duration: 5000 }
           );
           
@@ -299,24 +297,32 @@ export default function ExcelUploader({
         }
       }
 
-      // ⚡ OPTIMIZATION: Use bulk import function for Tenant entity (10+ records)
-      if (entityName === 'Tenant' && extractedData.length >= 10 && additionalData?.branch_id) {
-        const response = await base44.functions.invoke('bulkImportTenants', {
+      // ⚡ OPTIMIZATION: Use flexible import function for Tenant (with Booking creation)
+      if (entityName === 'Tenant' && additionalData?.branch_id) {
+        const response = await base44.functions.invoke('flexibleTenantImport', {
+          csv_text: '', // ไม่ต้องส่ง csv_text อีกรอบ
           branch_id: additionalData.branch_id,
-          tenants_data: extractedData
+          preview_only: false,
+          data: extractedData // ส่งข้อมูลที่ parse แล้ว
         });
         
         if (response.data.success) {
-          const s = response.data.summary;
           toast.success(
-            `✅ นำเข้าสำเร็จ!\nสร้างใหม่: ${s.tenants_created} คน | อัพเดท: ${s.tenants_updated} คน\nสัญญา: ${s.bookings_created + s.bookings_updated} รายการ`,
+            response.data.message || `นำเข้าสำเร็จ: ${response.data.created} คน, สัญญา ${response.data.bookings_created} รายการ`,
             { duration: 6000 }
           );
+          
+          if (response.data.errors && response.data.errors.length > 0) {
+            toast.warning(`ข้าม ${response.data.errors.length} รายการที่มีข้อผิดพลาด`);
+          }
+          
           setShowDialog(false);
           setExtractedData(null);
           setErrorMessage(null);
           if (onSuccess) onSuccess();
           return;
+        } else {
+          throw new Error(response.data.error || 'Import failed');
         }
       }
 
