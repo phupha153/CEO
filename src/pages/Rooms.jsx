@@ -29,6 +29,7 @@ import { addMonths } from "date-fns";
 import BulkRoomGenerator from "../components/rooms/BulkRoomGenerator";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { roomSchema, templateData, transformRoomData, templateFilename } from '../components/rooms/RoomImportConfig';
 
 export default function RoomsPage() {
   const navigate = useNavigate();
@@ -1736,8 +1737,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       default: return status;
     }
   };
-
-  const { roomSchema, templateData, transformRoomData, templateFilename } = require('../components/rooms/RoomImportConfig');
 
 
 
