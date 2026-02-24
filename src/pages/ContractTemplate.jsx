@@ -211,6 +211,31 @@ export default function ContractTemplate() {
     }
   };
 
+  // Show maintenance message for non-developer users
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-600">กำลังโหลด...</p>
+      </div>
+    );
+  }
+
+  const isDeveloper = currentUser?.custom_role === 'developer' || currentUser?.role === 'admin';
+
+  if (!isDeveloper) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md">
+          <h1 className="text-2xl font-bold text-slate-800 mb-4">กำลังปรับปรุง</h1>
+          <p className="text-slate-600 mb-6">ทำการปิดใช้งานสำหรับผู้เช่า</p>
+          <Button variant="outline" onClick={() => window.history.back()}>
+            กลับไป
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* No Print Section - Controls */}
