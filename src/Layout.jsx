@@ -37,9 +37,7 @@ import {
         Sparkles,
         Clock,
         Trash2,
-        LogOut,
-        ChevronDown,
-        MessageCircle
+        LogOut
       } from "lucide-react";
 import {
         Sidebar,
@@ -54,11 +52,7 @@ import {
         SidebarFooter,
         SidebarProvider,
         SidebarTrigger,
-        SidebarMenuSub,
-        SidebarMenuSubItem,
-        SidebarMenuSubButton,
       } from "@/components/ui/sidebar";
-import CollapsibleMenuItem from "./components/layout/CollapsibleMenuItem";
       import {
         Popover,
         PopoverTrigger,
@@ -169,23 +163,11 @@ const navigationItems = [
     hideOnMobile: true
   },
   {
-    title: "สื่อสาร",
-    icon: MessageSquare,
+    title: "ส่งข้อความประกาศ",
+    url: createPageUrl("Announcements"),
+    icon: Megaphone,
     requiredPermission: "announcements_send",
-    requiredFeature: "announcements_send",
-    isCollapsible: true,
-    subItems: [
-      {
-        title: "ข้อความ LINE",
-        url: createPageUrl("Announcements") + "?tab=chat",
-        icon: MessageCircle,
-      },
-      {
-        title: "ส่งประกาศ",
-        url: createPageUrl("Announcements") + "?tab=broadcast",
-        icon: Megaphone,
-      }
-    ]
+    requiredFeature: "announcements_send"
   },
   {
     title: "ประวัติการจัดการ",
@@ -1704,11 +1686,6 @@ export default function Layout({ children, currentPageName }) {
               <SidebarMenu>
                   {visibleMenuItems.map((item, index) => {
                   const isActive = location.pathname === item.url;
-
-                  // Collapsible menu items with sub-items
-                  if (item.isCollapsible && item.subItems) {
-                    return <CollapsibleMenuItem key={item.title} item={item} />;
-                  }
 
                   // Trial mode items with popover
                   if (item.isTrial) {

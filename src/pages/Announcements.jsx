@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook, MessageSquare } from "lucide-react";
+import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
@@ -18,11 +18,7 @@ import ChatWindow from "../components/chat/ChatWindow";
 
 export default function Announcements() {
   const queryClient = useQueryClient();
-  
-  // Read tab from URL params (default: broadcast)
-  const urlParams = new URLSearchParams(window.location.search);
-  const initialTab = urlParams.get('tab') || 'broadcast';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState('broadcast'); // 'broadcast' | 'chat'
   
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -659,66 +655,31 @@ export default function Announcements() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-      <PageHeader
-        title="ช่องทางสื่อสาร"
-        subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
-        icon={MessageSquare}
-      />
+      {activeTab === 'broadcast' && (
+        <PageHeader
+          title="ข้อความและประกาศ"
+          subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
+          icon={Megaphone}
+        />
+      )}
 
       <div className="h-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="flex items-center gap-2 flex-wrap">
-              <TabsList className="flex-1 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
-                <TabsTrigger value="broadcast" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                  <Megaphone className="w-4 h-4" />
-                  ส่งประกาศ
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white relative">
-                  <MessageCircle className="w-4 h-4" />
-                  แชท
-                  {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
-                      {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Recipients Selector on Tab Bar - Broadcast Only */}
-              {activeTab === 'broadcast' && (
-                <div className="flex gap-2 items-center bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
-                  <div className="px-3 py-1 text-xs font-medium text-slate-700 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-600" />
-                    <span>ผู้รับ:</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md cursor-pointer hover:bg-blue-50 transition-colors border border-transparent has-[:checked]:bg-blue-100 has-[:checked]:border-blue-300">
-                      <input
-                        type="radio"
-                        name="targetType"
-                        checked={targetType === 'all'}
-                        onChange={() => setTargetType('all')}
-                        className="w-3 h-3 text-blue-600 flex-shrink-0"
-                      />
-                      <span className="text-xs font-medium text-slate-700">ทั้งหมด ({tenantsWithMessaging.length})</span>
-                    </label>
-
-                    <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md cursor-pointer hover:bg-blue-50 transition-colors border border-transparent has-[:checked]:bg-blue-100 has-[:checked]:border-blue-300">
-                      <input
-                        type="radio"
-                        name="targetType"
-                        checked={targetType === 'individual'}
-                        onChange={() => setTargetType('individual')}
-                        className="w-3 h-3 text-blue-600 flex-shrink-0"
-                      />
-                      <span className="text-xs font-medium text-slate-700">เลือก ({selectedTenants.size})</span>
-                    </label>
-                  </div>
-                </div>
+          <TabsList className="mb-6 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
+            <TabsTrigger value="broadcast" className="gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <Megaphone className="w-4 h-4" />
+              ส่งประกาศ
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white relative">
+              <MessageCircle className="w-4 h-4" />
+              แชท
+              {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
+                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
+                  {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
+                </Badge>
               )}
-            </div>
-          </div>
+            </TabsTrigger>
+          </TabsList>
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="mt-0 h-[calc(100vh-140px)]">
@@ -1034,89 +995,122 @@ export default function Announcements() {
             </CardContent>
           </Card>
 
-          {/* Individual Recipient Selection - Show only when individual mode */}
-          {targetType === 'individual' && (
+          {/* Selection & Message Form - แยกคอลัมน์ mobile */}
+          <div className="space-y-3 md:space-y-4">
+            {/* Recipients Selection */}
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
               <CardHeader className="p-3 md:p-6">
                 <CardTitle className="text-base md:text-lg flex items-center gap-2">
                   <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                  เลือกผู้รับ
+                  ผู้รับข้อความ
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 md:p-6 pt-0 space-y-3">
-                <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      placeholder="ค้นหา..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 h-9 text-sm"
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 p-2 md:p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
+                    <input
+                      type="radio"
+                      name="targetType"
+                      checked={targetType === 'all'}
+                      onChange={() => setTargetType('all')}
+                      className="w-4 h-4 text-blue-600 flex-shrink-0"
                     />
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm text-slate-800">ส่งหาทุกคน</span>
+                      <p className="text-xs text-slate-500">
+                        ({tenantsWithMessaging.length} คน • {tenantsWithLine.length} LINE, {tenantsWithFacebook.length} FB)
+                      </p>
+                    </div>
+                  </label>
 
-                  <div className="flex justify-between items-center text-xs px-1">
-                    <span className="text-slate-500">เลือก {selectedTenants.size} คน</span>
-                    <button 
-                      onClick={handleToggleAll}
-                      className="text-blue-600 hover:underline font-medium"
-                    >
-                      {selectedTenants.size === tenantsWithMessaging.length ? 'ยกเลิก' : 'ทั้งหมด'}
-                    </button>
-                  </div>
-
-                  <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-white">
-                    {tenantsWithMessaging
-                      .filter(t => {
-                        const searchLower = searchTerm.toLowerCase();
-                        const displayName = `${t.full_name}${t.room_number ? ` - ${t.room_number}` : ''}`.toLowerCase();
-                        return displayName.includes(searchLower);
-                      })
-                      .map(tenant => (
-                      <label 
-                        key={tenant.id} 
-                        className="flex items-center gap-2 p-2 hover:bg-slate-50 border-b last:border-0 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedTenants.has(tenant.id)}
-                          onChange={() => handleToggleTenant(tenant.id)}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-300 flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-xs md:text-sm text-slate-800 truncate">
-                            {tenant.full_name}
-                            {tenant.line_user_id && tenant.facebook_user_id && (
-                              <Badge className="ml-1 bg-blue-500 text-white text-[10px] px-1 py-0">L+F</Badge>
-                            )}
-                            {tenant.line_user_id && !tenant.facebook_user_id && (
-                              <Badge className="ml-1 bg-green-500 text-white text-[10px] px-1 py-0">L</Badge>
-                            )}
-                            {!tenant.line_user_id && tenant.facebook_user_id && (
-                              <Badge className="ml-1 bg-blue-600 text-white text-[10px] px-1 py-0">F</Badge>
-                            )}
-                          </p>
-                          {tenant.room_number && (
-                            <p className="text-xs text-slate-500 truncate">
-                              {tenant.room_number}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                    {tenantsWithMessaging.length === 0 && (
-                      <div className="p-3 text-center text-slate-500 text-xs">
-                        ไม่พบผู้เช่าที่เชื่อมต่อระบบแชท
-                      </div>
-                    )}
-                  </div>
+                  <label className="flex items-center gap-2 p-2 md:p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
+                    <input
+                      type="radio"
+                      name="targetType"
+                      checked={targetType === 'individual'}
+                      onChange={() => setTargetType('individual')}
+                      className="w-4 h-4 text-blue-600 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm text-slate-800">เลือกรายบุคคล</span>
+                      <p className="text-xs text-slate-500">
+                        ({selectedTenants.size} คน)
+                      </p>
+                    </div>
+                  </label>
                 </div>
+
+                {targetType === 'individual' && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-2 pt-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input
+                        placeholder="ค้นหา..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 h-9 text-sm"
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs px-1">
+                      <span className="text-slate-500">เลือก {selectedTenants.size} คน</span>
+                      <button 
+                        onClick={handleToggleAll}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {selectedTenants.size === tenantsWithMessaging.length ? 'ยกเลิก' : 'ทั้งหมด'}
+                      </button>
+                    </div>
+
+                    <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-white">
+                      {tenantsWithMessaging
+                        .filter(t => {
+                          const searchLower = searchTerm.toLowerCase();
+                          const displayName = `${t.full_name}${t.room_number ? ` - ${t.room_number}` : ''}`.toLowerCase();
+                          return displayName.includes(searchLower);
+                        })
+                        .map(tenant => (
+                        <label 
+                          key={tenant.id} 
+                          className="flex items-center gap-2 p-2 hover:bg-slate-50 border-b last:border-0 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTenants.has(tenant.id)}
+                            onChange={() => handleToggleTenant(tenant.id)}
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs md:text-sm text-slate-800 truncate">
+                              {tenant.full_name}
+                              {tenant.line_user_id && tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-blue-500 text-white text-[10px] px-1 py-0">L+F</Badge>
+                              )}
+                              {tenant.line_user_id && !tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-green-500 text-white text-[10px] px-1 py-0">L</Badge>
+                              )}
+                              {!tenant.line_user_id && tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-blue-600 text-white text-[10px] px-1 py-0">F</Badge>
+                              )}
+                            </p>
+                            {tenant.room_number && (
+                              <p className="text-xs text-slate-500 truncate">
+                                {tenant.room_number}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                      {tenantsWithMessaging.length === 0 && (
+                        <div className="p-3 text-center text-slate-500 text-xs">
+                          ไม่พบผู้เช่าที่เชื่อมต่อระบบแชท
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Selection & Message Form */}
-          <div className="space-y-3 md:space-y-4">
 
             {/* Message Form */}
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
