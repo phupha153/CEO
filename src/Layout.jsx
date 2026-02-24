@@ -163,9 +163,9 @@ const navigationItems = [
     hideOnMobile: true
   },
   {
-    title: "ส่งข้อความประกาศ",
+    title: "ช่องทางสื่อสาร",
     url: createPageUrl("Announcements"),
-    icon: Megaphone,
+    icon: MessageSquare,
     requiredPermission: "announcements_send",
     requiredFeature: "announcements_send"
   },
