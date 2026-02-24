@@ -1,8 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import * as XLSX from 'npm:xlsx@0.18.5';
 
 /**
- * ⭐ Flexible Room Import (Excel/CSV)
- * Optimized backend processing for faster room imports
+ * ⭐ Fast Room Import (Excel/CSV) - NO AI EXTRACTION
+ * Direct file parsing for 10x faster imports
  * Handles all data transformation and validation server-side
  */
 Deno.serve(async (req) => {
@@ -27,55 +28,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('🏠 Starting room import:', { file_url, branch_id, preview_only });
+    console.log('🏠 Starting FAST room import:', { file_url, branch_id, preview_only });
 
-    // ⭐ STEP 1: Extract data from uploaded file using AI
-    const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url: file_url,
-      json_schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            'เลขห้อง': { type: 'string' },
-            'ชั้น': { type: 'number' },
-            'ประเภทห้อง': { type: 'string' },
-            'ราคาห้อง': { type: 'number' },
-            'ค่าน้ำต่อหน่วย': { type: 'number' },
-            'ค่าไฟต่อหน่วย': { type: 'number' },
-            'ค่าน้ำเหมา': { type: 'string' },
-            'ค่าไฟเหมา': { type: 'string' },
-            'จำนวนเงินค่าน้ำเหมา': { type: 'number' },
-            'จำนวนเงินค่าไฟเหมา': { type: 'number' },
-            'ค่าน้ำขั้นต่ำ (หน่วย)': { type: 'number' },
-            'ค่าน้ำขั้นต่ำ (บาท)': { type: 'number' },
-            'ค่าไฟขั้นต่ำ (หน่วย)': { type: 'number' },
-            'ค่าไฟขั้นต่ำ (บาท)': { type: 'number' },
-            'ค่าส่วนกลาง': { type: 'number' },
-            'ค่าใช้จ่ายอื่นๆ': { type: 'string' },
-            'ขนาดห้อง': { type: 'number' },
-            'สิ่งอำนวยความสะดวก': { type: 'string' },
-            'รายละเอียดห้อง': { type: 'string' }
-          }
-        }
-      }
-    });
-
-    if (extractResponse.status !== 'success' || !extractResponse.output) {
-      return Response.json(
-        { error: 'Failed to extract data from file', details: extractResponse.details },
-        { status: 400 }
-      );
+    // ⭐ STEP 1: Download and parse Excel/CSV directly (NO AI)
+    console.log('📥 Downloading file from:', file_url);
+    const fileResponse = await fetch(file_url);
+    if (!fileResponse.ok) {
+      throw new Error(`Failed to download file: ${fileResponse.statusText}`);
     }
 
-    const rawData = Array.isArray(extractResponse.output) 
-      ? extractResponse.output 
-      : [extractResponse.output];
+    const fileBuffer = await fileResponse.arrayBuffer();
+    console.log('📊 File size:', fileBuffer.byteLength, 'bytes');
 
-    console.log(`📊 Extracted ${rawData.length} rooms`);
+    // Parse Excel/CSV with XLSX library
+    const workbook = XLSX.read(fileBuffer, { type: 'array' });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rawData = XLSX.utils.sheet_to_json(firstSheet);
 
-    // ⭐ STEP 2: Transform data (ported from RoomImportConfig.jsx)
-    const transformedRooms = rawData.map(row => {
+    console.log(`✅ Parsed ${rawData.length} rows from Excel/CSV`);
+
+    // ⭐ STEP 2: Clean headers (remove BOM, ZWNBSP, etc.)
+    const cleanedData = rawData.map(row => {
+      const cleanRow = {};
+      Object.keys(row).forEach(key => {
+        const cleanKey = key
+          .replace(/^\ufeff/, '')      // BOM
+          .replace(/\u200b/g, '')      // Zero-Width Space
+          .replace(/\t/g, ' ')         // Tab → Space
+          .trim();
+        cleanRow[cleanKey] = row[key];
+      });
+      return cleanRow;
+    });
+
+    // ⭐ STEP 3: Transform data (ported from RoomImportConfig.jsx)
+    const transformedRooms = cleanedData.map(row => {
       const room = {
         branch_id: branch_id,
         room_number: String(row['เลขห้อง'] || '').trim(),
@@ -188,7 +175,7 @@ Deno.serve(async (req) => {
 
     console.log('✅ Transformed rooms:', transformedRooms.length);
 
-    // ⭐ STEP 3: Validate required fields
+    // ⭐ STEP 4: Validate required fields
     const validRooms = [];
     const errors = [];
 
@@ -229,7 +216,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ⭐ STEP 4: Bulk create rooms (only if NOT preview_only)
+    // ⭐ STEP 5: Bulk create rooms (only if NOT preview_only)
     console.log(`💾 Importing ${validRooms.length} rooms to database...`);
     
     const createdRooms = await base44.entities.Room.bulkCreate(validRooms);
