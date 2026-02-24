@@ -40,6 +40,14 @@ export default function Contracts() {
       </div>
     );
   }
+  
+  // Log for debugging
+  console.log('🔍 Contracts Page:', {
+    role: currentUser?.role,
+    custom_role: currentUser?.custom_role,
+    isDeveloper,
+    email: currentUser?.email
+  });
 
   // Show maintenance for non-developer
   if (!isDeveloper) {
