@@ -1,4 +1,3 @@
-
 export const getPrintStyles = () => `
   @page {
     size: A4 portrait;
@@ -79,7 +78,7 @@ export const getPrintStyles = () => `
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     margin-bottom: 20px;
     width: 210mm;
-    height: 297mm;
+    min-height: 297mm;
   }
 
   .contract-print p,
