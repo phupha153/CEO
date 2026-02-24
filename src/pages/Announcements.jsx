@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook, MessageSquare } from "lucide-react";
+import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook, MessageSquare, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
 import ChatSidebar from "../components/chat/ChatSidebar";
@@ -19,6 +20,7 @@ import ChatWindow from "../components/chat/ChatWindow";
 export default function Announcements() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('broadcast'); // 'broadcast' | 'chat'
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -661,28 +663,61 @@ export default function Announcements() {
         icon={MessageSquare}
       />
 
-      <div className="h-full">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="max-w-4xl mx-auto mb-6">
-            <TabsList className="w-full bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
-              <TabsTrigger value="broadcast" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                <Megaphone className="w-4 h-4" />
-                ส่งประกาศ
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white relative">
-                <MessageCircle className="w-4 h-4" />
-                แชท
-                {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
-                  <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
-                    {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </div>
+      <div className="flex gap-6 h-[calc(100vh-180px)] px-4">
+        {/* Left Sidebar Menu */}
+        <div className="w-64 flex-shrink-0">
+          <Card className="bg-white/80 backdrop-blur-sm shadow-lg h-full">
+            <CardContent className="p-4">
+              <Collapsible open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-slate-50 rounded-lg transition-colors group">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-slate-800">สื่อสาร</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-2 space-y-1">
+                  <button
+                    onClick={() => setActiveTab('chat')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      activeTab === 'chat' 
+                        ? 'bg-blue-500 text-white shadow-md' 
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="font-medium text-sm">ข้อความ LINE</span>
+                    {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
+                      <Badge className="ml-auto bg-red-500 text-white text-xs h-5 px-2">
+                        {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
+                      </Badge>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('broadcast')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      activeTab === 'broadcast' 
+                        ? 'bg-blue-500 text-white shadow-md' 
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Megaphone className="w-4 h-4" />
+                    <span className="font-medium text-sm">ส่งประกาศ</span>
+                  </button>
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
 
           {/* Chat Tab */}
-          <TabsContent value="chat" className="mt-0 h-[calc(100vh-140px)]">
+          <TabsContent value="chat" className="mt-0 h-full">
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl overflow-hidden h-full">
               {/* Debug info */}
               {messagesError && (
@@ -862,8 +897,8 @@ export default function Announcements() {
                     </TabsContent>
 
           {/* Broadcast Tab */}
-          <TabsContent value="broadcast" className="mt-0">
-            <div className="max-w-4xl mx-auto space-y-6">
+          <TabsContent value="broadcast" className="mt-0 h-full overflow-y-auto">
+            <div className="space-y-6 pb-6">
           {/* Stats - ปรับให้กระชับสำหรับมือถือ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
@@ -1236,6 +1271,7 @@ export default function Announcements() {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
 
       {/* AI Dialog */}
