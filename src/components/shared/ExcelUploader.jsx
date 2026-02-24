@@ -175,6 +175,17 @@ export default function ExcelUploader({
                 cleanRecord[cleanKey] = record[key];
               });
               return cleanRecord;
+            })
+            .filter(record => {
+              // ⭐ CRITICAL FIX: กรองแถวว่างออก (ทุก value เป็น empty, null, undefined, หรือ "-")
+              const hasData = Object.values(record).some(v => 
+                v !== null && 
+                v !== undefined && 
+                v !== '' && 
+                v !== '-' && 
+                String(v).trim() !== ''
+              );
+              return hasData;
             });
           console.log('✅ Cleaned column names. Sample:', Object.keys(finalExtractedData[0] || {}));
         }
