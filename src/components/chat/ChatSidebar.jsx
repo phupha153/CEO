@@ -153,10 +153,21 @@ export default function ChatSidebar({
                           {tenant?.room_number ? `ห้อง ${tenant.room_number} - ${tenant.full_name}` : (tenant?.full_name || conv.line_display_name || 'ไม่ทราบชื่อ')}
                         </p>
                         <span className="text-xs text-slate-400 flex-shrink-0">
-                          {conv.last_message_time && formatDistanceToNow(new Date(conv.last_message_time), { 
-                            addSuffix: false, 
-                            locale: th 
-                          })}
+                          {conv.last_message_time && (() => {
+                            const msgDate = new Date(conv.last_message_time);
+                            const now = new Date();
+                            const diffMs = now - msgDate;
+                            const diffMins = Math.floor(diffMs / 60000);
+                            const diffHours = Math.floor(diffMs / 3600000);
+                            const diffDays = Math.floor(diffMs / 86400000);
+                            
+                            if (diffMins < 1) return 'เมื่อสักครู่';
+                            if (diffMins < 60) return `${diffMins} นาที`;
+                            if (diffHours < 24) return `${diffHours} ชม.`;
+                            if (diffDays === 1) return 'เมื่อวาน';
+                            if (diffDays < 7) return `${diffDays} วัน`;
+                            return formatDistanceToNow(msgDate, { addSuffix: false, locale: th });
+                          })()}
                         </span>
                       </div>
 
