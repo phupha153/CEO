@@ -3944,7 +3944,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 entityName="Room"
                 schema={roomSchema}
                 templateData={templateData}
-                templateFilename={`room_template_${selectedBranchName}.csv`}
+                templateFilename={templateFilename}
                 onSuccess={() => {
                   queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
                   queryClient.invalidateQueries(['allRooms', 'v2']);
@@ -4501,7 +4501,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             <strong className="text-red-600">⚠️ อย่าสับสน!</strong> Branch Code (เช่น W93, BKK01) <strong className="text-red-600">≠ Branch ID</strong>
                           </li>
                           <li>
-                            เมื่ออัปโหลด CSV ต้องใส่ <strong>Branch ID</strong> ในคอลัมน์ <code className="bg-yellow-200 px-2 py-1 rounded">branch_id</code>
+                            เมื่ออัปโหลด Excel ต้องใส่ <strong>Branch ID</strong> ในคอลัมน์ <code className="bg-yellow-200 px-2 py-1 rounded">branch_id</code>
                           </li>
                           <li>
                             คลิกปุ่ม <strong className="text-green-600">"📋 คัดลอก Branch ID"</strong> แล้วนำไปวางในไฟล์ CSV ของคุณ
