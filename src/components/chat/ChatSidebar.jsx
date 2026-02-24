@@ -155,9 +155,8 @@ export default function ChatSidebar({
                         <span className="text-xs text-slate-400 flex-shrink-0">
                           {conv.last_message_time && (() => {
                             const msgDate = new Date(conv.last_message_time);
-                            const bangkokTime = new Date(msgDate.getTime() + (7 * 60 * 60 * 1000));
-                            const nowBangkok = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
-                            const diffMs = nowBangkok - bangkokTime;
+                            const now = new Date();
+                            const diffMs = now - msgDate;
                             const diffMins = Math.floor(diffMs / 60000);
                             const diffHours = Math.floor(diffMs / 3600000);
                             const diffDays = Math.floor(diffMs / 86400000);
