@@ -82,6 +82,11 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
             queryClient.invalidateQueries({ queryKey: ['payments'] })
           ]);
 
+          // ⭐ เลื่อนไปเดือนถัดไป (เฉพาะ Room View)
+          if (window.moveToNextMonth) {
+            window.moveToNextMonth();
+          }
+
           // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
           if (pending > 0) {
             const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 2)} วินาที)`);
