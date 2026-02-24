@@ -62,6 +62,12 @@ Deno.serve(async (req) => {
         record[header] = values[idx] || '';
       });
 
+      // ⭐ CRITICAL FIX: Skip rows that are completely empty (all values are empty or just hyphens)
+      const hasData = Object.values(record).some(v => v && v !== '-' && v.trim() !== '');
+      if (!hasData) {
+        continue; // Skip this row
+      }
+
       rows.push(record);
     }
 
