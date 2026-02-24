@@ -222,7 +222,17 @@ export default function ContractTemplate() {
 
   // Developer check - must be explicit role check
   const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
-  console.log('🔍 ContractTemplate Check:', { currentUser: currentUser?.email, role: currentUser?.role, custom_role: currentUser?.custom_role, isDeveloper });
+  
+  // Debug: Always log to verify
+  React.useEffect(() => {
+    console.log('🔍 ContractTemplate Debug:', { 
+      email: currentUser?.email, 
+      role: currentUser?.role, 
+      custom_role: currentUser?.custom_role, 
+      isDeveloper,
+      timestamp: new Date().toISOString()
+    });
+  }, [currentUser, isDeveloper]);
 
   if (!isDeveloper) {
     return (
