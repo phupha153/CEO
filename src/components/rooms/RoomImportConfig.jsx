@@ -49,6 +49,7 @@ export const transformRoomData = (data) => {
   const mapYesNo = { 'ใช่': true, 'ไม่ใช่': false, 'true': true, 'false': false };
   
   return {
+    branch_id: data.branch_id, // ⭐ รับค่า branch_id ที่ผสมมาจาก additionalData
     room_number: data["หมายเลขห้อง"] || data.room_number,
     floor: data["ชั้น"] || data.floor,
     room_type: mapRoomType[data["ประเภทห้อง"]] || mapRoomType[data.room_type] || data.room_type,
