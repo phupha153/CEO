@@ -154,8 +154,8 @@ export default function ChatSidebar({
                         </p>
                         <span className="text-xs text-slate-400 flex-shrink-0">
                           {conv.last_message_time && (() => {
-                            const msgDate = new Date(conv.last_message_time);
-                            const now = new Date();
+                            const msgDate = new Date(conv.last_message_time).getTime();
+                            const now = new Date().getTime();
                             const diffMs = now - msgDate;
                             const diffMins = Math.floor(diffMs / 60000);
                             const diffHours = Math.floor(diffMs / 3600000);
@@ -167,7 +167,7 @@ export default function ChatSidebar({
                             if (diffHours < 24) return 'วันนี้';
                             if (diffDays === 1) return 'เมื่อวาน';
                             if (diffDays < 7) return `${diffDays} วัน`;
-                            return formatDistanceToNow(msgDate, { addSuffix: false, locale: th });
+                            return formatDistanceToNow(new Date(conv.last_message_time), { addSuffix: false, locale: th });
                           })()}
                         </span>
                       </div>
