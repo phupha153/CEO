@@ -155,18 +155,14 @@ export default function ChatSidebar({
                         <span className="text-xs text-slate-400 flex-shrink-0">
                           {conv.last_message_time && (() => {
                             try {
-                              const msgDate = new Date(conv.last_message_time);
-                              const now = new Date();
-                              
-                              // Debug logging
-                              if (conv.line_user_id?.includes('U')) {
-                                console.log('🕐 Time Debug:', {
-                                  raw: conv.last_message_time,
-                                  msgDate: msgDate.toISOString(),
-                                  now: now.toISOString(),
-                                  diffMin: differenceInMinutes(now, msgDate)
-                                });
+                              // ⭐ FIX: เพิ่ม "Z" ถ้า timestamp ไม่มี (แปลงให้เป็น UTC)
+                              let timestamp = conv.last_message_time;
+                              if (!timestamp.endsWith('Z') && !timestamp.includes('+')) {
+                                timestamp = timestamp.replace('000', '000Z');
                               }
+                              
+                              const msgDate = new Date(timestamp);
+                              const now = new Date();
                               
                               const diffMins = differenceInMinutes(now, msgDate);
                               const diffHours = differenceInHours(now, msgDate);
