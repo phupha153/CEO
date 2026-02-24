@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url, branch_id } = await req.json();
+    const { file_url, branch_id, preview_only } = await req.json();
 
     if (!file_url || !branch_id) {
       return Response.json(
@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('🏠 Starting room import:', { file_url, branch_id });
+    console.log('🏠 Starting room import:', { file_url, branch_id, preview_only });
 
     // ⭐ STEP 1: Extract data from uploaded file using AI
     const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
@@ -216,7 +216,20 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // ⭐ STEP 4: Bulk create rooms
+    // ⭐ NEW: If preview_only, return data for user to confirm
+    if (preview_only) {
+      console.log('👁️ Preview mode - returning data without importing');
+      return Response.json({
+        success: true,
+        data: validRooms,
+        count: validRooms.length,
+        skipped: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `อ่านข้อมูลสำเร็จ: ${validRooms.length} รายการ${errors.length > 0 ? ` (ข้าม ${errors.length} รายการ)` : ''}`
+      });
+    }
+
+    // ⭐ STEP 4: Bulk create rooms (only if NOT preview_only)
     console.log(`💾 Importing ${validRooms.length} rooms to database...`);
     
     const createdRooms = await base44.entities.Room.bulkCreate(validRooms);
