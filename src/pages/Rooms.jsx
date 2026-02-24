@@ -1737,54 +1737,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
   };
 
-  const roomSchema = {
-    type: "object",
-    properties: {
-      "หมายเลขห้อง": { type: "string" },
-      "ชั้น": { type: "integer" },
-      "ประเภทห้อง": { type: "string" },
-      "ราคา": { type: "number" },
-      "สถานะ": { type: "string" },
-      "ขนาด": { type: "number" },
-      "รายละเอียด": { type: "string" },
-      "วันที่ล้างแอร์ล่าสุด": { type: "string", format: "date" }
-    },
-    required: ["หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา"]
-  };
-
-  const templateData = [
-    {
-      "หมายเลขห้อง": "101",
-      "ชั้น": "1",
-      "ประเภทห้อง": "รายเดือน",
-      "ราคา": "3500",
-      "สถานะ": "ว่าง",
-      "ขนาด": "25",
-      "รายละเอียด": "ห้องพักรายเดือน มีแอร์ เฟอร์นิเจอร์ครบ",
-      "วันที่ล้างแอร์ล่าสุด": "2023-01-15"
-    }
-  ];
-
-  const transformRoomData = (data) => {
-    const mapRoomType = { 'รายเดือน': 'monthly', 'รายวัน': 'daily' };
-    const mapStatus = { 'ว่าง': 'available', 'มีผู้เช่า': 'occupied', 'จอง': 'reserved' };
-    const mapYesNo = { 'ใช่': true, 'ไม่ใช่': false, 'true': true, 'false': false };
-    
-    return {
-      room_number: data["หมายเลขห้อง"] || data.room_number,
-      floor: data["ชั้น"] || data.floor,
-      room_type: mapRoomType[data["ประเภทห้อง"]] || mapRoomType[data.room_type] || data.room_type,
-      price: data["ราคา"] || data.price,
-      status: mapStatus[data["สถานะ"]] || mapStatus[data.status] || data.status,
-      size: data["ขนาด"] || data.size,
-      is_flat_rate_water: mapYesNo[data["ค่าน้ำเหมา"]] || false,
-      flat_rate_water_amount: data["จำนวนค่าน้ำเหมา"] || null,
-      is_flat_rate_electricity: mapYesNo[data["ค่าไฟเหมา"]] || false,
-      flat_rate_electricity_amount: data["จำนวนค่าไฟเหมา"] || null,
-      description: data["รายละเอียด"] || data.description,
-      last_ac_cleaning_date: data["วันที่ล้างแอร์ล่าสุด"] || data.last_ac_cleaning_date
-    };
-  };
+  const { roomSchema, templateData, transformRoomData } = require('../components/rooms/RoomImportConfig');
 
 
 
