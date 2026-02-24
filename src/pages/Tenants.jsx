@@ -33,6 +33,7 @@ import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ExcelTable from "../components/tenants/ExcelTable";
 import BulkTenantGenerator from "../components/tenants/BulkTenantGenerator";
 import ContractsTab from "../components/tenants/ContractsTab";
+import ContractActionsBar from "../components/tenants/ContractActionsBar";
 
 export default function TenantsPage() {
   const navigate = useNavigate();
@@ -2433,18 +2434,12 @@ const tenantSchema = {
                   </Popover>
                 )}
               </>
-            )}
-            {activeTab === 'contracts' && canAddContract && (
-              <Button
-                onClick={() => navigate(createPageUrl('ContractEditor'))}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                สร้างสัญญาใหม่
-              </Button>
-            )}
-          </>
-        }
+              )}
+              {activeTab === 'contracts' && (
+              <ContractActionsBar canAddContract={canAddContract} isDeveloper={isDeveloper} />
+              )}
+              </>
+              }
       />
 
       <div className="px-4 md:px-8 py-6 relative z-10">
