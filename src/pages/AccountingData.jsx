@@ -1037,7 +1037,7 @@ export default function AccountingData() {
           'ห้อง': room?.room_number || '-',
           'ผู้เช่า': tenant?.full_name || '-',
           'เบอร์โทร': tenant?.phone || '-',
-          'วันเริ่มสัญญา': booking.check_in_date ? format(parseISO(booking.check_in_date), 'd/M/yyyy', { locale: th }) : '-',
+          'วันเริ่มสัญญา': (() => { if (!booking.check_in_date) return '-'; try { const d = parseISO(booking.check_in_date); return isNaN(d.getTime()) ? '-' : format(d, 'd/M/yyyy', { locale: th }); } catch { return '-'; } })(),
           'เงินมัดจำ': booking.deposit_amount || 0,
           'สถานะ': 'ถือครองอยู่'
         };
