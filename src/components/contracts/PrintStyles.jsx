@@ -119,25 +119,58 @@ export const getPrintStyles = () => `
     background: white;
     width: 210mm;
     margin: 20px auto;
-    font-size: 12pt;
-    line-height: 1.4;
+    font-size: 11pt;
+    line-height: 1.35;
+    padding: 12mm;
+    box-sizing: border-box;
   }
   
-  .contract-print p,
-  .contract-print div {
+  .contract-print p {
     word-wrap: break-word;
     overflow-wrap: break-word;
-    word-break: keep-all;
-    font-size: 12pt;
-    line-height: 1.4;
+    font-size: 11pt;
+    line-height: 1.35;
+    margin: 2mm 0;
+    orphans: 2;
+    widows: 2;
+  }
+  
+  .contract-print div {
+    box-sizing: border-box;
   }
   
   .contract-print h1,
   .contract-print h2,
   .contract-print h3 {
-    font-size: 13pt;
+    font-size: 12pt;
     line-height: 1.3;
-    margin: 4mm 0 2mm 0;
+    margin: 3mm 0 2mm 0;
+    page-break-after: avoid;
+  }
+  
+  .contract-print table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    margin: 2mm 0;
+  }
+  
+  .contract-print table td,
+  .contract-print table th {
+    padding: 1mm;
+    border: 0.5pt solid #999;
+  }
+  
+  .contract-print ul,
+  .contract-print ol {
+    margin: 1mm 0 1mm 6mm;
+    padding: 0;
+    font-size: 11pt;
+  }
+  
+  .contract-print li {
+    margin: 0.5mm 0;
+    line-height: 1.35;
   }
 
   .contract-page {
