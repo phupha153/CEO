@@ -28,8 +28,7 @@ export default function ExcelUploader({
   const [extractedData, setExtractedData] = useState(null);
   const [importing, setImporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
-  const [csvText, setCsvText] = useState(null); // ⭐ Store CSV text for fast backend import
+  const [uploadedFileUrl, setUploadedFileUrl] = useState(null); // ⭐ Store file URL for backend
 
   const downloadTemplate = () => {
     try {
@@ -133,15 +132,13 @@ export default function ExcelUploader({
       console.log('File uploaded to:', fileUrl);
       setUploadedFileUrl(fileUrl); // ⭐ Store for backend import
 
-      // ⭐ If using backend import, send CSV text directly (NO AI - super fast!)
+      // ⭐ If using backend import, call preview first
       if (useBackendImport && backendImportFunction) {
-        console.log('⚡ Fast backend parsing...');
-        toast.info('กำลังประมวลผลข้อมูล...');
-        
-        setCsvText(csv_text); // ⭐ Store for final import
+        console.log('🚀 Using backend import with preview...');
+        toast.info('กำลังอ่านข้อมูลจากไฟล์...');
 
         const previewResult = await base44.functions.invoke(backendImportFunction, {
-          csv_text: csv_text,
+          file_url: fileUrl,
           branch_id: additionalData?.branch_id,
           preview_only: true
         });
@@ -153,9 +150,7 @@ export default function ExcelUploader({
           e.target.value = '';
           return;
         } else {
-          const errorMsg = previewResult.data.error || previewResult.data.message || 'ไม่สามารถอ่านข้อมูลได้';
-          const detailMsg = previewResult.data.details ? `\n\nรายละเอียด: ${previewResult.data.details}` : '';
-          throw new Error(errorMsg + detailMsg);
+          throw new Error(previewResult.data.error || 'ไม่สามารถอ่านข้อมูลได้');
         }
       }
 
@@ -269,12 +264,11 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
-      // ⭐ Backend import (final) - use CSV text from state
-      if (useBackendImport && backendImportFunction && csvText) {
-        console.log('⚡ Fast backend import (final)');
-        
+      // ⭐ NEW: Use backend import for faster processing (without preview_only)
+      if (useBackendImport && backendImportFunction && uploadedFileUrl) {
+        console.log('🚀 Backend import (final):', backendImportFunction);
         const response = await base44.functions.invoke(backendImportFunction, {
-          csv_text: csvText,
+          file_url: uploadedFileUrl,
           ...additionalData,
           preview_only: false
         });
@@ -292,42 +286,11 @@ export default function ExcelUploader({
           setShowDialog(false);
           setExtractedData(null);
           setUploadedFileUrl(null);
-          setCsvText(null);
           setErrorMessage(null);
           if (onSuccess) onSuccess();
           return;
         } else {
-          const errorMsg = response.data.error || response.data.message || 'การนำเข้าล้มเหลว';
-          const detailMsg = response.data.details ? `\n\nรายละเอียด: ${response.data.details}` : '';
-          throw new Error(errorMsg + detailMsg);
-        }
-      }
-
-      // ⚠️ Fallback for backend import without csvText (shouldn't happen but handle gracefully)
-      if (useBackendImport && backendImportFunction && !csvText && uploadedFileUrl) {
-        console.warn('⚠️ csvText not found, falling back to fetch from URL');
-        const fileResponse = await fetch(uploadedFileUrl);
-        const fetchedCsvText = await fileResponse.text();
-        
-        const response = await base44.functions.invoke(backendImportFunction, {
-          csv_text: fetchedCsvText,
-          ...additionalData,
-          preview_only: false
-        });
-
-        if (response.data.success) {
-          toast.success(response.data.message || `นำเข้าสำเร็จ: ${response.data.imported} รายการ`);
-          setShowDialog(false);
-          setExtractedData(null);
-          setUploadedFileUrl(null);
-          setCsvText(null);
-          setErrorMessage(null);
-          if (onSuccess) onSuccess();
-          return;
-        } else {
-          const errorMsg = response.data.error || response.data.message || 'การนำเข้าล้มเหลว';
-          const detailMsg = response.data.details ? `\n\nรายละเอียด: ${response.data.details}` : '';
-          throw new Error(errorMsg + detailMsg);
+          throw new Error(response.data.error || 'Backend import failed');
         }
       }
 
@@ -403,16 +366,7 @@ export default function ExcelUploader({
       console.error('Error response:', error.response);
       console.error('Error data:', error.response?.data);
       console.error('==================================');
-      
-      // ⭐ Better error messages with details
-      let errorMsg = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
-      if (error.response?.status === 400) {
-        errorMsg = 'รูปแบบข้อมูลไม่ถูกต้อง - กรุณาตรวจสอบไฟล์และดาวน์โหลด Template';
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-      
-      toast.error(errorMsg, { duration: 6000 });
+      toast.error(error.message || "เกิดข้อผิดพลาดในการนำเข้าข้อมูล");
     } finally {
       setImporting(false);
     }
