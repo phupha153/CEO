@@ -153,7 +153,9 @@ export default function ExcelUploader({
           e.target.value = '';
           return;
         } else {
-          throw new Error(previewResult.data.error || 'ไม่สามารถอ่านข้อมูลได้');
+          const errorMsg = previewResult.data.error || previewResult.data.message || 'ไม่สามารถอ่านข้อมูลได้';
+          const detailMsg = previewResult.data.details ? `\n\nรายละเอียด: ${previewResult.data.details}` : '';
+          throw new Error(errorMsg + detailMsg);
         }
       }
 
@@ -321,7 +323,9 @@ export default function ExcelUploader({
           if (onSuccess) onSuccess();
           return;
         } else {
-          throw new Error(response.data.error || 'Backend import failed');
+          const errorMsg = response.data.error || response.data.message || 'การนำเข้าล้มเหลว';
+          const detailMsg = response.data.details ? `\n\nรายละเอียด: ${response.data.details}` : '';
+          throw new Error(errorMsg + detailMsg);
         }
       }
 
