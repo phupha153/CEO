@@ -18,7 +18,11 @@ import ChatWindow from "../components/chat/ChatWindow";
 
 export default function Announcements() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('broadcast'); // 'broadcast' | 'chat'
+  
+  // Read tab from URL params (default: broadcast)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = urlParams.get('tab') || 'broadcast';
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
