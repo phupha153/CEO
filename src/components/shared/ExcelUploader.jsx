@@ -297,7 +297,9 @@ export default function ExcelUploader({
           if (onSuccess) onSuccess();
           return;
         } else {
-          throw new Error(response.data.error || 'Backend import failed');
+          const errorMsg = response.data.error || response.data.message || 'การนำเข้าล้มเหลว';
+          const detailMsg = response.data.details ? `\n\nรายละเอียด: ${response.data.details}` : '';
+          throw new Error(errorMsg + detailMsg);
         }
       }
 
