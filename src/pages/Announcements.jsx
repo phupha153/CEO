@@ -315,8 +315,8 @@ export default function Announcements() {
   }, [selectedBranchId]);
 
   // ส่งข้อความตอบกลับใน chat
-  const handleSendChatMessage = async (content) => {
-    if (!selectedConversation || !content.trim()) return;
+  const handleSendChatMessage = async (content, mediaUrl = null) => {
+    if (!selectedConversation || (!content.trim() && !mediaUrl)) return;
 
     try {
       const user = await base44.auth.me();
@@ -341,8 +341,9 @@ export default function Announcements() {
           facebook_user_id: selectedConversation.facebook_user_id,
           facebook_display_name: selectedConversation.facebook_display_name,
           direction: 'outgoing',
-          message_type: 'text',
+          message_type: mediaUrl ? 'image' : 'text',
           content: content,
+          media_url: mediaUrl,
           sent_by: user?.email
         });
 
@@ -367,8 +368,9 @@ export default function Announcements() {
           line_user_id: selectedConversation.line_user_id,
           line_display_name: selectedConversation.line_display_name,
           direction: 'outgoing',
-          message_type: 'text',
+          message_type: mediaUrl ? 'image' : 'text',
           content: content,
+          media_url: mediaUrl,
           sent_by: user?.email
         });
 

@@ -446,17 +446,10 @@ export default function ChatWindow({
                     }`}
                     style={{ maxWidth: '85%' }}
                   >
-                    {msg.message_type === 'image' && (
-                      msg.media_url ? (
-                        <ImageWithLoader url={msg.media_url} />
-                      ) : (
-                        <div className="bg-slate-100 rounded-lg px-4 py-3 flex items-center gap-2 mb-2">
-                          <ImageIcon className="w-5 h-5 text-slate-400" />
-                          <p className="text-xs text-slate-500">รูปภาพไม่พร้อมใช้งาน</p>
-                        </div>
-                      )
+                    {msg.message_type === 'image' && msg.media_url && (
+                      <ImageWithLoader url={msg.media_url} />
                     )}
-                    {msg.message_type !== 'image' && (
+                    {msg.content && msg.content !== '[รูปภาพ]' && (
                       <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                     )}
                     <div className={`flex items-center gap-1.5 mt-1 ${
