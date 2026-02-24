@@ -903,7 +903,7 @@ export default function ChatWindow({
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4 mr-2" />
-                      เพิ่มผู้เช่า
+                      เพิ่มผู้เช่าใหม่
                     </>
                   )}
                 </Button>
