@@ -18,22 +18,6 @@ export default function ContractTemplate() {
   const queryClient = useQueryClient();
   const contractId = searchParams.get('contractId');
   const printRef = useRef(null);
-  const [currentUser, setCurrentUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Failed to get user:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getUser();
-  }, []);
 
   const [formData, setFormData] = useState({
     contract_no: '',
@@ -210,55 +194,6 @@ export default function ContractTemplate() {
       return '...........................';
     }
   };
-
-  // Show maintenance message for non-developer users
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600">กำลังโหลด...</p>
-      </div>
-    );
-  }
-
-  // Developer check - must be explicit role check
-  const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
-  
-  // Debug: Always log to verify
-  React.useEffect(() => {
-    console.log('🔍 ContractTemplate Debug:', { 
-      email: currentUser?.email, 
-      role: currentUser?.role, 
-      custom_role: currentUser?.custom_role, 
-      isDeveloper,
-      timestamp: new Date().toISOString()
-    });
-  }, [currentUser, isDeveloper]);
-
-  if (!isDeveloper) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md border border-white/50">
-          <div className="mb-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <FileText className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-3">🚧 กำลังปรับปรุง</h1>
-            <p className="text-slate-600 text-lg leading-relaxed">
-              ทำการปิดใช้งานสำหรับผู้เช่า<br/>
-              <span className="text-sm text-slate-500 mt-2 block">กรุณาติดต่อผู้ดูแลระบบ</span>
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => window.history.back()}
-            className="bg-white/90 hover:bg-white border-slate-300 text-slate-700 shadow-md"
-          >
-            กลับไปหน้าเดิม
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">

@@ -20,61 +20,6 @@ export default function Contracts() {
   const queryClient = useQueryClient();
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const selectedBranchName = localStorage.getItem('selected_branch_name') || 'ไม่ระบุ';
-
-  // ⭐ Developer check
-  const { data: currentUser, isLoading } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
-
-  const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
-
-  // Show loading
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600">กำลังโหลด...</p>
-      </div>
-    );
-  }
-  
-  // Log for debugging
-  console.log('🔍 Contracts Page:', {
-    role: currentUser?.role,
-    custom_role: currentUser?.custom_role,
-    isDeveloper,
-    email: currentUser?.email
-  });
-
-  // Show maintenance for non-developer
-  if (!isDeveloper) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md border border-white/50">
-          <div className="mb-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <FileText className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-3">🚧 กำลังปรับปรุง</h1>
-            <p className="text-slate-600 text-lg leading-relaxed">
-              ทำการปิดใช้งานสำหรับผู้เช่า<br/>
-              <span className="text-sm text-slate-500 mt-2 block">กรุณาติดต่อผู้ดูแลระบบ</span>
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => window.history.back()}
-            className="bg-white/90 hover:bg-white border-slate-300 text-slate-700 shadow-md"
-          >
-            กลับไปหน้าเดิม
-          </Button>
-        </div>
-      </div>
-    );
-  }
   
   const [searchQuery, setSearchQuery] = useState('');
   const [renewDialogOpen, setRenewDialogOpen] = useState(false);
