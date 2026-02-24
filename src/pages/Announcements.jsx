@@ -655,31 +655,31 @@ export default function Announcements() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-      {activeTab === 'broadcast' && (
-        <PageHeader
-          title="ข้อความและประกาศ"
-          subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
-          icon={Megaphone}
-        />
-      )}
+      <PageHeader
+        title="ช่องทางสื่อสาร"
+        subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
+        icon={MessageSquare}
+      />
 
       <div className="h-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
-            <TabsTrigger value="broadcast" className="gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              <Megaphone className="w-4 h-4" />
-              ส่งประกาศ
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white relative">
-              <MessageCircle className="w-4 h-4" />
-              แชท
-              {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
-                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
-                  {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="max-w-4xl mx-auto mb-6">
+            <TabsList className="w-full bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
+              <TabsTrigger value="broadcast" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <Megaphone className="w-4 h-4" />
+                ส่งประกาศ
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="flex-1 gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white relative">
+                <MessageCircle className="w-4 h-4" />
+                แชท
+                {conversations.reduce((acc, c) => acc + c.unread_count, 0) > 0 && (
+                  <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
+                    {conversations.reduce((acc, c) => acc + c.unread_count, 0)}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="mt-0 h-[calc(100vh-140px)]">
