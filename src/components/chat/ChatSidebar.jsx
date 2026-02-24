@@ -161,9 +161,10 @@ export default function ChatSidebar({
                             const diffHours = Math.floor(diffMs / 3600000);
                             const diffDays = Math.floor(diffMs / 86400000);
                             
-                            if (diffMins < 1) return 'เมื่อสักครู่';
+                            if (diffMins < 1) return 'เพิ่งทักมา';
                             if (diffMins < 60) return `${diffMins} นาที`;
-                            if (diffHours < 24) return `${diffHours} ชม.`;
+                            if (diffHours < 12) return `${diffHours} ชั่วโมง`;
+                            if (diffHours < 24) return 'วันนี้';
                             if (diffDays === 1) return 'เมื่อวาน';
                             if (diffDays < 7) return `${diffDays} วัน`;
                             return formatDistanceToNow(msgDate, { addSuffix: false, locale: th });
