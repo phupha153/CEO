@@ -91,6 +91,25 @@ const navigationItems = [
     requiredFeature: "dashboard_view"
   },
   {
+    title: "สื่อสาร",
+    icon: MessageSquare,
+    requiredPermission: "announcements_send",
+    requiredFeature: "announcements_send",
+    isExpandable: true,
+    subItems: [
+      {
+        title: "ข้อความ LINE",
+        url: createPageUrl("Announcements") + "?tab=chat",
+        icon: MessageCircle,
+      },
+      {
+        title: "ส่งประกาศ",
+        url: createPageUrl("Announcements") + "?tab=broadcast",
+        icon: Megaphone,
+      }
+    ]
+  },
+  {
     title: "จัดการห้องพัก",
     url: createPageUrl("Rooms"),
     icon: DoorOpen,
@@ -346,6 +365,7 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const mainContentRef = useRef(null);
   const queryClient = useQueryClient();
+  const [expandedMenus, setExpandedMenus] = useState({});
 
   // ⭐⭐⭐ Check if public page (variable only - return happens AFTER all hooks)
   const isPublicPage = currentPageName === 'Welcome' || 
@@ -1685,7 +1705,50 @@ export default function Layout({ children, currentPageName }) {
               </SidebarGroupLabel>
               <SidebarMenu>
                   {visibleMenuItems.map((item, index) => {
-                  const isActive = location.pathname === item.url;
+                  // Check if any submenu is active
+                  const isActive = item.url ? location.pathname === item.url : 
+                    item.subItems?.some(sub => location.pathname + location.search === sub.url || location.pathname === sub.url.split('?')[0]);
+
+                  // Expandable menu items with submenus
+                  if (item.isExpandable && item.subItems) {
+                    const isExpanded = expandedMenus[item.title];
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          onClick={() => setExpandedMenus(prev => ({ ...prev, [item.title]: !prev[item.title] }))}
+                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
+                            isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
+                          }`}
+                          title={item.title}
+                        >
+                          <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 transition-transform'}`} />
+                          <span className="font-medium group-data-[collapsible=icon]:hidden truncate">{item.title}</span>
+                          <ChevronDown className={`w-4 h-4 ml-auto transition-transform group-data-[collapsible=icon]:hidden ${isExpanded ? 'rotate-180' : ''}`} />
+                        </SidebarMenuButton>
+                        
+                        {isExpanded && (
+                          <div className="ml-4 mt-1 space-y-1 group-data-[collapsible=icon]:hidden">
+                            {item.subItems.map(subItem => {
+                              const isSubActive = location.pathname + location.search === subItem.url || location.pathname === subItem.url.split('?')[0];
+                              return (
+                                <SidebarMenuButton
+                                  key={subItem.title}
+                                  onClick={() => navigate(subItem.url)}
+                                  className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-xl mb-1 cursor-pointer text-sm ${
+                                    isSubActive ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'text-slate-600'
+                                  }`}
+                                  title={subItem.title}
+                                >
+                                  <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                                  <span className="font-medium truncate">{subItem.title}</span>
+                                </SidebarMenuButton>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  }
 
                   // Trial mode items with popover
                   if (item.isTrial) {

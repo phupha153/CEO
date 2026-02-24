@@ -19,7 +19,8 @@ import ChatWindow from "../components/chat/ChatWindow";
 
 export default function Announcements() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('broadcast'); // 'broadcast' | 'chat'
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'broadcast'); // 'broadcast' | 'chat'
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const [message, setMessage] = useState('');
