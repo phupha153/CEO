@@ -42,7 +42,9 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
       console.log('📊 Branch Owner Plan Status:', ownerPlanStatus);
       
       // ⚠️ ถ้าเจ้าของสาขาไม่มี plan หรือหมดอายุ = DENY
-      if (!ownerPlanStatus || ownerPlanStatus === 'expired' || ownerPlanStatus === 'cancelled') {
+      // ✅ ยอมรับ: trial, active (รวมถึง pro, premium ฯลฯ)
+      const validStatuses = ['trial', 'active', 'pro', 'premium', 'enterprise'];
+      if (!ownerPlanStatus || !validStatuses.includes(ownerPlanStatus)) {
         toast.error('❌ ไม่สามารถสร้างบิลได้\n\nเจ้าของสาขาไม่มีแพ็กเกจที่ใช้งานอยู่', { 
           duration: 7000 
         });
