@@ -105,52 +105,6 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 🔒 Security: Plan Verification (SaaS Standard)
-        // ⭐ Developer และ Admin ข้าม subscription check
-        const isDeveloper = user.role === 'admin' || user.custom_role === 'developer';
-        
-        if (!isDeveloper) {
-            // ⭐ FIX: Manager/Employee ต้องเช็คแพ็กเกจของเจ้าของสาขา ไม่ใช่ของตัวเอง
-            let ownerPlanStatus = null;
-            let ownerTrialEndsAt = null;
-
-            if (targetBranchId) {
-                // ดึงข้อมูลสาขาเพื่อหา owner_id
-                const branches = await base44.asServiceRole.entities.Branch.filter({ id: targetBranchId }, null, 1);
-                if (branches && branches.length > 0) {
-                    const branchOwnerEmail = branches[0].owner_id;
-                    if (branchOwnerEmail) {
-                        // ดึงข้อมูลเจ้าของสาขา
-                        const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: branchOwnerEmail }, null, 1);
-                        if (ownerUsers && ownerUsers.length > 0) {
-                            ownerPlanStatus = ownerUsers[0].plan_status;
-                            ownerTrialEndsAt = ownerUsers[0].trial_ends_at;
-                        }
-                    }
-                }
-            } else {
-                // ถ้าไม่ระบุสาขา (สร้างทุกสาขา) ให้เช็คแพ็กเกจของตัวเอง
-                ownerPlanStatus = user.plan_status;
-                ownerTrialEndsAt = user.trial_ends_at;
-            }
-
-            if (!ownerPlanStatus || ownerPlanStatus === 'expired' || ownerPlanStatus === 'cancelled') {
-                return Response.json({ 
-                    error: 'Subscription required', 
-                    message: '❌ ไม่สามารถสร้างบิลได้ เจ้าของสาขาไม่มีแพ็กเกจที่ใช้งานอยู่' 
-                }, { status: 402 });
-            }
-            if (ownerPlanStatus === 'trial' && ownerTrialEndsAt) {
-                const trialEnd = new Date(ownerTrialEndsAt);
-                if (new Date() > trialEnd) {
-                    return Response.json({ 
-                        error: 'Trial expired', 
-                        message: '❌ ไม่สามารถสร้างบิลได้ แพ็กเกจทดลองของเจ้าของสาขาหมดอายุแล้ว' 
-                    }, { status: 402 });
-                }
-            }
-        }
-
         try {
             const text = await clonedReq.text();
             if (text && text.trim()) {
