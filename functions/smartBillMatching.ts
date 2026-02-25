@@ -295,9 +295,14 @@ async function chargeCascadePayment(
             paid_amount: billUpdate.newPaidAmount,
             late_fee_amount: lateFeeAmount,
             notes: `${bill.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE (CASCADE): ${senderName} โอน ${slipAmount.toLocaleString()} บาท | บิลนี้ชำระ ${billUpdate.paymentAmount.toLocaleString()}฿`
-        });
+            });
+        } catch (err) {
+            console.error(`❌ Failed to update bill ${billUpdate.id}:`, err.message);
+            continue;
+        }
         
-        await base44.asServiceRole.entities.WebhookLog.create({
+        try {
+            await base44.asServiceRole.entities.WebhookLog.create({
             webhook_type: 'line',
             branch_id: branchId,
             event_type: 'payment_verified',
@@ -338,4 +343,4 @@ async function chargeCascadePayment(
     }
 }
 
-export { processBillMatching };
+module.exports = { processBillMatching };
