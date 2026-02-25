@@ -3,11 +3,6 @@
 
 // ⭐ calculateLateFee imported inline (copy from calculateLateFee.js)
 function calculateLateFeeInline(payment, configs, branchId, today) {
-    // ⭐ FIX #1: Handle missing due_date
-    if (!payment.due_date) {
-        return { lateFeeAmount: 0, daysLate: 0 };
-    }
-    
     const dueDate = new Date(payment.due_date);
     const daysLate = Math.max(0, Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)));
     
@@ -65,17 +60,6 @@ async function processBillMatching(
     configs,
     sendMessage
 ) {
-    // ⭐ FIX #2: Input validation
-    if (!pendingPayments || pendingPayments.length === 0) {
-        console.log('⚠️ No pending bills found');
-        return;
-    }
-    
-    if (slipAmount <= 0) {
-        console.log('⚠️ Invalid slip amount');
-        return;
-    }
-    
     const now = new Date();
     const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
@@ -90,13 +74,9 @@ async function processBillMatching(
     // ⭐ ค้นหาบิลที่มียอดตรงกับสลิป ±1%
     for (let i = 0; i < pendingPayments.length; i++) {
         const bill = pendingPayments[i];
-        
-        // ⭐ FIX #3: Safety check
-        if (!bill || !bill.id) continue;
-        
         const billTotal = parseFloat(bill.total_amount) || 0;
         
-        if (billTotal <= 0) continue; // Changed from === 0 to <= 0
+        if (billTotal === 0) continue;
         
         const diffPercent = Math.abs(slipAmount - billTotal) / billTotal * 100;
         
@@ -136,11 +116,6 @@ async function chargeExactMatch(
     senderName, verificationMethod, tenant, branchId, lineUserId, replyToken,
     configs, today, sendMessage
 ) {
-    // ⭐ FIX #7: Input validation
-    if (!bill || !bill.id) {
-        console.error('❌ Invalid bill object');
-        return;
-    }
     const baseAmount = (parseFloat(bill.rent_amount) || 0) +
                       (parseFloat(bill.water_amount) || 0) +
                       (parseFloat(bill.electricity_amount) || 0) +
@@ -156,9 +131,8 @@ async function chargeExactMatch(
     
     console.log(`💰 Expected: ${expectedAmount}฿, Slip: ${slipAmount}฿`);
     
-    // ⭐ FIX #8: Try-catch for Payment.update
-    try {
-        await base44.asServiceRole.entities.Payment.update(bill.id, {
+    // ชำระบิล
+    await base44.asServiceRole.entities.Payment.update(bill.id, {
         status: 'paid',
         payment_date: transDate.split('T')[0],
         payment_slip_url: slipImageUrl,
@@ -166,15 +140,9 @@ async function chargeExactMatch(
         total_amount: expectedAmount,
         paid_amount: expectedAmount,
         notes: `${bill.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE (EXACT MATCH): ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}`
-        });
-    } catch (err) {
-        console.error('❌ Payment update failed:', err.message);
-        throw err;
-    }
+    });
     
-    // ⭐ FIX #9: Try-catch for WebhookLog.create
-    try {
-        await base44.asServiceRole.entities.WebhookLog.create({
+    await base44.asServiceRole.entities.WebhookLog.create({
         webhook_type: 'line',
         branch_id: branchId,
         event_type: 'payment_verified',
@@ -191,23 +159,20 @@ async function chargeExactMatch(
             verification_method: verificationMethod,
             match_type: 'exact_amount'
         }
-        );
-    } catch (err) {
-        console.warn('⚠️ WebhookLog creation failed:', err.message);
-    }
+    }).catch(() => {});
     
-    // ⭐ FIX #10: Score calculation (non-blocking)
+    // Score
     if (tenant?.id) {
         try {
             await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                 tenant_id: tenant.id
             });
         } catch (e) {
-            console.warn('⚠️ Score calculation failed:', e.message);
+            console.log('⚠️ Score calculation failed');
         }
     }
     
-    // ⭐ FIX #11: Receipt generation (non-blocking)
+    // Receipt
     try {
         await base44.asServiceRole.functions.invoke('sendReceipt', { 
             paymentId: bill.id 
@@ -230,41 +195,27 @@ async function chargeCascadePayment(
     let billsToUpdate = [];
     let cascadeIndex = 0;
     
-    // ⭐ ชำระแบบ Cascade (Priority: oldest due_date first)
-    // ⭐ FIX #4: Sort by due_date to charge oldest bills first
-    const sortedBills = [...pendingPayments].sort((a, b) => {
-        const dateA = new Date(a.due_date || '9999-12-31').getTime();
-        const dateB = new Date(b.due_date || '9999-12-31').getTime();
-        return dateA - dateB;
-    });
-    
-    for (let i = 0; i < sortedBills.length && remainingAmount > 0; i++) {
-        const bill = sortedBills[i];
-        
-        if (!bill || !bill.id) continue;
-        
+    // ⭐ ชำระแบบ Cascade
+    for (let i = 0; i < pendingPayments.length && remainingAmount > 0; i++) {
+        const bill = pendingPayments[i];
         const billTotal = parseFloat(bill.total_amount) || 0;
         const billPaid = parseFloat(bill.paid_amount) || 0;
         const billRemaining = Math.max(0, billTotal - billPaid);
         
-        if (billRemaining <= 0) continue; // Changed from === 0 to <= 0
+        if (billRemaining === 0) continue;
         
         const paymentAmount = Math.min(remainingAmount, billRemaining);
         const newPaidAmount = billPaid + paymentAmount;
         const newStatus = (newPaidAmount >= billTotal * 0.95) ? 'paid' : 'partial_paid';
         
         cascadeIndex++;
-        
-        // ⭐ FIX #5: Add original bill reference for later lookup
         billsToUpdate.push({
             id: bill.id,
             paymentAmount,
             newPaidAmount,
             newStatus,
             billTotal,
-            billRemaining,
-            due_date: bill.due_date,
-            original: bill // Keep reference to original bill data
+            billRemaining
         });
         
         console.log(`   💳 Bill #${i + 1}: ชำระ ${paymentAmount.toLocaleString()}฿ (รวม ${newPaidAmount.toLocaleString()}/${billTotal}฿)`);
@@ -277,13 +228,7 @@ async function chargeCascadePayment(
     // อัปเดตบิล
     for (let idx = 0; idx < billsToUpdate.length; idx++) {
         const billUpdate = billsToUpdate[idx];
-        const bill = billUpdate.original || pendingPayments.find(b => b.id === billUpdate.id);
-        
-        // ⭐ FIX #6: Safety check before calculating late fee
-        if (!bill) {
-            console.error(`⚠️ Bill ${billUpdate.id} not found`);
-            continue;
-        }
+        const bill = pendingPayments.find(b => b.id === billUpdate.id);
         
         const { lateFeeAmount, daysLate } = calculateLateFeeInline(bill, configs, branchId, today);
         
