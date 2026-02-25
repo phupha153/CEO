@@ -1481,17 +1481,16 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        console.log('💰 Account verified - matching amounts...');
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
-
-        const { calculatePaymentAmountsAndMatch } = await import('./utils/paymentMatcher.js');
-        const processList = calculatePaymentAmountsAndMatch(pendingPayments, slipAmount, configs, branchId, today, calculateLateFee);
-
-        let remainingSlipAmount = slipAmount;
-        let processedIds = [];
-        let partialInfo = null;
+        const today = new Date(new Date().getTime() + (7 * 3600000)); today.setHours(0,0,0,0);
+        const pList = pendingPayments.map(p => { 
+            const late = calculateLateFee(p, configs, branchId, today); 
+            const exp = ['rent_amount','water_amount','electricity_amount','internet_amount','common_fee_amount','parking_fee_amount','other_amount'].reduce((s, k) => s + (parseFloat(p[k]) || 0), 0) + late.lateFeeAmount; 
+            return { ...p, expectedAmount: exp, remainingToPay: exp - parseFloat(p.paid_amount || 0), currentPaid: parseFloat(p.paid_amount || 0), lateFeeAmount: late.lateFeeAmount, daysLate: late.daysLate }; 
+        });
+        const exact = pList.find(p => Math.abs(p.remainingToPay - slipAmount) <= Math.max(1, p.expectedAmount * 0.05));
+        const search = (i, sub, sum) => { if (sum > 0 && Math.abs(sum - slipAmount) <= sub.length * 2) return sub; if (sum > slipAmount + 5 || i >= Math.min(pList.length, 15)) return null; const sP = [...pList].sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)); return search(i + 1, [...sub, sP[i]], sum + sP[i].remainingToPay) || search(i + 1, sub, sum); };
+        const processList = exact ? [exact] : (search(0, [], 0) || pList);
+        let remainingSlipAmount = slipAmount, processedIds = [], partialInfo = null;
         let isExactCombo = processList.length > 0 && Math.abs(processList.reduce((sum, p) => sum + p.remainingToPay, 0) - slipAmount) <= processList.length * 2;
 
         for (const p of processList) {
