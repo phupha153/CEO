@@ -367,24 +367,52 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    // ⭐ บันทึกข้อความลง LineMessage entity
-                    let tenant = null;
-                    const msgBranchId = destinationBranchId;
+                    // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
-                        const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                            line_user_id: lineUserId,
-                            branch_id: msgBranchId 
-                        });
-                        tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                    } catch (e) {
-                        // เงียบไว้
-                    }
+                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
+                        let tenant = null;
+                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
+                        try {
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: msgBranchId 
+                            });
+                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                        } catch (e) {
+                            console.log('⚠️ Could not find tenant:', e.message);
+                        }
+                        const finalBranchId = tenant?.branch_id || msgBranchId;
 
-                    const finalBranchId = tenant?.branch_id || msgBranchId;
-                    const messageContent = messageType === 'text' ? event.message.text : `[${messageType}]`;
+                        // ดึง LINE Profile เสมอ
+                        let displayName = null;
+                        let pictureUrl = null;
+                        
+                        try {
+                            const lineToken = await getLineToken(base44, msgBranchId);
+                            if (lineToken) {
+                                const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
+                                    headers: { 'Authorization': `Bearer ${lineToken}` }
+                                });
+                                if (profileRes.ok) {
+                                    const profile = await profileRes.json();
+                                    displayName = profile.displayName;
+                                    pictureUrl = profile.pictureUrl;
+                                    console.log(`✅ Got LINE profile: ${displayName}, pic: ${pictureUrl ? 'YES' : 'NO'}`);
+                                }
+                            }
+                        } catch (profileError) {
+                            console.log('⚠️ Could not fetch LINE profile:', profileError.message);
+                        }
+                        
+                        // Fallback to tenant name if no LINE profile
+                        if (!displayName && tenant?.full_name) {
+                            displayName = tenant.full_name;
+                        }
 
-                    try {
-                        const { displayName, pictureUrl } = await getChatDisplayName(base44, tenant, lineUserId, msgBranchId);
+                        const messageContent = messageType === 'text' 
+                            ? event.message.text 
+                            : `[${messageType}]`;
+
                         await base44.asServiceRole.entities.LineMessage.create({
                             branch_id: finalBranchId,
                             tenant_id: tenant?.id || null,
@@ -392,12 +420,15 @@ Deno.serve(async (req) => {
                             line_display_name: displayName,
                             line_picture_url: pictureUrl,
                             direction: 'incoming',
-                            message_type: messageType === 'text' ? 'text' : messageType === 'image' ? 'image' : messageType === 'sticker' ? 'sticker' : 'other',
+                            message_type: messageType === 'text' ? 'text' : 
+                                         messageType === 'image' ? 'image' : 
+                                         messageType === 'sticker' ? 'sticker' : 'other',
                             content: messageContent,
                             reply_token: replyToken
                         });
+                        console.log(`💾 Saved incoming message to LineMessage entity`);
                     } catch (saveError) {
-                        // ⭐ เงียบไว้
+                        console.error('⚠️ Failed to save message to LineMessage:', saveError.message);
                     }
                     
                     if (messageType === 'text') {
