@@ -1155,8 +1155,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        const imageBlob = await imageResponse.blob();
-        
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
         if (imageBlob.size > 10 * 1024 * 1024) {
             await sendMessage(base44, lineUserId, 
                 '❌ รูปภาพมีขนาดใหญ่เกินไป (เกิน 10MB)\n\nกรุณาส่งรูปที่มีขนาดเล็กกว่าค่ะ',
