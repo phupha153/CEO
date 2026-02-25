@@ -6,33 +6,24 @@ Deno.serve(async (req) => {
         
         // Authenticate user
         const user = await base44.auth.me();
-        console.log('🔍 [getBranchOwnerStatus] Request from user:', user?.email);
-        
         if (!user) {
-            console.error('❌ [getBranchOwnerStatus] Unauthorized - no user');
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { branch_id } = await req.json();
-        console.log('📝 [getBranchOwnerStatus] branch_id:', branch_id);
         
         if (!branch_id) {
-            console.error('❌ [getBranchOwnerStatus] No branch_id provided');
             return Response.json({ error: 'branch_id required' }, { status: 400 });
         }
 
         // Get branch info
         const branches = await base44.asServiceRole.entities.Branch.filter({ id: branch_id }, null, 1);
-        console.log('🏢 [getBranchOwnerStatus] Found branches:', branches?.length);
-        
         if (!branches || branches.length === 0) {
-            console.error('❌ [getBranchOwnerStatus] Branch not found');
             return Response.json({ error: 'Branch not found' }, { status: 404 });
         }
 
         const branch = branches[0];
         const ownerEmail = branch.owner_id;
-        console.log('👤 [getBranchOwnerStatus] Branch owner email:', ownerEmail);
 
         if (!ownerEmail) {
             return Response.json({ error: 'Branch has no owner' }, { status: 404 });
@@ -46,21 +37,15 @@ Deno.serve(async (req) => {
 
         const owner = users[0];
 
-        // ⭐ FIX: ดึง plan_status จาก owner.data.plan_status (nested field) ถ้าไม่มีให้ลอง owner.plan_status
-        const planStatus = owner.data?.plan_status || owner.plan_status || null;
-        const trialEndsAt = owner.data?.trial_ends_at || owner.trial_ends_at || null;
-        const subscriptionEndDate = owner.data?.subscription_end_date || owner.subscription_end_date || null;
-        const packageId = owner.data?.package_id || owner.package_id || null;
-        const packageName = owner.data?.package_name || owner.package_name || null;
-
+        // ⚠️ CRITICAL: ต้องส่ง plan_status ที่แท้จริง ถ้าไม่มี = ไม่มีแพ็กเกจ (ไม่ให้ default 'trial')
         return Response.json({
             owner_email: owner.email,
             owner_name: owner.full_name,
-            plan_status: planStatus,
-            trial_ends_at: trialEndsAt,
-            subscription_end_date: subscriptionEndDate,
-            package_id: packageId,
-            package_name: packageName,
+            plan_status: owner.plan_status || null, // ⭐ FIX: ส่ง null ถ้าไม่มี (ไม่ใช่ 'trial')
+            trial_ends_at: owner.trial_ends_at,
+            subscription_end_date: owner.subscription_end_date,
+            package_id: owner.package_id,
+            package_name: owner.package_name,
             is_owner: user.email === owner.email
         });
 

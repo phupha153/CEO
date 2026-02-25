@@ -26,31 +26,23 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     
     try {
       // ✅ FIX: เช็คสิทธิ์เข้าถึง feature ก่อน (ผ่าน branch owner's plan)
-      console.log('🔍 Checking branch owner access for branch:', branchId);
+      console.log('🔍 Checking branch owner access...');
       const accessCheck = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: branchId
       });
       
-      console.log('📥 [GenerateMonthlyBillsButton] Full accessCheck response:', JSON.stringify(accessCheck, null, 2));
-      
       setIsCheckingAccess(false);
       
       if (!accessCheck.data || accessCheck.data.error) {
-        console.error('❌ [GenerateMonthlyBillsButton] Access check failed:', accessCheck.data);
         toast.error('ไม่สามารถตรวจสอบสิทธิ์ได้: ' + (accessCheck.data?.error || 'Unknown'));
         return;
       }
       
       const ownerPlanStatus = accessCheck.data.plan_status;
       console.log('📊 Branch Owner Plan Status:', ownerPlanStatus);
-      console.log('👤 Owner Email:', accessCheck.data.owner_email);
-      console.log('👑 Owner Name:', accessCheck.data.owner_name);
-      console.log('📦 Package Name:', accessCheck.data.package_name);
       
-      // ⚠️ DENY เฉพาะกรณี: null, undefined, expired, cancelled
-      // ✅ ALLOW ทุกอย่างที่ไม่ใช่กรณีเหล่านี้ (trial, active, pro, premium, enterprise, etc.)
-      const invalidStatuses = ['expired', 'cancelled', null, undefined, ''];
-      if (invalidStatuses.includes(ownerPlanStatus)) {
+      // ⚠️ ถ้าเจ้าของสาขาไม่มี plan หรือหมดอายุ = DENY
+      if (!ownerPlanStatus || ownerPlanStatus === 'expired' || ownerPlanStatus === 'cancelled') {
         toast.error('❌ ไม่สามารถสร้างบิลได้\n\nเจ้าของสาขาไม่มีแพ็กเกจที่ใช้งานอยู่', { 
           duration: 7000 
         });
