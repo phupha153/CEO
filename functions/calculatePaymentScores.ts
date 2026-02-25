@@ -5,7 +5,11 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   
   const user = await base44.auth.me();
-  if (!user) {
+  const serviceRoleKey = Deno.env.get('BASE44_SERVICE_ROLE_KEY');
+  const requestServiceRoleKey = req.headers.get('x-service-role-token') || req.headers.get('authorization')?.replace('Bearer ', '');
+  const isServiceRole = serviceRoleKey && requestServiceRoleKey === serviceRoleKey;
+
+  if (!user && !isServiceRole) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
