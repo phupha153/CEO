@@ -691,7 +691,7 @@ export default function Layout({ children, currentPageName }) {
       
       // 🔒 Multi-Tenancy: Developer can see all configs
       if (role === 'developer') {
-        const allConfigs = await base44.entities.Config.list('', 50);
+        const allConfigs = await base44.entities.Config.list('', 2000);
         return allConfigs || [];
       }
 
