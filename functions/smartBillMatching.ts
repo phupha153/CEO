@@ -65,6 +65,17 @@ async function processBillMatching(
     configs,
     sendMessage
 ) {
+    // ⭐ FIX #2: Input validation
+    if (!pendingPayments || pendingPayments.length === 0) {
+        console.log('⚠️ No pending bills found');
+        return;
+    }
+    
+    if (slipAmount <= 0) {
+        console.log('⚠️ Invalid slip amount');
+        return;
+    }
+    
     const now = new Date();
     const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
