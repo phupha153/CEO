@@ -136,6 +136,11 @@ async function chargeExactMatch(
     senderName, verificationMethod, tenant, branchId, lineUserId, replyToken,
     configs, today, sendMessage
 ) {
+    // ⭐ FIX #7: Input validation
+    if (!bill || !bill.id) {
+        console.error('❌ Invalid bill object');
+        return;
+    }
     const baseAmount = (parseFloat(bill.rent_amount) || 0) +
                       (parseFloat(bill.water_amount) || 0) +
                       (parseFloat(bill.electricity_amount) || 0) +
