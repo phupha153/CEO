@@ -2070,13 +2070,13 @@ export default function MeterReadings() {
                                                       step="0.01"
                                                       placeholder="0"
                                                       value={cardReadings[room.id]?.water_previous || ''}
-                                                      onChange={(e) => setCardReadings({
-                                                        ...cardReadings,
+                                                      onChange={(e) => setCardReadings(prev => ({
+                                                        ...prev,
                                                         [room.id]: {
-                                                          ...cardReadings[room.id],
+                                                          ...prev[room.id],
                                                           water_previous: e.target.value
                                                         }
-                                                      })}
+                                                      }))}
                                                       disabled={!canAdd || createSingleMutation.isPending}
                                                       className="h-9 text-sm"
                                                     />
@@ -2088,13 +2088,13 @@ export default function MeterReadings() {
                                                       step="0.01"
                                                       placeholder="0"
                                                       value={cardReadings[room.id]?.electricity_previous || ''}
-                                                      onChange={(e) => setCardReadings({
-                                                        ...cardReadings,
+                                                      onChange={(e) => setCardReadings(prev => ({
+                                                        ...prev,
                                                         [room.id]: {
-                                                          ...cardReadings[room.id],
+                                                          ...prev[room.id],
                                                           electricity_previous: e.target.value
                                                         }
-                                                      })}
+                                                      }))}
                                                       disabled={!canAdd || createSingleMutation.isPending}
                                                       className="h-9 text-sm"
                                                     />
@@ -2108,13 +2108,13 @@ export default function MeterReadings() {
                                                   step="0.01"
                                                   placeholder="150.5"
                                                   value={cardReadings[room.id]?.water_current || ''}
-                                                  onChange={(e) => setCardReadings({
-                                                    ...cardReadings,
+                                                  onChange={(e) => setCardReadings(prev => ({
+                                                    ...prev,
                                                     [room.id]: {
-                                                      ...cardReadings[room.id],
+                                                      ...prev[room.id],
                                                       water_current: e.target.value
                                                     }
-                                                  })}
+                                                  }))}
                                                   disabled={!canAdd || createSingleMutation.isPending}
                                                   className="h-9 text-sm"
                                                 />
@@ -2127,13 +2127,13 @@ export default function MeterReadings() {
                                                   step="0.01"
                                                   placeholder="250.0"
                                                   value={cardReadings[room.id]?.electricity_current || ''}
-                                                  onChange={(e) => setCardReadings({
-                                                    ...cardReadings,
+                                                  onChange={(e) => setCardReadings(prev => ({
+                                                    ...prev,
                                                     [room.id]: {
-                                                      ...cardReadings[room.id],
+                                                      ...prev[room.id],
                                                       electricity_current: e.target.value
                                                     }
-                                                  })}
+                                                  }))}
                                                   disabled={!canAdd || createSingleMutation.isPending}
                                                   className="h-9 text-sm"
                                                 />
@@ -2331,13 +2331,13 @@ export default function MeterReadings() {
                                                     step="0.01"
                                                     placeholder="0"
                                                     value={cardReadings[room.id]?.water_previous || ''}
-                                                    onChange={(e) => setCardReadings({
-                                                      ...cardReadings,
+                                                    onChange={(e) => setCardReadings(prev => ({
+                                                      ...prev,
                                                       [room.id]: {
-                                                        ...cardReadings[room.id],
+                                                        ...prev[room.id],
                                                         water_previous: e.target.value
                                                       }
-                                                    })}
+                                                    }))}
                                                     disabled={!canAdd || createSingleMutation.isPending}
                                                     className="h-9 text-sm"
                                                   />
@@ -2349,13 +2349,13 @@ export default function MeterReadings() {
                                                     step="0.01"
                                                     placeholder="0"
                                                     value={cardReadings[room.id]?.electricity_previous || ''}
-                                                    onChange={(e) => setCardReadings({
-                                                      ...cardReadings,
+                                                    onChange={(e) => setCardReadings(prev => ({
+                                                      ...prev,
                                                       [room.id]: {
-                                                        ...cardReadings[room.id],
+                                                        ...prev[room.id],
                                                         electricity_previous: e.target.value
                                                       }
-                                                    })}
+                                                    }))}
                                                     disabled={!canAdd || createSingleMutation.isPending}
                                                     className="h-9 text-sm"
                                                   />
@@ -2369,13 +2369,13 @@ export default function MeterReadings() {
                                                 step="0.01"
                                                 placeholder="150.5"
                                                 value={cardReadings[room.id]?.water_current || ''}
-                                                onChange={(e) => setCardReadings({
-                                                  ...cardReadings,
+                                                onChange={(e) => setCardReadings(prev => ({
+                                                  ...prev,
                                                   [room.id]: {
-                                                    ...cardReadings[room.id],
+                                                    ...prev[room.id],
                                                     water_current: e.target.value
                                                   }
-                                                })}
+                                                }))}
                                                 disabled={!canAdd || createSingleMutation.isPending}
                                                 className="h-9 text-sm"
                                               />
@@ -2388,13 +2388,13 @@ export default function MeterReadings() {
                                                 step="0.01"
                                                 placeholder="250.0"
                                                 value={cardReadings[room.id]?.electricity_current || ''}
-                                                onChange={(e) => setCardReadings({
-                                                  ...cardReadings,
+                                                onChange={(e) => setCardReadings(prev => ({
+                                                  ...prev,
                                                   [room.id]: {
-                                                    ...cardReadings[room.id],
+                                                    ...prev[room.id],
                                                     electricity_current: e.target.value
                                                   }
-                                                })}
+                                                }))}
                                                 disabled={!canAdd || createSingleMutation.isPending}
                                                 className="h-9 text-sm"
                                               />
@@ -2687,13 +2687,13 @@ export default function MeterReadings() {
                                                 step="0.01"
                                                 value={bulkReadings[room.id]?.water_previous ?? waterPrevious ?? '0'}
                                                 onChange={(e) => {
-                                                  setBulkReadings({
-                                                    ...bulkReadings,
+                                                  setBulkReadings(prev => ({
+                                                    ...prev,
                                                     [room.id]: {
-                                                      ...bulkReadings[room.id],
+                                                      ...prev[room.id],
                                                       water_previous: e.target.value
                                                     }
-                                                  });
+                                                  }));
                                                 }}
                                                 className="w-24 mx-auto"
                                                 autoFocus
@@ -2703,24 +2703,24 @@ export default function MeterReadings() {
                                             )}
                                           </td>
                                           <td className="px-4 py-3">
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              placeholder="เช่น 150.5"
-                                              value={bulkReadings[room.id]?.water_current ?? ''}
-                                              onChange={(e) => {
-                                                const newValue = e.target.value;
-                                                setBulkReadings({
-                                                  ...bulkReadings,
-                                                  [room.id]: {
-                                                    ...bulkReadings[room.id],
-                                                    water_current: newValue,
-                                                    water_previous: bulkReadings[room.id]?.water_previous ?? (hasExistingReading ? waterPrevious : '')
-                                                  }
-                                                });
-                                              }}
-                                              className="w-32"
-                                            />
+                                           <Input
+                                             type="number"
+                                             step="0.01"
+                                             placeholder="เช่น 150.5"
+                                             value={bulkReadings[room.id]?.water_current ?? ''}
+                                             onChange={(e) => {
+                                               const newValue = e.target.value;
+                                               setBulkReadings(prev => ({
+                                                 ...prev,
+                                                 [room.id]: {
+                                                   ...prev[room.id],
+                                                   water_current: newValue,
+                                                   water_previous: prev[room.id]?.water_previous ?? (hasExistingReading ? waterPrevious : '')
+                                                 }
+                                               }));
+                                             }}
+                                             className="w-32"
+                                           />
                                           </td>
                                         </>
                                       )}
@@ -2733,13 +2733,13 @@ export default function MeterReadings() {
                                                 step="0.01"
                                                 value={bulkReadings[room.id]?.electricity_previous ?? electricityPrevious ?? '0'}
                                                 onChange={(e) => {
-                                                  setBulkReadings({
-                                                    ...bulkReadings,
+                                                  setBulkReadings(prev => ({
+                                                    ...prev,
                                                     [room.id]: {
-                                                      ...bulkReadings[room.id],
+                                                      ...prev[room.id],
                                                       electricity_previous: e.target.value
                                                     }
-                                                  });
+                                                  }));
                                                 }}
                                                 className="w-24 mx-auto"
                                               />
@@ -2755,14 +2755,14 @@ export default function MeterReadings() {
                                               value={bulkReadings[room.id]?.electricity_current ?? ''}
                                               onChange={(e) => {
                                                 const newValue = e.target.value;
-                                                setBulkReadings({
-                                                  ...bulkReadings,
+                                                setBulkReadings(prev => ({
+                                                  ...prev,
                                                   [room.id]: {
-                                                    ...bulkReadings[room.id],
+                                                    ...prev[room.id],
                                                     electricity_current: newValue,
-                                                    electricity_previous: bulkReadings[room.id]?.electricity_previous ?? (hasExistingReading ? electricityPrevious : '')
+                                                    electricity_previous: prev[room.id]?.electricity_previous ?? (hasExistingReading ? electricityPrevious : '')
                                                   }
-                                                });
+                                                }));
                                               }}
                                               className="w-32"
                                             />
