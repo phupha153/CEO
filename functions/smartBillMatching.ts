@@ -262,7 +262,13 @@ async function chargeCascadePayment(
     // อัปเดตบิล
     for (let idx = 0; idx < billsToUpdate.length; idx++) {
         const billUpdate = billsToUpdate[idx];
-        const bill = pendingPayments.find(b => b.id === billUpdate.id);
+        const bill = billUpdate.original || pendingPayments.find(b => b.id === billUpdate.id);
+        
+        // ⭐ FIX #6: Safety check before calculating late fee
+        if (!bill) {
+            console.error(`⚠️ Bill ${billUpdate.id} not found`);
+            continue;
+        }
         
         const { lateFeeAmount, daysLate } = calculateLateFeeInline(bill, configs, branchId, today);
         
