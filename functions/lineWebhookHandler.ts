@@ -1410,9 +1410,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const transDate = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
 
         if (slipAmount === 0) {
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
+                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
             });
             
             await sendMessage(base44, lineUserId, 
