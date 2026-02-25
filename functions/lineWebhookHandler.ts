@@ -1481,132 +1481,105 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        console.log('💰 Account verified - calculating amounts...');
-        const baseAmount = (parseFloat(pendingPayment.rent_amount) || 0) +
-                          (parseFloat(pendingPayment.water_amount) || 0) +
-                          (parseFloat(pendingPayment.electricity_amount) || 0) +
-                          (parseFloat(pendingPayment.internet_amount) || 0) +
-                          (parseFloat(pendingPayment.common_fee_amount) || 0) +
-                          (parseFloat(pendingPayment.parking_fee_amount) || 0) +
-                          (parseFloat(pendingPayment.other_amount) || 0);
-        
+        console.log('💰 Account verified - matching amounts...');
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
-        
-        console.log('📊 Base amount:', baseAmount);
-        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
-        console.log(`💸 Late fee calculated: ${lateFeeAmount}฿ (${daysLate} days)`);
-        
-        const expectedAmount = baseAmount + lateFeeAmount;
-        const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
-        const totalPaid = currentPaid + slipAmount;
 
-        console.log(`💰 Payment check: slip=${slipAmount}฿, expected=${expectedAmount}฿, total=${totalPaid}฿`);
-        
-        // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
-        if (totalPaid < expectedAmount * 0.95) {
-            console.log('⚠️ Partial payment detected - updating status...');
-            const shortfall = expectedAmount - totalPaid;
+        // 1. Calculate remaining amounts
+        const paymentsWithAmounts = pendingPayments.map(p => {
+            const baseAmount = ['rent_amount','water_amount','electricity_amount','internet_amount','common_fee_amount','parking_fee_amount','other_amount']
+                .reduce((sum, key) => sum + (parseFloat(p[key]) || 0), 0);
             
-            // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                status: 'partial_paid',
-                paid_amount: totalPaid,
-                payment_slip_url: slipImageUrl,
-                late_fee_amount: lateFeeAmount,
-                total_amount: expectedAmount,
-                notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-            });
-            console.log('✅ Payment updated (partial_paid)');
-
-            // Log partial payment
-            await base44.asServiceRole.entities.WebhookLog.create({
-                webhook_type: 'line',
-                branch_id: branchId,
-                event_type: 'partial_payment',
-                line_user_id: lineUserId,
-                tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
-                amount: slipAmount,
-                status: 'success',
-                message: `Partial: ${totalPaid}/${expectedAmount}`,
-                details: { late_fee: lateFeeAmount, days_late: daysLate }
-            }).catch(() => {});
-            
-            await sendMessage(base44, lineUserId, 
-                `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
-                `✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
-                `💵 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n` +
-                `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
-                `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
-                branchId,
-                replyToken
-            );
-            console.log('✅ Sent partial payment message');
-            return;
-        }
-
-        // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
-        console.log('✅ Full payment verified - updating status...');
-        await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-            status: 'paid',
-            payment_date: transDate.split('T')[0],
-            payment_slip_url: slipImageUrl,
-            late_fee_amount: lateFeeAmount,
-            total_amount: expectedAmount,
-            paid_amount: expectedAmount,
-            notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
+            const { lateFeeAmount, daysLate } = calculateLateFee(p, configs, branchId, today);
+            const expectedAmount = baseAmount + lateFeeAmount;
+            const currentPaid = parseFloat(p.paid_amount || 0);
+            return { ...p, baseAmount, lateFeeAmount, daysLate, expectedAmount, currentPaid, remainingToPay: expectedAmount - currentPaid };
         });
-        console.log('✅ Payment updated (status=paid)');
 
-        // Log successful payment
-        await base44.asServiceRole.entities.WebhookLog.create({
-            webhook_type: 'line',
-            branch_id: branchId,
-            event_type: 'payment_verified',
-            line_user_id: lineUserId,
-            tenant_id: tenant?.id,
-            payment_id: pendingPayment.id,
-            amount: slipAmount,
-            status: 'success',
-            message: 'Payment verified successfully',
-            details: { 
-                late_fee: lateFeeAmount, 
-                days_late: daysLate,
-                sender_name: senderName,
-                verification_method: verificationMethod
-            }
-        }).catch(() => {});
-        console.log('✅ WebhookLog created');
+        // 2. Exact match check
+        let processList = [];
+        let exactMatchIndex = paymentsWithAmounts.findIndex(p => Math.abs(p.remainingToPay - slipAmount) < Math.max(1, p.expectedAmount * 0.05));
 
-        // คำนวณคะแนน
+        if (exactMatchIndex !== -1) {
+            console.log(`🎯 Exact match: ${paymentsWithAmounts[exactMatchIndex].id}`);
+            processList = [paymentsWithAmounts[exactMatchIndex]];
+        } else {
+            console.log(`⚠️ No exact match. Processing oldest bills.`);
+            processList = paymentsWithAmounts;
+        }
+
+        let remainingSlipAmount = slipAmount;
+        let processedIds = [];
+        let partialInfo = null;
+
+        for (const p of processList) {
+            if (remainingSlipAmount <= 0) break;
+            const payAmount = Math.min(p.remainingToPay, remainingSlipAmount);
+            const newTotalPaid = p.currentPaid + payAmount;
+            const status = newTotalPaid >= p.expectedAmount * 0.95 ? 'paid' : 'partial_paid';
+            if (status !== 'paid') partialInfo = { expected: p.expectedAmount, paidNow: newTotalPaid, shortfall: p.expectedAmount - newTotalPaid, lateFee: p.lateFeeAmount, daysLate: p.daysLate };
+
+            remainingSlipAmount -= payAmount;
+            processedIds.push({ id: p.id, status });
+
+            const isExact = exactMatchIndex !== -1 ? ' (ตรงตามยอดบิล)' : '';
+            const note = status === 'paid'
+                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿ (จากยอด ${slipAmount.toLocaleString()}฿)${isExact}${p.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${p.lateFeeAmount.toLocaleString()}฿ ${p.daysLate}วัน)` : ''}`
+                : `\n\n💰 ชำระบางส่วน: ${payAmount.toLocaleString()}฿ (รวม ${newTotalPaid.toLocaleString()}/${p.expectedAmount.toLocaleString()}฿)`;
+
+            await base44.asServiceRole.entities.Payment.update(p.id, {
+                status, paid_amount: newTotalPaid, payment_slip_url: slipImageUrl,
+                late_fee_amount: p.lateFeeAmount, total_amount: p.expectedAmount,
+                ...(status === 'paid' ? { payment_date: transDate.split('T')[0] } : {}),
+                notes: `${p.notes || ''}${note}`
+            });
+
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line', branch_id: branchId, event_type: status === 'paid' ? 'payment_verified' : 'partial_payment',
+                line_user_id: lineUserId, tenant_id: tenant?.id, payment_id: p.id, amount: payAmount, status: 'success',
+                message: status === 'paid' ? 'Verified' : `Partial: ${newTotalPaid}/${p.expectedAmount}`,
+                details: { late_fee: p.lateFeeAmount, days_late: p.daysLate, sender: senderName, method: verificationMethod, slip_amount: slipAmount }
+            }).catch(() => {});
+        }
+
+        // 3. Excess to prepaid
+        if (remainingSlipAmount > 0 && tenant?.id) {
+            console.log(`💰 Excess ${remainingSlipAmount}฿ -> Prepaid`);
+            await base44.asServiceRole.entities.Tenant.update(tenant.id, {
+                prepaid_balance: (parseFloat(tenant.prepaid_balance || 0) + remainingSlipAmount),
+                notes: `${tenant.notes || ''}\n[${new Date().toISOString().split('T')[0]}] ส่วนเกินสลิป: +${remainingSlipAmount}฿`
+            });
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line', branch_id: branchId, event_type: 'prepaid_added', line_user_id: lineUserId,
+                tenant_id: tenant.id, amount: remainingSlipAmount, status: 'success', message: `Prepaid added: ${remainingSlipAmount}`
+            }).catch(() => {});
+        }
+
+        // 4. Recalculate score
         if (tenant?.id) {
-            try {
-                console.log('📊 Calculating payment score...');
-                await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
-                    tenant_id: tenant.id
-                });
-                console.log('✅ Payment score calculated');
-            } catch (scoreError) {
-                console.log('⚠️ Score calculation failed:', scoreError.message);
-            }
+            try { await base44.asServiceRole.functions.invoke('calculatePaymentScores', { tenant_id: tenant.id }); } catch (e) {}
         }
         
-        console.log('📨 Sending receipt...');
-        try {
-            await base44.asServiceRole.functions.invoke('sendReceipt', { 
-                paymentId: pendingPayment.id 
-            });
-            console.log('✅ Receipt sent successfully');
-        } catch (receiptError) {
-            console.error('❌ Receipt send failed:', receiptError.message);
+        // 5. Send message
+        if (partialInfo && remainingSlipAmount <= 0) {
             await sendMessage(base44, lineUserId, 
-                `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
-                branchId,
-                replyToken
+                `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`,
+                branchId, replyToken
             );
-            console.log('✅ Sent fallback success message (receipt failed)');
+        } else {
+            let msg = `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว`;
+            if (remainingSlipAmount > 0) msg += `\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต`;
+            msg += `\nขอบคุณค่ะ 🙏`;
+            await sendMessage(base44, lineUserId, msg, branchId, replyToken);
+        }
+
+        // 6. Send receipts
+        for (const item of processedIds) {
+            if (item.status === 'paid') {
+                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id }); } 
+                catch (e) { console.error(`❌ Receipt failed ${item.id}:`, e.message); }
+            }
         }
 
     } catch (error) {
