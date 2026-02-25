@@ -150,7 +150,7 @@ export default function ChatSidebar({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium text-slate-800 truncate text-sm">
-                          {tenant?.room_number ? `ห้อง ${tenant.room_number} - ${tenant.full_name}` : (tenant?.full_name || conv.line_display_name || 'ไม่ทราบชื่อ')}
+                          {tenant?.room_number ? `ห้อง ${tenant.room_number}` : (tenant?.full_name || conv.line_display_name || 'ไม่ทราบชื่อ')}
                         </p>
                         <span className="text-xs text-slate-400 flex-shrink-0">
                           {conv.last_message_time && (() => {
