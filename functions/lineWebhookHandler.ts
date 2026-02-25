@@ -383,10 +383,8 @@ Deno.serve(async (req) => {
                         }
                         const finalBranchId = tenant?.branch_id || msgBranchId;
 
-                        // ⭐ Import function ที่สร้างจากสำหรับดึง room_number + ชื่อ
-                        const { formatTenantDisplayName } = await import('./utils/formatTenantDisplayName.js');
-                        
-                        // ดึง LINE Profile สำหรับรูปภาพ
+                        // ดึง LINE Profile เสมอ
+                        let displayName = null;
                         let pictureUrl = null;
                         
                         try {
@@ -397,15 +395,19 @@ Deno.serve(async (req) => {
                                 });
                                 if (profileRes.ok) {
                                     const profile = await profileRes.json();
+                                    displayName = profile.displayName;
                                     pictureUrl = profile.pictureUrl;
+                                    console.log(`✅ Got LINE profile: ${displayName}, pic: ${pictureUrl ? 'YES' : 'NO'}`);
                                 }
                             }
                         } catch (profileError) {
                             console.log('⚠️ Could not fetch LINE profile:', profileError.message);
                         }
                         
-                        // ⭐ แสดง displayName เป็น "เลขห้อง ชื่อผู้เช่า"
-                        const displayName = await formatTenantDisplayName(base44, tenant);
+                        // Fallback to tenant name if no LINE profile
+                        if (!displayName && tenant?.full_name) {
+                            displayName = tenant.full_name;
+                        }
 
                         const messageContent = messageType === 'text' 
                             ? event.message.text 
