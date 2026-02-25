@@ -1463,15 +1463,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
         if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
             (!expectedPromptPay || expectedPromptPay.trim() === '')) {
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayments[0].room_id });
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
 
             console.log('⚠️ NO CONFIG FOUND - Manual review required');
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
             });
 
             await sendMessage(base44, lineUserId, 
