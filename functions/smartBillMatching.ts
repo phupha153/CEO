@@ -215,14 +215,24 @@ async function chargeCascadePayment(
     let billsToUpdate = [];
     let cascadeIndex = 0;
     
-    // ⭐ ชำระแบบ Cascade
-    for (let i = 0; i < pendingPayments.length && remainingAmount > 0; i++) {
-        const bill = pendingPayments[i];
+    // ⭐ ชำระแบบ Cascade (Priority: oldest due_date first)
+    // ⭐ FIX #4: Sort by due_date to charge oldest bills first
+    const sortedBills = [...pendingPayments].sort((a, b) => {
+        const dateA = new Date(a.due_date || '9999-12-31').getTime();
+        const dateB = new Date(b.due_date || '9999-12-31').getTime();
+        return dateA - dateB;
+    });
+    
+    for (let i = 0; i < sortedBills.length && remainingAmount > 0; i++) {
+        const bill = sortedBills[i];
+        
+        if (!bill || !bill.id) continue;
+        
         const billTotal = parseFloat(bill.total_amount) || 0;
         const billPaid = parseFloat(bill.paid_amount) || 0;
         const billRemaining = Math.max(0, billTotal - billPaid);
         
-        if (billRemaining === 0) continue;
+        if (billRemaining <= 0) continue; // Changed from === 0 to <= 0
         
         const paymentAmount = Math.min(remainingAmount, billRemaining);
         const newPaidAmount = billPaid + paymentAmount;
