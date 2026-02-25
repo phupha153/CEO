@@ -620,8 +620,8 @@ Deno.serve(async (req) => {
                                                     headers: { 'Authorization': `Bearer ${lineToken}` }
                                                 });
                                                 if (imageResponse.ok) {
-                                                    const imageBlob = await imageResponse.blob();
-                                                    const file = new File([imageBlob], `line-image-${Date.now()}.jpg`, { type: imageBlob.type });
+                                                    const b = await imageResponse.arrayBuffer();
+                                                    const file = new File([new Blob([b], { type: 'image/jpeg' })], `line.jpg`, { type: 'image/jpeg' });
                                                     const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
                                                     imageUrl = uploadResult.file_url;
                                                     console.log(`✅ Uploaded image: ${imageUrl}`);
