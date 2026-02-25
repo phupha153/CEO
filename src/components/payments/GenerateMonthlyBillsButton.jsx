@@ -45,14 +45,34 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         const errors = response.data.errors || [];
         const pending = response.data.pendingImageCount || 0;
         
+        // ⭐ คำนวณเดือนที่สร้างบิล
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const currentDay = now.getDate();
+        
+        // สมมติว่า payDay = 5, billGenDay = 27
+        // ถ้าวันนี้ > payDay → บิลเป็นของเดือนถัดไป
+        let billMonth = currentMonth;
+        let billYear = currentYear;
+        if (currentDay > 5) { // ใช้ค่า default payDay
+          billMonth += 1;
+          if (billMonth > 11) { billMonth = 0; billYear += 1; }
+        }
+        
+        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+                           'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const billMonthName = thaiMonths[billMonth];
+        const billYearThai = billYear + 543;
+        
         if (skipped > 0 && errors.length > 0) {
           toast.warning(
-            `⚠️ สร้างบิลสำเร็จ ${created} รายการ, ข้าม ${skipped} รายการ\n\nข้อผิดพลาด:\n${errors.join('\n')}`,
+            `⚠️ สร้างบิล${billMonthName} ${billYearThai} สำเร็จ ${created} รายการ, ข้าม ${skipped} รายการ\n\nข้อผิดพลาด:\n${errors.join('\n')}`,
             { duration: 10000 }
           );
         } else if (created > 0) {
           toast.success(
-            `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
+            `สร้างบิล${billMonthName} ${billYearThai} สำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
             { duration: 5000 }
           );
 
