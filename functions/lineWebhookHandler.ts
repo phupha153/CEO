@@ -1486,32 +1486,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
 
-        // 1. Calculate remaining amounts
-        const paymentsWithAmounts = pendingPayments.map(p => {
-            const baseAmount = ['rent_amount','water_amount','electricity_amount','internet_amount','common_fee_amount','parking_fee_amount','other_amount']
-                .reduce((sum, key) => sum + (parseFloat(p[key]) || 0), 0);
-            
-            const { lateFeeAmount, daysLate } = calculateLateFee(p, configs, branchId, today);
-            const expectedAmount = baseAmount + lateFeeAmount;
-            const currentPaid = parseFloat(p.paid_amount || 0);
-            return { ...p, baseAmount, lateFeeAmount, daysLate, expectedAmount, currentPaid, remainingToPay: expectedAmount - currentPaid };
-        });
-
-        // 2. Exact match check
-        let processList = [];
-        let exactMatchIndex = paymentsWithAmounts.findIndex(p => Math.abs(p.remainingToPay - slipAmount) < Math.max(1, p.expectedAmount * 0.05));
-
-        if (exactMatchIndex !== -1) {
-            console.log(`🎯 Exact match: ${paymentsWithAmounts[exactMatchIndex].id}`);
-            processList = [paymentsWithAmounts[exactMatchIndex]];
-        } else {
-            console.log(`⚠️ No exact match. Processing oldest bills.`);
-            processList = paymentsWithAmounts;
-        }
+        const { calculatePaymentAmountsAndMatch } = await import('./utils/paymentMatcher.js');
+        const processList = calculatePaymentAmountsAndMatch(pendingPayments, slipAmount, configs, branchId, today, calculateLateFee);
 
         let remainingSlipAmount = slipAmount;
         let processedIds = [];
         let partialInfo = null;
+        let isExactCombo = processList.length > 0 && Math.abs(processList.reduce((sum, p) => sum + p.remainingToPay, 0) - slipAmount) <= processList.length * 2;
 
         for (const p of processList) {
             if (remainingSlipAmount <= 0) break;
@@ -1523,9 +1504,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             remainingSlipAmount -= payAmount;
             processedIds.push({ id: p.id, status });
 
-            const isExact = exactMatchIndex !== -1 ? ' (ตรงตามยอดบิล)' : '';
+            const isExact = isExactCombo ? ' (ตรงตามยอดบิล)' : '';
             const note = status === 'paid'
-                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿ (จากยอด ${slipAmount.toLocaleString()}฿)${isExact}${p.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${p.lateFeeAmount.toLocaleString()}฿ ${p.daysLate}วัน)` : ''}`
+                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿ (จากยอดรวม ${slipAmount.toLocaleString()}฿)${isExact}${p.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${p.lateFeeAmount.toLocaleString()}฿ ${p.daysLate}วัน)` : ''}`
                 : `\n\n💰 ชำระบางส่วน: ${payAmount.toLocaleString()}฿ (รวม ${newTotalPaid.toLocaleString()}/${p.expectedAmount.toLocaleString()}฿)`;
 
             await base44.asServiceRole.entities.Payment.update(p.id, {
@@ -1543,7 +1524,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }).catch(() => {});
         }
 
-        // 3. Excess to prepaid
         if (remainingSlipAmount > 0 && tenant?.id) {
             console.log(`💰 Excess ${remainingSlipAmount}฿ -> Prepaid`);
             await base44.asServiceRole.entities.Tenant.update(tenant.id, {
@@ -1556,12 +1536,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }).catch(() => {});
         }
 
-        // 4. Recalculate score
         if (tenant?.id) {
             try { await base44.asServiceRole.functions.invoke('calculatePaymentScores', { tenant_id: tenant.id }); } catch (e) {}
         }
         
-        // 5. Send message
         if (partialInfo && remainingSlipAmount <= 0) {
             await sendMessage(base44, lineUserId, 
                 `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`,
@@ -1574,7 +1552,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             await sendMessage(base44, lineUserId, msg, branchId, replyToken);
         }
 
-        // 6. Send receipts
         for (const item of processedIds) {
             if (item.status === 'paid') {
                 try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id }); } 
