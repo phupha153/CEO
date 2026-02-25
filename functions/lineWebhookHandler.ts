@@ -17,115 +17,33 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
     return matchedCount >= minRequired;
 }
 
-// ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
-    console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
-    
-    if (!payment || !payment.due_date) {
-        console.log('  ⏭️ SKIP: No due_date');
-        return { lateFeeAmount: 0, daysLate: 0 };
-    }
-    
-    // 🔒 LOCK 1: ถ้าชำระแล้ว
-    if (payment.status === 'paid') {
-        console.log(`  🔒 SKIP: Already paid (locked: ${payment.late_fee_amount || 0}฿)`);
-        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-    }
-    
-    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับ
-    if (payment.late_fee_locked === true) {
-        console.log(`  🔒 SKIP: Admin locked (${payment.late_fee_amount || 0}฿)`);
-        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-    }
-    
+    if (!payment || !payment.due_date) return { lateFeeAmount: 0, daysLate: 0 };
+    if (payment.status === 'paid') return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    if (payment.late_fee_locked === true) return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
     const calcDate = calculationDate || new Date();
-    
-    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ทำงานเสมอ ไม่ว่า calculationDate มีค่าหรือไม่)
-    console.log(`  🔍 LOCK 3 Check: late_fee_last_calculated=${payment.late_fee_last_calculated || 'null'}`);
     if (payment.late_fee_last_calculated) {
-        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
-        const lastCalcDate = new Date(payment.late_fee_last_calculated);
-        const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
-        const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
-        
-        // วันนี้ในเวลาไทย
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
-        
-        console.log(`  🔍 LastCalc(TH): ${lastCalcDay.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDay.getTime() === today.getTime()}`);
-        
-        if (lastCalcDay.getTime() === today.getTime()) {
-            console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
-            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-        }
-    } else {
-        console.log(`  ⚠️ No late_fee_last_calculated → Will calculate`);
+        const lc = new Date(new Date(payment.late_fee_last_calculated).getTime() + 7*3600000);
+        const lcDay = new Date(lc.getFullYear(), lc.getMonth(), lc.getDate());
+        const n = new Date(new Date().getTime() + 7*3600000);
+        const tDay = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+        if (lcDay.getTime() === tDay.getTime()) return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
     }
-
     try {
-        const dueDate = parseISO(payment.due_date);
-        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const dd = parseISO(payment.due_date);
+        const dueDateStart = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
         const calcDateStart = new Date(calcDate.getFullYear(), calcDate.getMonth(), calcDate.getDate());
         const daysOverdue = differenceInDays(calcDateStart, dueDateStart);
-
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
-
-        const getConfigValue = (key, defaultValue = null) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
-            
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
-        };
-
-        const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
-
-        if (tiersEnabled) {
-            const tiersConfigValue = getConfigValue('late_fee_tiers');
-
-            if (tiersConfigValue) {
-                try {
-                    const tiers = JSON.parse(tiersConfigValue);
-                    let totalFee = 0;
-
-                    for (const tier of tiers) {
-                        const daysFrom = tier.days_from || 1;
-                        const daysTo = tier.days_to || 999;
-                        const feePerDay = parseFloat(tier.fee_per_day || 0);
-
-                        if (daysOverdue >= daysFrom) {
-                            const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                            if (daysInThisTier > 0) {
-                                totalFee += daysInThisTier * feePerDay;
-                            }
-                        }
-
-                        if (daysOverdue <= daysTo) break;
-                    }
-
-                    console.log(`  ✅ Tiered: ${daysOverdue}d → ${totalFee}฿`);
-                    return { lateFeeAmount: totalFee, daysLate: daysOverdue };
-                } catch (e) {
-                    console.error('Error parsing late fee tiers:', e);
-                }
-            }
+        const gcv = (key, def = null) => { const b = configs.find(c => c.key === key && c.branch_id === branchId); if (b?.value != null) return b.value; const g = configs.find(c => c.key === key && !c.branch_id); return g?.value != null ? g.value : def; };
+        if (gcv('late_fee_tiers_enabled') === 'true') {
+            const tv = gcv('late_fee_tiers');
+            if (tv) { try { const tiers = JSON.parse(tv); let tf = 0; for (const t of tiers) { const df = t.days_from||1, dt = t.days_to||999, fp = parseFloat(t.fee_per_day||0); if (daysOverdue >= df) { const d = Math.min(daysOverdue, dt) - df + 1; if (d > 0) tf += d * fp; } if (daysOverdue <= dt) break; } return { lateFeeAmount: tf, daysLate: daysOverdue }; } catch(e) {} }
         }
-
-        const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
-        
-        if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) {
-            console.log('  ⏭️ SKIP: No late fee config');
-            return { lateFeeAmount: 0, daysLate: daysOverdue };
-        }
-
-        const simpleFee = daysOverdue * lateFeePerDay;
-        console.log(`  ✅ Simple: ${daysOverdue}d × ${lateFeePerDay}฿ = ${simpleFee}฿`);
-        return { lateFeeAmount: simpleFee, daysLate: daysOverdue };
-    } catch (error) {
-        console.error('Error calculating late fee:', error);
-        return { lateFeeAmount: 0, daysLate: 0 };
-    }
+        const lpd = parseFloat(gcv('late_payment_fee_per_day', '0'));
+        if (lpd === 0 || isNaN(lpd)) return { lateFeeAmount: 0, daysLate: daysOverdue };
+        return { lateFeeAmount: daysOverdue * lpd, daysLate: daysOverdue };
+    } catch (error) { return { lateFeeAmount: 0, daysLate: 0 }; }
 }
 
 const processedMessages = new Set();
