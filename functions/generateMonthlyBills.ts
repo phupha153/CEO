@@ -263,7 +263,14 @@ Deno.serve(async (req) => {
                 const dateB = new Date(b.created_date || b.check_in_date || 0);
                 return dateB - dateA; // ล่าสุดก่อน
             });
-        const bookingsMap = new Map(activeBookings.map(b => [b.room_id, b])); // ⭐ Map for O(1) lookup
+        
+        // ⭐ CRITICAL FIX: ใช้ loop แทน .map() เพื่อเก็บเฉพาะ booking แรก (ล่าสุด) ต่อห้อง
+        const bookingsMap = new Map();
+        for (const booking of activeBookings) {
+            if (!bookingsMap.has(booking.room_id)) {
+                bookingsMap.set(booking.room_id, booking); // เก็บเฉพาะตัวแรกที่เจอ = ล่าสุด
+            }
+        }
         // await delay(500); // ⭐ REMOVED: Unnecessary delay
 
         const normalizeEntity = (entity) => {
