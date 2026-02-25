@@ -3,6 +3,11 @@
 
 // ⭐ calculateLateFee imported inline (copy from calculateLateFee.js)
 function calculateLateFeeInline(payment, configs, branchId, today) {
+    // ⭐ FIX #1: Handle missing due_date
+    if (!payment.due_date) {
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
+    
     const dueDate = new Date(payment.due_date);
     const daysLate = Math.max(0, Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)));
     
