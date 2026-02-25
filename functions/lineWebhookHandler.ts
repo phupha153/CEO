@@ -1014,55 +1014,14 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
 }
 
 function extractAmount(slipData) {
-    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
-    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
-    
-    const possiblePaths = [
-        ['amount'],
-        ['transAmount'],
-        ['transaction', 'amount'],
-        ['payment', 'amount'],
-        ['data', 'amount'],
-        ['receiver', 'amount'],
-        ['sender', 'amount'],
-        ['receiver', 'account', 'amount'],
-        ['sender', 'account', 'amount']
-    ];
-    
-    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
-    
-    for (const path of possiblePaths) {
-        let current = slipData;
-        let isValid = true;
-        
-        console.log(`  Testing path: ${path.join('.')}`);
-        
-        for (const key of path) {
-            if (current && typeof current === 'object' && key in current) {
-                current = current[key];
-                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
-            } else {
-                isValid = false;
-                console.log(`    ✗ Key "${key}" not found`);
-                break;
-            }
-        }
-        
-        if (isValid && current !== null && current !== undefined) {
-            const amount = typeof current === 'number' ? current : parseFloat(current);
-            if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
-                console.log('=============================\n');
-                return { amount, path: path.join('.') };
-            } else {
-                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
-            }
-        }
+    const paths = [['amount'],['transAmount'],['transaction','amount'],['payment','amount'],['data','amount'],['receiver','amount'],['sender','amount'],['receiver','account','amount'],['sender','account','amount']];
+    for (const path of paths) {
+        let cur = slipData;
+        let ok = true;
+        for (const k of path) { if (cur && typeof cur === 'object' && k in cur) cur = cur[k]; else { ok = false; break; } }
+        if (ok && cur != null) { const a = typeof cur === 'number' ? cur : parseFloat(cur); if (!isNaN(a) && a > 0) return { amount: a, path: path.join('.') }; }
     }
-    
-    console.error('❌ FAILED! Could not find amount in ANY path!');
-    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
-    console.log('=============================\n');
+    console.error('❌ Could not extract amount from slip', Object.keys(slipData || {}));
     return { amount: 0, path: 'not found' };
 }
 
