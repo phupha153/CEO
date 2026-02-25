@@ -1540,14 +1540,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
         
         if (partialInfo && remainingSlipAmount <= 0) {
-            await sendMessage(base44, lineUserId, 
-                `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`,
-                branchId, replyToken
-            );
-        } else {
-            let msg = `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว`;
-            if (remainingSlipAmount > 0) msg += `\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต`;
-            msg += `\nขอบคุณค่ะ 🙏`;
+            await sendMessage(base44, lineUserId, `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`, branchId, replyToken);
+        } else if (remainingSlipAmount > 0) {
+            let msg = `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต\nขอบคุณค่ะ 🙏`;
             await sendMessage(base44, lineUserId, msg, branchId, replyToken);
         }
 
