@@ -37,15 +37,21 @@ Deno.serve(async (req) => {
 
         const owner = users[0];
 
-        // ⚠️ CRITICAL: ต้องส่ง plan_status ที่แท้จริง ถ้าไม่มี = ไม่มีแพ็กเกจ (ไม่ให้ default 'trial')
+        // ⭐ FIX: ดึง plan_status จาก owner.data.plan_status (nested field) ถ้าไม่มีให้ลอง owner.plan_status
+        const planStatus = owner.data?.plan_status || owner.plan_status || null;
+        const trialEndsAt = owner.data?.trial_ends_at || owner.trial_ends_at || null;
+        const subscriptionEndDate = owner.data?.subscription_end_date || owner.subscription_end_date || null;
+        const packageId = owner.data?.package_id || owner.package_id || null;
+        const packageName = owner.data?.package_name || owner.package_name || null;
+
         return Response.json({
             owner_email: owner.email,
             owner_name: owner.full_name,
-            plan_status: owner.plan_status || null, // ⭐ FIX: ส่ง null ถ้าไม่มี (ไม่ใช่ 'trial')
-            trial_ends_at: owner.trial_ends_at,
-            subscription_end_date: owner.subscription_end_date,
-            package_id: owner.package_id,
-            package_name: owner.package_name,
+            plan_status: planStatus,
+            trial_ends_at: trialEndsAt,
+            subscription_end_date: subscriptionEndDate,
+            package_id: packageId,
+            package_name: packageName,
             is_owner: user.email === owner.email
         });
 
