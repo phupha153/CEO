@@ -378,7 +378,7 @@ Deno.serve(async (req) => {
                 }
 
                 // ⭐ เช็คว่า Slip2Go ตอบกลับสำเร็จหรือไม่
-                const isSlipValid = slip2goResponse.ok && slip2goData.success && slip2goData.data;
+                const isSlipValid = slip2goResponse.ok && slip2goData.code === '200200' && slip2goData.data;
                 const isDuplicate = slip2goData.code === '200501' || (slip2goData.message && slip2goData.message.toLowerCase().includes('duplicate'));
 
                 // ⭐ ถ้าเป็น Duplicate - ถือว่าสลิปถูกต้อง (เคยตรวจสอบผ่านแล้ว)
@@ -408,9 +408,9 @@ Deno.serve(async (req) => {
                         });
 
                         skippedCount++;
-                        }
-                        continue;
-                        }
+                    }
+                    continue;
+                }
 
                         console.log(`   ✅ Slip2Go verification SUCCESS! (isDuplicate: ${isDuplicate})`);
 
