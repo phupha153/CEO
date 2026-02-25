@@ -681,7 +681,7 @@ Deno.serve(async (req) => {
 
                 // 🔄 คำนวณค่าน้ำ: เหมา > ขั้นต่ำ > ตามหน่วย
                 let waterAmount;
-                if (room.is_flat_rate_water === true && room.flat_rate_water_amount) {
+                if ((room.is_flat_rate_water === true || room.is_flat_rate_water === 'true') && room.flat_rate_water_amount) {
                     waterAmount = parseFloat(room.flat_rate_water_amount);
                     waterFlatRateApplied = true;
                 } else if (waterMinimumApplied) {
@@ -692,7 +692,7 @@ Deno.serve(async (req) => {
 
                 // 🔄 คำนวณค่าไฟ: เหมา > ขั้นต่ำ > ตามหน่วย
                 let electricityAmount;
-                if (room.is_flat_rate_electricity === true && room.flat_rate_electricity_amount) {
+                if ((room.is_flat_rate_electricity === true || room.is_flat_rate_electricity === 'true') && room.flat_rate_electricity_amount) {
                     electricityAmount = parseFloat(room.flat_rate_electricity_amount);
                     electricityFlatRateApplied = true;
                 } else if (electricityMinimumApplied) {
@@ -751,11 +751,11 @@ Deno.serve(async (req) => {
                     due_date: format(dueDate, 'yyyy-MM-dd'),
                     payment_date: paymentDate,
                     rent_amount: safeRoomPrice,
-                    water_units: parseFloat(originalWaterUnits) || 0,
-                    water_rate: parseFloat(waterRate) || 0,
+                    water_units: waterFlatRateApplied ? 0 : (parseFloat(originalWaterUnits) || 0),
+                    water_rate: waterFlatRateApplied ? 0 : (parseFloat(waterRate) || 0),
                     water_amount: safeWaterAmount,
-                    electricity_units: parseFloat(originalElecUnits) || 0,
-                    electricity_rate: parseFloat(elecRate) || 0,
+                    electricity_units: electricityFlatRateApplied ? 0 : (parseFloat(originalElecUnits) || 0),
+                    electricity_rate: electricityFlatRateApplied ? 0 : (parseFloat(elecRate) || 0),
                     electricity_amount: safeElecAmount,
                     internet_amount: safeInternetRate,
                     common_fee_amount: safeCommonFee,
