@@ -1374,7 +1374,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 event_type: 'slip_fraud',
                 line_user_id: lineUserId,
                 tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
+                payment_id: pendingPayments[0].id,
                 status: 'warning',
                 message: 'Fraud slip detected',
                 details: { error_code: errorCode }
