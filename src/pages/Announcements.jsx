@@ -89,16 +89,26 @@ export default function Announcements() {
   const tenantsMap = React.useMemo(() => {
     const map = {};
     tenants.forEach(t => {
-      // เพิ่มข้อมูลห้องจาก rooms
-      const room = rooms.find(r => r.id === t.id);
-      const tenantData = { ...t, room_number: room?.room_number || t.room_number };
+      // หา booking ที่ใช้งานของผู้เช่านี้
+      const activeBooking = bookings.find(b => b.tenant_id === t.id && b.status === 'active');
+      
+      // หา room_number จาก booking
+      let roomNumber = t.room_number; // fallback
+      if (activeBooking) {
+        const room = rooms.find(r => r.id === activeBooking.room_id);
+        if (room?.room_number) {
+          roomNumber = room.room_number;
+        }
+      }
+      
+      const tenantData = { ...t, room_number: roomNumber };
       
       if (t.line_user_id) map[t.line_user_id] = tenantData;
       if (t.facebook_user_id) map[t.facebook_user_id] = tenantData;
       if (t.id) map[t.id] = tenantData;
     });
     return map;
-  }, [tenants, rooms]);
+  }, [tenants, rooms, bookings]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
