@@ -23,8 +23,8 @@ export function calculatePaymentAmountsAndMatch(pendingPayments, slipAmount, con
                 bestSubset = [...subset]; return; 
             }
             if (sum > slipAmount + 5 || index >= searchLimit) return;
-            subset.push(paymentsWithAmounts[index]);
-            search(index + 1, subset, sum + paymentsWithAmounts[index].remainingToPay);
+            subset.push(sortedPayments[index]);
+            search(index + 1, subset, sum + sortedPayments[index].remainingToPay);
             subset.pop();
             search(index + 1, subset, sum);
         };
