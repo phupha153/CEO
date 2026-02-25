@@ -1,6 +1,50 @@
 // ⭐⭐⭐ Smart Bill Matching Helper - แบ่งออกจาก lineWebhookHandler
 // ใช้ logic หาบิลที่ตรงกับสลิป ±1% แล้วชำระแบบ Cascade
 
+// ⭐ calculateLateFee imported inline (copy from calculateLateFee.js)
+function calculateLateFeeInline(payment, configs, branchId, today) {
+    const dueDate = new Date(payment.due_date);
+    const daysLate = Math.max(0, Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)));
+    
+    if (daysLate === 0) {
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
+    
+    const getConfigValue = (key) => {
+        const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+        if (branchConfig) return branchConfig.value;
+        const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+        return globalConfig?.value || null;
+    };
+    
+    const lateFeeTierConfig = getConfigValue('late_fee_tier');
+    let lateFeeAmount = 0;
+    
+    if (lateFeeTierConfig) {
+        try {
+            const tiers = JSON.parse(lateFeeTierConfig);
+            for (const tier of tiers) {
+                if (daysLate >= tier.from && daysLate <= tier.to) {
+                    lateFeeAmount = tier.amount;
+                    break;
+                }
+            }
+        } catch (e) {
+            console.warn('Invalid late_fee_tier config');
+        }
+    } else {
+        const lateFeePerDay = parseFloat(getConfigValue('late_fee_per_day') || '0');
+        lateFeeAmount = daysLate * lateFeePerDay;
+    }
+    
+    const lateFeeMax = parseFloat(getConfigValue('late_fee_max') || '0');
+    if (lateFeeMax > 0) {
+        lateFeeAmount = Math.min(lateFeeAmount, lateFeeMax);
+    }
+    
+    return { lateFeeAmount: Math.round(lateFeeAmount * 100) / 100, daysLate };
+}
+
 async function processBillMatching(
     base44, 
     slipAmount, 
@@ -13,7 +57,8 @@ async function processBillMatching(
     verificationMethod, 
     lineUserId, 
     replyToken,
-    configs
+    configs,
+    sendMessage
 ) {
     const now = new Date();
     const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
@@ -30,6 +75,8 @@ async function processBillMatching(
     for (let i = 0; i < pendingPayments.length; i++) {
         const bill = pendingPayments[i];
         const billTotal = parseFloat(bill.total_amount) || 0;
+        
+        if (billTotal === 0) continue;
         
         const diffPercent = Math.abs(slipAmount - billTotal) / billTotal * 100;
         
@@ -51,7 +98,7 @@ async function processBillMatching(
         return await chargeExactMatch(
             base44, matchedBill, slipAmount, transDate, slipImageUrl,
             senderName, verificationMethod, tenant, branchId, lineUserId, replyToken,
-            configs, today
+            configs, today, sendMessage
         );
     }
     
@@ -60,18 +107,15 @@ async function processBillMatching(
     return await chargeCascadePayment(
         base44, slipAmount, pendingPayments, tenant, branchId, senderName,
         transDate, slipImageUrl, verificationMethod, lineUserId, replyToken,
-        configs, today
+        configs, today, sendMessage
     );
 }
 
 async function chargeExactMatch(
     base44, bill, slipAmount, transDate, slipImageUrl,
     senderName, verificationMethod, tenant, branchId, lineUserId, replyToken,
-    configs, today
+    configs, today, sendMessage
 ) {
-    const calculateLateFee = require('./functions/utils/calculateLateFee').default || 
-                            require('./utils/calculateLateFee').default;
-    
     const baseAmount = (parseFloat(bill.rent_amount) || 0) +
                       (parseFloat(bill.water_amount) || 0) +
                       (parseFloat(bill.electricity_amount) || 0) +
@@ -80,7 +124,7 @@ async function chargeExactMatch(
                       (parseFloat(bill.parking_fee_amount) || 0) +
                       (parseFloat(bill.other_amount) || 0);
     
-    const { lateFeeAmount, daysLate } = calculateLateFee(bill, configs, branchId, today);
+    const { lateFeeAmount, daysLate } = calculateLateFeeInline(bill, configs, branchId, today);
     const expectedAmount = baseAmount + lateFeeAmount;
     const currentPaid = parseFloat(bill.paid_amount || 0);
     const totalPaid = currentPaid + slipAmount;
@@ -117,37 +161,36 @@ async function chargeExactMatch(
         }
     }).catch(() => {});
     
-    // Score + Receipt
+    // Score
     if (tenant?.id) {
         try {
             await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                 tenant_id: tenant.id
             });
-        } catch (e) {}
+        } catch (e) {
+            console.log('⚠️ Score calculation failed');
+        }
     }
     
+    // Receipt
     try {
         await base44.asServiceRole.functions.invoke('sendReceipt', { 
             paymentId: bill.id 
         });
     } catch (e) {
-        await base44.asServiceRole.functions.invoke('sendMessage', {
-            lineUserId, 
-            text: `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
+        await sendMessage(base44, lineUserId, 
+            `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
             branchId,
             replyToken
-        });
+        );
     }
 }
 
 async function chargeCascadePayment(
     base44, slipAmount, pendingPayments, tenant, branchId, senderName,
     transDate, slipImageUrl, verificationMethod, lineUserId, replyToken,
-    configs, today
+    configs, today, sendMessage
 ) {
-    const calculateLateFee = require('./functions/utils/calculateLateFee').default || 
-                            require('./utils/calculateLateFee').default;
-    
     let remainingAmount = slipAmount;
     let billsToUpdate = [];
     let cascadeIndex = 0;
@@ -187,7 +230,7 @@ async function chargeCascadePayment(
         const billUpdate = billsToUpdate[idx];
         const bill = pendingPayments.find(b => b.id === billUpdate.id);
         
-        const { lateFeeAmount, daysLate } = calculateLateFee(bill, configs, branchId, today);
+        const { lateFeeAmount, daysLate } = calculateLateFeeInline(bill, configs, branchId, today);
         
         await base44.asServiceRole.entities.Payment.update(billUpdate.id, {
             status: billUpdate.newStatus,
@@ -212,15 +255,18 @@ async function chargeCascadePayment(
         }).catch(() => {});
     }
     
-    // Score + Receipt
+    // Score
     if (tenant?.id) {
         try {
             await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                 tenant_id: tenant.id
             });
-        } catch (e) {}
+        } catch (e) {
+            console.log('⚠️ Score calculation failed');
+        }
     }
     
+    // Receipt
     try {
         if (billsToUpdate.length > 0) {
             await base44.asServiceRole.functions.invoke('sendReceipt', { 
@@ -228,13 +274,12 @@ async function chargeCascadePayment(
             });
         }
     } catch (e) {
-        await base44.asServiceRole.functions.invoke('sendMessage', {
-            lineUserId,
-            text: `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท (ชำระ ${billsToUpdate.length} บิล)\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
+        await sendMessage(base44, lineUserId,
+            `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท (ชำระ ${billsToUpdate.length} บิล)\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
             branchId,
             replyToken
-        });
+        );
     }
 }
 
-module.exports = { processBillMatching };
+export { processBillMatching };
