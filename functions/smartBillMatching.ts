@@ -282,4 +282,4 @@ async function chargeCascadePayment(
     }
 }
 
-export { processBillMatching };
+module.exports = { processBillMatching };
