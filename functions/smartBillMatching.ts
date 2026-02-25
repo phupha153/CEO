@@ -156,8 +156,9 @@ async function chargeExactMatch(
     
     console.log(`💰 Expected: ${expectedAmount}฿, Slip: ${slipAmount}฿`);
     
-    // ชำระบิล
-    await base44.asServiceRole.entities.Payment.update(bill.id, {
+    // ⭐ FIX #8: Try-catch for Payment.update
+    try {
+        await base44.asServiceRole.entities.Payment.update(bill.id, {
         status: 'paid',
         payment_date: transDate.split('T')[0],
         payment_slip_url: slipImageUrl,
