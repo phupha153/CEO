@@ -1,19 +1,53 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    if (!maskedSlipAccount || !myRealAccount) return false;
+    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
+    console.log('  Input (from slip):', maskedSlipAccount);
+    console.log('  Expected (my account):', myRealAccount);
+    
+    if (!maskedSlipAccount || !myRealAccount) {
+        console.log('  ❌ Result: FAIL - Missing data');
+        return false;
+    }
+    
     const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
     const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
+    
+    console.log('  Cleaned slip account:', slipAcc);
+    console.log('  Cleaned my account:', myAcc);
+    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
+        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
+        return false;
+    }
+    
     let matchedCount = 0;
     const minRequired = slipAcc.length <= 4 ? 2 : 3;
+    
+    console.log(`  Min required matches: ${minRequired}`);
+    
     for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
-        if (slipAcc[i] === myAcc[i]) matchedCount++;
-        else return false;
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
+            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
+            continue;
+        }
+        if (slipAcc[i] === myAcc[i]) {
+            matchedCount++;
+            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
+        } else {
+            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
+            return false;
+        }
     }
-    return matchedCount >= minRequired;
+    
+    const isMatch = matchedCount >= minRequired;
+    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
+    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
+    console.log('=========================\n');
+    
+    return isMatch;
 }
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
@@ -1013,19 +1047,55 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
 }
 
 function extractAmount(slipData) {
-    const paths = [['amount'], ['transAmount'], ['transaction', 'amount'], ['payment', 'amount'], ['receiver', 'amount'], ['sender', 'amount']];
-    for (const path of paths) {
-        let val = slipData;
-        let ok = true;
-        for (const k of path) {
-            if (val && typeof val === 'object' && k in val) val = val[k];
-            else { ok = false; break; }
+    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
+    
+    const possiblePaths = [
+        ['amount'],
+        ['transAmount'],
+        ['transaction', 'amount'],
+        ['payment', 'amount'],
+        ['data', 'amount'],
+        ['receiver', 'amount'],
+        ['sender', 'amount'],
+        ['receiver', 'account', 'amount'],
+        ['sender', 'account', 'amount']
+    ];
+    
+    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
+    
+    for (const path of possiblePaths) {
+        let current = slipData;
+        let isValid = true;
+        
+        console.log(`  Testing path: ${path.join('.')}`);
+        
+        for (const key of path) {
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
+            } else {
+                isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
+                break;
+            }
         }
-        if (ok && val != null) {
-            const amt = typeof val === 'number' ? val : parseFloat(val);
-            if (!isNaN(amt) && amt > 0) return { amount: amt, path: path.join('.') };
+        
+        if (isValid && current !== null && current !== undefined) {
+            const amount = typeof current === 'number' ? current : parseFloat(current);
+            if (!isNaN(amount) && amount > 0) {
+                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('=============================\n');
+                return { amount, path: path.join('.') };
+            } else {
+                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
+            }
         }
     }
+    
+    console.error('❌ FAILED! Could not find amount in ANY path!');
+    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
+    console.log('=============================\n');
     return { amount: 0, path: 'not found' };
 }
 
@@ -1638,25 +1708,387 @@ async function sendEditTemplate(base44, lineUserId, pendingData, categoryTh, bra
     await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 }
 
+// ⭐⭐⭐ Flex Message สำหรับข้อความที่ไม่มีรูป
 async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
-    const msg = `📋 ตรวจสอบข้อมูล\n\n` +
-        `หัวข้อ: ${analysis.title}\n` +
-        `ยอดเงิน: ${analysis.amount.toLocaleString()} บาท\n` +
-        `วันที่: ${analysis.date}\n` +
-        `ประเภท: ${categoryTh[analysis.category]}\n\n` +
-        `พิมพ์ "✅ ยืนยัน" หรือ "✏️ แก้ไข"`;
-    await sendMessage(base44, lineUserId, msg, branchId, replyToken);
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ตรวจสอบค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#1E40AF',
+                            margin: 'sm'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'lg'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#F97316', size: 'xs', flex: 5 }
+                            ]
+                        }
+                    ],
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent Flex message with upload option');
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
 }
 
 async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
-    const msg = `📋 ตรวจสอบข้อมูล\n\n` +
-        `หัวข้อ: ${analysis.title}\n` +
-        `ยอดเงิน: ${analysis.amount.toLocaleString()} บาท\n` +
-        `วันที่: ${analysis.date}\n` +
-        `ประเภท: ${categoryTh[analysis.category]}\n` +
-        `${analysis.receipt_image ? '✅ มีสลิป' : '⚠️ ไม่มีสลิป'}\n\n` +
-        `พิมพ์ "✅ ยืนยัน" หรือ "✏️ แก้ไข"`;
-    await sendMessage(base44, lineUserId, msg, branchId, replyToken);
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        // เช็คว่ามีรูปสลิปหรือไม่
+        const hasReceipt = analysis.receipt_image && analysis.receipt_image.trim() !== '';
+
+        // สร้าง body contents - แยกรูปไว้ต่างหาก
+        const bodyContents = [
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                    { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'separator',
+                margin: 'lg'
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { 
+                        type: 'text', 
+                        text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
+                        wrap: true, 
+                        color: hasReceipt ? '#16A34A' : '#F97316', 
+                        size: 'xs', 
+                        flex: 5 
+                    }
+                ]
+            }
+        ];
+
+        // ถ้ามีรูปสลิป ให้แสดงรูปด้วย
+        if (hasReceipt) {
+            bodyContents.push({
+                type: 'image',
+                url: analysis.receipt_image,
+                size: 'full',
+                aspectRatio: '1.5:1',
+                aspectMode: 'cover',
+                margin: 'md'
+            });
+        }
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ยืนยันค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#1E40AF',
+                            margin: 'sm'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: bodyContents,
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        const responseText = await response.text();
+        console.log(`📬 LINE API Response (${endpoint.includes('reply') ? 'REPLY' : 'PUSH'}):`, response.status, responseText);
+
+        if (!response.ok && replyToken) {
+            console.log('⚠️ Reply failed - attempting PUSH fallback...');
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            const fallbackResponse = await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+
+            const fallbackText = await fallbackResponse.text();
+            console.log(`📬 PUSH Fallback Response:`, fallbackResponse.status, fallbackText);
+
+            if (!fallbackResponse.ok) {
+                console.error('❌ Both REPLY and PUSH failed!');
+                console.error('   Reply Error:', responseText);
+                console.error('   Push Error:', fallbackText);
+                throw new Error(`LINE API failed: ${fallbackText}`);
+            }
+
+            console.log('✅ Sent Flex confirmation via PUSH fallback');
+        } else if (response.ok) {
+            console.log('✅ Sent Flex confirmation message via REPLY');
+        } else {
+            console.error('❌ Flex message failed (no fallback attempted)');
+            throw new Error(`LINE API error: ${responseText}`);
+        }
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
 }
 
 async function sendMessage(base44, lineUserId, text, branchId = null, replyToken = null) {
@@ -2410,14 +2842,151 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
     }
 }
 
+// ⭐⭐⭐ ส่งแจ้งเตือนเมื่อมีข้อมูลค่าใช้จ่ายรออยู่แล้ว
 async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl, categoryTh, branchId, replyToken) {
-    const msg = `⚠️ มีข้อมูลรอยืนยันอยู่\n\n` +
-        `หัวข้อ: ${pendingData.title}\n` +
-        `ยอดเงิน: ${pendingData.amount.toLocaleString()}฿\n\n` +
-        `พิมพ์:\n` +
-        `"ยกเลิก" = ลบข้อมูลเก่า\n` +
-        `"✅ ยืนยัน" = เก็บเดิมไว้`;
-    await sendMessage(base44, lineUserId, msg, branchId, replyToken);
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: 'มีค่าใช้จ่ายรอยืนยันอยู่แล้ว',
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '⚠️ มีข้อมูลรอยืนยันอยู่',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#F59E0B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#475569',
+                            margin: 'sm'
+                        }
+                    ],
+                    backgroundColor: '#FEF3C7'
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: 'ข้อมูลค่าใช้จ่ายที่รอยืนยัน:',
+                            size: 'sm',
+                            color: '#64748B',
+                            margin: 'none'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: pendingData.title || 'ไม่ระบุ', wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${pendingData.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'md'
+                        },
+                        {
+                            type: 'text',
+                            text: 'คุณต้องการทำอย่างไรกับรูปสลิปใหม่?',
+                            size: 'sm',
+                            color: '#475569',
+                            margin: 'md',
+                            wrap: true
+                        }
+                    ],
+                    spacing: 'sm'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '🗑️ ลบข้อมูลเก่า ส่งใหม่',
+                                data: `cancel_old_expense`
+                            },
+                            style: 'primary',
+                            color: '#DC2626',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '✅ เก็บเดิมไว้',
+                                data: 'keep_old_expense'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent pending expense alert');
+    } catch (error) {
+        console.error('❌ Error sending pending expense alert:', error);
+    }
 }
 
 // ⭐⭐⭐ จัดการเมื่อเลือก "ยกเลิกเดิม ส่งข้อมูลใหม่"
