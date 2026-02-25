@@ -85,16 +85,20 @@ export default function Announcements() {
     enabled: !!selectedBranchId,
   });
 
-  // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
+  // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id พร้อม room_number
   const tenantsMap = React.useMemo(() => {
     const map = {};
     tenants.forEach(t => {
-      if (t.line_user_id) map[t.line_user_id] = t;
-      if (t.facebook_user_id) map[t.facebook_user_id] = t;
-      if (t.id) map[t.id] = t;
+      // เพิ่มข้อมูลห้องจาก rooms
+      const room = rooms.find(r => r.id === t.id);
+      const tenantData = { ...t, room_number: room?.room_number || t.room_number };
+      
+      if (t.line_user_id) map[t.line_user_id] = tenantData;
+      if (t.facebook_user_id) map[t.facebook_user_id] = tenantData;
+      if (t.id) map[t.id] = tenantData;
     });
     return map;
-  }, [tenants]);
+  }, [tenants, rooms]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
