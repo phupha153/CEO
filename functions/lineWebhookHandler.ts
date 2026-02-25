@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
-// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
     console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
     console.log('  Input (from slip):', maskedSlipAccount);
@@ -50,7 +50,7 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
     return isMatch;
 }
 
-// ⭐ คำนวณค่าปรับชำระล่าช้า
+// ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
     
@@ -59,11 +59,13 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         return { lateFeeAmount: 0, daysLate: 0 };
     }
     
+    // 🔒 LOCK 1: ถ้าชำระแล้ว
     if (payment.status === 'paid') {
         console.log(`  🔒 SKIP: Already paid (locked: ${payment.late_fee_amount || 0}฿)`);
         return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
     }
     
+    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับ
     if (payment.late_fee_locked === true) {
         console.log(`  🔒 SKIP: Admin locked (${payment.late_fee_amount || 0}฿)`);
         return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
@@ -71,12 +73,15 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     
     const calcDate = calculationDate || new Date();
     
+    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ทำงานเสมอ ไม่ว่า calculationDate มีค่าหรือไม่)
     console.log(`  🔍 LOCK 3 Check: late_fee_last_calculated=${payment.late_fee_last_calculated || 'null'}`);
     if (payment.late_fee_last_calculated) {
+        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
         const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
         
+        // วันนี้ในเวลาไทย
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
@@ -156,70 +161,25 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     }
 }
 
-function extractAmount(slipData) {
-    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
-    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
-    
-    const possiblePaths = [
-        ['amount'],
-        ['transAmount'],
-        ['transaction', 'amount'],
-        ['payment', 'amount'],
-        ['data', 'amount'],
-        ['receiver', 'amount'],
-        ['sender', 'amount'],
-        ['receiver', 'account', 'amount'],
-        ['sender', 'account', 'amount']
-    ];
-    
-    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
-    
-    for (const path of possiblePaths) {
-        let current = slipData;
-        let isValid = true;
-        
-        console.log(`  Testing path: ${path.join('.')}`);
-        
-        for (const key of path) {
-            if (current && typeof current === 'object' && key in current) {
-                current = current[key];
-                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
-            } else {
-                isValid = false;
-                console.log(`    ✗ Key "${key}" not found`);
-                break;
-            }
-        }
-        
-        if (isValid && current !== null && current !== undefined) {
-            const amount = typeof current === 'number' ? current : parseFloat(current);
-            if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
-                console.log('=============================\n');
-                return { amount, path: path.join('.') };
-            } else {
-                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
-            }
-        }
-    }
-    
-    console.error('❌ FAILED! Could not find amount in ANY path!');
-    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
-    console.log('=============================\n');
-    return { amount: 0, path: 'not found' };
-}
-
 const processedMessages = new Set();
+
+// Rate limiting cache - ป้องกันส่งข้อความซ้ำๆ ใน 5 นาที
 const messageSentCache = new Map();
+
+// Cache สำหรับ Config - ป้องกันการ query ซ้ำๆ
 let configCache = null;
 let configCacheTime = 0;
-const CONFIG_CACHE_DURATION = 5 * 60 * 1000;
+const CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
+
+// ⭐ Branch-specific Config Cache (แยก cache ตามสาขา)
 const branchConfigCache = new Map();
-const BRANCH_CONFIG_CACHE_DURATION = 5 * 60 * 1000;
-const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000;
+const BRANCH_CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
+const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000; // ⭐ จำกัดไม่ให้เกิน 1000 สาขา
+
+// ⭐ Branches Cache (ลด query ซ้ำซ้อน)
 let branchesCache = null;
 let branchesCacheTime = 0;
-const BRANCHES_CACHE_DURATION = 5 * 60 * 1000;
+const BRANCHES_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
 
 async function getLineToken(base44, branchId = null) {
     try {
@@ -238,6 +198,7 @@ async function getLineToken(base44, branchId = null) {
             if (branchToken?.value?.trim()) {
                 const token = branchToken.value.trim();
                 
+                // ⭐ Evict oldest entry ถ้า cache เต็ม
                 if (branchConfigCache.size >= MAX_BRANCH_CONFIG_CACHE_SIZE) {
                     const oldestKey = branchConfigCache.keys().next().value;
                     branchConfigCache.delete(oldestKey);
@@ -253,6 +214,7 @@ async function getLineToken(base44, branchId = null) {
         if (globalToken?.value?.trim()) {
             const token = globalToken.value.trim();
             
+            // ⭐ Evict oldest entry ถ้า cache เต็ม
             if (branchConfigCache.size >= MAX_BRANCH_CONFIG_CACHE_SIZE) {
                 const oldestKey = branchConfigCache.keys().next().value;
                 branchConfigCache.delete(oldestKey);
@@ -308,6 +270,7 @@ Deno.serve(async (req) => {
     const queryBranchId = url.searchParams.get('branch_id');
     const challenge = url.searchParams.get('challenge');
 
+    // ⭐ LINE Challenge Request (verification)
     if (challenge) {
         console.log(`✅ LINE Challenge received: ${challenge.substring(0, 20)}...`);
         return new Response(challenge, {
@@ -345,17 +308,19 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
+    // Process ใน background (non-blocking)
     (async () => {
         try {
             const events = body.events || [];
             
             if (events.length === 0) return;
             
+            // ⭐ ใช้ branch_id จาก query parameter แทน destination
             const destinationBranchId = queryBranchId;
 
             for (const event of events) {
                 const lineUserId = event.source?.userId;
-                const replyToken = event.replyToken;
+                const replyToken = event.replyToken; // ⭐ ดึง replyToken จาก event
                 
                 if (!lineUserId) continue;
 
@@ -402,9 +367,11 @@ Deno.serve(async (req) => {
                         }
                     }
 
+                    // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
+                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
                         let tenant = null;
-                        const msgBranchId = destinationBranchId;
+                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
                         try {
                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                 line_user_id: lineUserId,
@@ -416,6 +383,7 @@ Deno.serve(async (req) => {
                         }
                         const finalBranchId = tenant?.branch_id || msgBranchId;
 
+                        // ดึง LINE Profile เสมอ
                         let displayName = null;
                         let pictureUrl = null;
                         
@@ -436,6 +404,7 @@ Deno.serve(async (req) => {
                             console.log('⚠️ Could not fetch LINE profile:', profileError.message);
                         }
                         
+                        // Fallback to tenant name if no LINE profile
                         if (!displayName && tenant?.full_name) {
                             displayName = tenant.full_name;
                         }
@@ -466,6 +435,7 @@ Deno.serve(async (req) => {
                         const messageText = event.message.text?.trim() || '';
                         console.log(`📝 Received text: "${messageText}"`);
                         
+                        // ⭐⭐⭐ เช็คว่าเป็นพนักงานที่เชื่อม LINE แล้วหรือไม่
                         let employee = null;
                         try {
                             console.log('🔍 Checking for employee with LINE ID:', lineUserId);
@@ -479,13 +449,16 @@ Deno.serve(async (req) => {
                             console.log('⚠️ Not an employee:', e.message);
                         }
 
+                        // ⭐ ถ้าเป็นพนักงาน → จัดการ Expense Submission
                         if (employee) {
                             await handleEmployeeExpenseSubmission(base44, lineUserId, employee, messageText, replyToken, destinationBranchId);
                             continue;
                         }
                         
+                        // ⭐ ถ้าพิมพ์ "ลงทะเบียน" → แสดงขั้นตอนการลงทะเบียน
                         if (messageText.toLowerCase().includes('ลงทะเบียน') || messageText.toLowerCase().includes('สมัคร')) {
                             console.log('📝 User asking for registration instructions');
+                            // ⭐ ใช้ destinationBranchId เพื่อหา token ที่ถูกต้อง
                             await sendMessage(base44, lineUserId, 
                                 '📋 ขั้นตอนการลงทะเบียน\n\n' +
                                 'กรุณาส่งข้อมูลอย่างใดอย่างหนึ่ง:\n\n' +
@@ -503,6 +476,7 @@ Deno.serve(async (req) => {
 
                         if (messageText.toLowerCase().includes('แจ้งซ่อม')) {
                             console.log('🔧 Detected maintenance request keyword');
+                            // ⭐ ใช้ filter แทน list + find + branch_id
                             let tenant = null;
                             try {
                                 const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
@@ -527,6 +501,8 @@ Deno.serve(async (req) => {
                                 continue;
                             }
 
+                            // ⭐ ถ้าพิมพ์ "แจ้งซ่อม" ตามด้วยรายละเอียด → บันทึกเลย
+                            // เช่น "แจ้งซ่อม แอร์ไม่เย็น" หรือ "แจ้งซ่อม ไฟดับ"
                             const maintenanceKeywords = ['แจ้งซ่อม', 'แจ้ง ซ่อม'];
                             let problemDescription = messageText;
                             
@@ -537,10 +513,12 @@ Deno.serve(async (req) => {
                                 }
                             }
                             
+                            // ถ้ามีรายละเอียดปัญหา (มากกว่า 2 ตัวอักษร) → บันทึกเลย
                             if (problemDescription.length > 2) {
                                 console.log(`📝 Processing maintenance with description: "${problemDescription}"`);
                                 await handleMaintenanceReport(base44, lineUserId, problemDescription, branchId, replyToken);
                             } else {
+                                // ถ้าพิมพ์แค่ "แจ้งซ่อม" → ขอรายละเอียดเพิ่ม
                                 await sendMessage(base44, lineUserId, 
                                     '🔧 ระบบแจ้งซ่อม\n\n' +
                                     'กรุณาพิมพ์ "แจ้งซ่อม" ตามด้วยรายละเอียดปัญหาค่ะ\n\n' +
@@ -568,10 +546,12 @@ Deno.serve(async (req) => {
                             continue;
                         } else if (phoneOnlyPattern.test(messageText)) {
                             console.log(`✅ Phone only: ${messageText}, destinationBranch: ${destinationBranchId || 'null'}`);
+                            // ⭐ ส่ง destinationBranchId ไปด้วยเพื่อช่วย filter
                             await handlePhoneNumberRegistration(base44, lineUserId, messageText, null, replyToken, destinationBranchId);
                             continue;
                         }
                         
+                        // ⭐ หา branch_id ของผู้ใช้ก่อนทำอะไร (ใช้ filter พร้อม branch_id)
                         let tenant = null;
                         try {
                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
@@ -587,138 +567,150 @@ Deno.serve(async (req) => {
                         console.log(`📍 User branch for text message: ${userBranchId ? userBranchId.substring(0, 12) + '...' : 'null (ไม่รู้สาขา)'}`);
 
                         if (!tenant) {
+                            // ถ้ายังไม่ลงทะเบียน และไม่ใช่เบอร์โทร ลองค้นหาด้วยชื่อ
                             console.log(`🔍 Not registered yet. Trying name registration for: "${messageText}"`);
+                            // ถ้าข้อความยาวพอสมควร (เช่น 3 ตัวอักษรขึ้นไป)
                             if (messageText.length >= 3) {
                                 await handleNameRegistration(base44, lineUserId, messageText, replyToken);
                                 continue;
                             }
                         }
 
+                        // ⭐ ถ้าลงทะเบียนแล้ว และพิมพ์ข้อความทั่วไป → ไม่ตอบอะไรเลย
                         if (tenant) {
                             console.log('ℹ️ Registered user sent general message - NOT responding (silent)');
                             continue;
                         }
 
-                        console.log('ℹ️ Unknown message, not responding');
-                        continue;
+                        // ⭐ ไม่ตอบอะไรถ้าข้อความไม่เข้าใจ (ไม่ใช่คำสั่งที่รู้จัก)
+                    console.log('ℹ️ Unknown message, not responding');
+                    continue;
                     }
                     
                     if (messageType === 'image' && messageId) {
-                        console.log(`📸 Image received from ${lineUserId}`);
-                        
-                        let employee = null;
-                        try {
-                            const employeeResult = await base44.asServiceRole.entities.User.filter({
-                                employee_line_user_id: lineUserId,
-                                can_submit_expenses: true
-                            });
-                            employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
-                        } catch (e) {
-                            console.log('⚠️ Not an employee:', e.message);
-                        }
+                                        console.log(`📸 Image received from ${lineUserId}`);
+                                        
+                                        // ⭐ เช็คพนักงานก่อน
+                                        let employee = null;
+                                        try {
+                                            const employeeResult = await base44.asServiceRole.entities.User.filter({
+                                                employee_line_user_id: lineUserId,
+                                                can_submit_expenses: true
+                                            });
+                                            employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+                                        } catch (e) {
+                                            console.log('⚠️ Not an employee:', e.message);
+                                        }
 
-                        if (employee) {
-                            await handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, destinationBranchId);
-                            continue;
-                        }
-                        
-                        let tenant = null;
-                        try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                line_user_id: lineUserId,
-                                branch_id: destinationBranchId
-                            });
-                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                        } catch (e) {
-                            console.log('⚠️ Could not find tenant:', e.message);
-                        }
+                                        if (employee) {
+                                            await handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, destinationBranchId);
+                                            continue;
+                                        }
+                                        
+                                        // ⭐ ใช้ filter พร้อม branch_id
+                                        let tenant = null;
+                                        try {
+                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                                line_user_id: lineUserId,
+                                                branch_id: destinationBranchId
+                                            });
+                                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                                        } catch (e) {
+                                            console.log('⚠️ Could not find tenant:', e.message);
+                                        }
 
-                        if (!tenant) {
-                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
-                            continue;
-                        }
+                                        // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
+                                        if (!tenant) {
+                                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
+                                            continue;
+                                        }
 
-                        const branchId = tenant.branch_id || destinationBranchId;
+                                        const branchId = tenant.branch_id || destinationBranchId;
 
-                        let hasPendingPayment = false;
-                        try {
-                            const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
-                                tenant_id: tenant.id,
-                                branch_id: branchId
-                            });
-                            const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
-                            hasPendingPayment = allPayments.some(p => 
-                                p.status === 'pending' || 
-                                p.status === 'overdue' || 
-                                p.status === 'partial_paid'
-                            );
-                        } catch (e) {
-                            console.log('⚠️ Could not check payments:', e.message);
-                        }
+                                        // ⭐ เช็คว่ามี payment ที่รอชำระหรือชำระไม่ครบ (pending/overdue/partial_paid)
+                                        let hasPendingPayment = false;
+                                        try {
+                                            const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
+                                                tenant_id: tenant.id,
+                                                branch_id: branchId
+                                            });
+                                            const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
+                                            hasPendingPayment = allPayments.some(p => 
+                                                p.status === 'pending' || 
+                                                p.status === 'overdue' || 
+                                                p.status === 'partial_paid'
+                                            );
+                                        } catch (e) {
+                                            console.log('⚠️ Could not check payments:', e.message);
+                                        }
 
-                        let imageUrl = null;
-                        try {
-                            const lineToken = await getLineToken(base44, branchId);
-                            if (lineToken) {
-                                const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
-                                    headers: { 'Authorization': `Bearer ${lineToken}` }
-                                });
-                                if (imageResponse.ok) {
-                                    const imageBlob = await imageResponse.blob();
-                                    const file = new File([imageBlob], `line-image-${Date.now()}.jpg`, { type: imageBlob.type });
-                                    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-                                    imageUrl = uploadResult.file_url;
-                                    console.log(`✅ Uploaded image: ${imageUrl}`);
-                                }
-                            }
-                        } catch (uploadError) {
-                            console.log('⚠️ Could not upload image:', uploadError.message);
-                        }
+                                        // ⭐ ดาวน์โหลดและอัปโหลดรูปก่อน (เพื่อให้ได้ media_url)
+                                        let imageUrl = null;
+                                        try {
+                                            const lineToken = await getLineToken(base44, branchId);
+                                            if (lineToken) {
+                                                const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+                                                    headers: { 'Authorization': `Bearer ${lineToken}` }
+                                                });
+                                                if (imageResponse.ok) {
+                                                    const imageBlob = await imageResponse.blob();
+                                                    const file = new File([imageBlob], `line-image-${Date.now()}.jpg`, { type: imageBlob.type });
+                                                    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+                                                    imageUrl = uploadResult.file_url;
+                                                    console.log(`✅ Uploaded image: ${imageUrl}`);
+                                                }
+                                            }
+                                        } catch (uploadError) {
+                                            console.log('⚠️ Could not upload image:', uploadError.message);
+                                        }
 
-                        try {
-                            let displayName = tenant?.full_name;
-                            let pictureUrl = null;
+                                        // ⭐ บันทึกข้อความประเภทรูปภาพลง LineMessage (หลังได้ media_url แล้ว)
+                                        try {
+                                            // ดึง LINE Profile (ถ้ามี)
+                                            let displayName = tenant?.full_name;
+                                            let pictureUrl = null;
 
-                            try {
-                                const lineToken = await getLineToken(base44, branchId);
-                                if (lineToken) {
-                                    const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
-                                        headers: { 'Authorization': `Bearer ${lineToken}` }
-                                    });
-                                    if (profileRes.ok) {
-                                        const profile = await profileRes.json();
-                                        displayName = profile.displayName || displayName;
-                                        pictureUrl = profile.pictureUrl;
-                                    }
-                                }
-                            } catch (profileError) {
-                                console.log('⚠️ Could not fetch LINE profile:', profileError.message);
-                            }
+                                            try {
+                                                const lineToken = await getLineToken(base44, branchId);
+                                                if (lineToken) {
+                                                    const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
+                                                        headers: { 'Authorization': `Bearer ${lineToken}` }
+                                                    });
+                                                    if (profileRes.ok) {
+                                                        const profile = await profileRes.json();
+                                                        displayName = profile.displayName || displayName;
+                                                        pictureUrl = profile.pictureUrl;
+                                                    }
+                                                }
+                                            } catch (profileError) {
+                                                console.log('⚠️ Could not fetch LINE profile:', profileError.message);
+                                            }
 
-                            await base44.asServiceRole.entities.LineMessage.create({
-                                branch_id: branchId,
-                                tenant_id: tenant?.id || null,
-                                line_user_id: lineUserId,
-                                line_display_name: displayName,
-                                line_picture_url: pictureUrl,
-                                direction: 'incoming',
-                                message_type: 'image',
-                                content: '[รูปภาพ]',
-                                media_url: imageUrl,
-                                reply_token: replyToken
-                            });
-                            console.log(`💾 Saved incoming image to LineMessage entity with media_url: ${imageUrl ? 'YES' : 'NO'}`);
-                        } catch (saveError) {
-                            console.error('⚠️ Failed to save image message to LineMessage:', saveError.message);
-                        }
+                                            await base44.asServiceRole.entities.LineMessage.create({
+                                                branch_id: branchId,
+                                                tenant_id: tenant?.id || null,
+                                                line_user_id: lineUserId,
+                                                line_display_name: displayName,
+                                                line_picture_url: pictureUrl,
+                                                direction: 'incoming',
+                                                message_type: 'image',
+                                                content: '[รูปภาพ]',
+                                                media_url: imageUrl,
+                                                reply_token: replyToken
+                                            });
+                                            console.log(`💾 Saved incoming image to LineMessage entity with media_url: ${imageUrl ? 'YES' : 'NO'}`);
+                                        } catch (saveError) {
+                                            console.error('⚠️ Failed to save image message to LineMessage:', saveError.message);
+                                        }
 
-                        if (hasPendingPayment) {
-                            await handleSlipImage(base44, lineUserId, messageId, branchId, replyToken);
-                        } else {
-                            console.log(`ℹ️ User ${lineUserId} has no outstanding payment - image saved but no slip processing`);
-                        }
+                                        // ⭐ ถ้ามี payment ที่ต้องชำระ → ประมวลผลสลิป
+                                        if (hasPendingPayment) {
+                                            await handleSlipImage(base44, lineUserId, messageId, branchId, replyToken);
+                                        } else {
+                                            console.log(`ℹ️ User ${lineUserId} has no outstanding payment - image saved but no slip processing`);
+                                        }
 
-                        continue;
+                                        continue;
                     }
                 }
             }
@@ -727,6 +719,7 @@ Deno.serve(async (req) => {
         }
     })();
 
+    // Return 200 OK ทันที
     return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -737,6 +730,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     try {
         console.log(`🔧 Processing maintenance report from ${lineUserId}: "${problemDescription}"`);
         
+        // ⭐ ใช้ filter พร้อม branch_id เพื่อความแม่นยำ
         let tenant = null;
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
@@ -761,6 +755,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         
         const tenantBranchId = tenant.branch_id || branchId;
         
+        // ⭐ ใช้ filter แทน list เพื่อดึงเฉพาะ booking ของ tenant นี้
         let bookings = [];
         try {
             const bookingResult = await base44.asServiceRole.entities.Booking.filter({ tenant_id: tenant.id });
@@ -769,14 +764,17 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
             console.log('⚠️ Could not fetch bookings:', e.message);
         }
         
+        // เรียงตามวันที่สร้างล่าสุดเพื่อให้ได้ห้องปัจจุบัน (ในกรณีที่ย้ายห้อง)
         const activeBookings = bookings
             .filter(b => b.tenant_id === tenant.id && b.status === 'active')
             .sort((a, b) => {
                 try {
+                    // Prioritize created_date, then check_in_date if created_date is not available
                     const dateA = new Date(a.created_date || a.check_in_date);
                     const dateB = new Date(b.created_date || b.check_in_date);
                     return dateB.getTime() - dateA.getTime();
                 } catch {
+                    // Handle invalid date strings gracefully by not reordering
                     return 0;
                 }
             });
@@ -844,7 +842,39 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         
         console.log(`✅ Created maintenance request: ${maintenanceRequest.id}`);
         
-        let successMessage = `✅ รับเรื่องแจ้งซ่อมแล้ว ทางเราจะรีบดำเนินการครับ 🔧`;
+        const categoryTh = {
+            electric: 'ไฟฟ้า',
+            plumbing: 'ประปา',
+            furniture: 'เฟอร์นิเจอร์',
+            air_conditioner: 'เครื่องปรับอากาศ',
+            other: 'อื่นๆ'
+        };
+        
+        // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
+        let roomNumber = 'N/A';
+        try {
+            console.log(`🔍 Fetching room by ID: ${activeBooking.room_id}`);
+            let roomsData = await base44.asServiceRole.entities.Room.filter({ id: activeBooking.room_id });
+
+            // ป้องกัน .find error
+            if (!Array.isArray(roomsData)) {
+                roomsData = roomsData ? [roomsData] : [];
+            }
+
+            const room = roomsData.length > 0 ? roomsData[0] : null;
+
+            if (room) {
+                roomNumber = room.room_number || 'N/A';
+                console.log(`✅ Found room! Number: ${roomNumber}, ID: ${room.id}`);
+            } else {
+                console.log(`⚠️ Room not found for ID: ${activeBooking.room_id}`);
+            }
+        } catch (roomError) {
+            console.error('❌ Error fetching room data:', roomError);
+            console.error('Error details:', roomError.message);
+        }
+        
+        let successMessage = `✅ รับเรื่องแจ้งซ่อมแล้ว ทางเราขะรีบดำเนินการครับ 🔧`;
         
         console.log('📤 Sending success message with REPLY token...');
         await sendMessage(base44, lineUserId, successMessage, tenantBranchId, replyToken);
@@ -853,6 +883,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     } catch (error) {
         console.error('❌ Maintenance report error:', error);
         console.error('Error stack:', error.stack);
+        // ⭐ ใช้ filter พร้อม branch_id
         let errorTenant = null;
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
@@ -872,8 +903,30 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     }
 }
 
+// ⭐ Helper function สำหรับ pagination
+async function fetchAllWithPagination(entity, batchSize = 5000) {
+    let allData = [];
+    let skip = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+        const batch = await entity.list('-created_date', batchSize, skip);
+        if (!Array.isArray(batch) || batch.length === 0) {
+            hasMore = false;
+        } else {
+            allData = allData.concat(batch);
+            skip += batch.length;
+            if (batch.length < batchSize) {
+                hasMore = false;
+            }
+        }
+    }
+    return allData;
+}
+
 async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, branchCode = null, replyToken = null, destinationBranchId = null) {
     try {
+        // ⭐⭐⭐ CRITICAL FIX: ต้องมี destinationBranchId เสมอ (ป้องกัน Data Leak)
         if (!destinationBranchId) {
             console.error('❌ CRITICAL: Missing destinationBranchId - cannot register without branch context');
             await sendMessage(base44, lineUserId, 
@@ -884,6 +937,7 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
             return;
         }
 
+        // ⭐ ดึงเฉพาะสาขาที่ระบุ (ไม่โหลดทั้งหมด)
         const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
             phone: phoneNumber,
             branch_id: destinationBranchId 
@@ -891,6 +945,7 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
         let tenants = Array.isArray(tenantResult) ? tenantResult : (tenantResult ? [tenantResult] : []);
         console.log(`🎯 Filtered tenants in branch ${destinationBranchId.substring(0, 8)}... → Found ${tenants.length}`);
 
+        // ⭐ Cache branches
         const now = Date.now();
         let branches;
         if (!branchesCache || (now - branchesCacheTime) > BRANCHES_CACHE_DURATION) {
@@ -903,7 +958,8 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
             console.log(`✅ Using cached branches (${branches.length})`);
         }
 
-        const matchingTenants = tenants;
+        // ⭐ tenants ถูก filter ด้วย phone + branch_id มาแล้ว
+        const matchingTenants = tenants; // ไม่ต้อง filter ซ้ำ
         
         console.log(`📱 Registration: phone=${phoneNumber}, branchCode=${branchCode}, destinationBranchId=${destinationBranchId}`);
         console.log(`📊 Matching tenants in branch: ${tenants.length}, Total branches in cache: ${branches.length}`);
@@ -920,6 +976,7 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
                 return;
             }
             
+            // ⭐ tenants ถูก filter มาแล้วด้วย phone ดังนั้นแค่เช็ค branch_id
             const tenant = tenants.find(t => t.branch_id === targetBranch.id);
             
             if (!tenant) {
@@ -945,6 +1002,7 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
             console.log(`   ${i + 1}. ${t.full_name} - Branch: ${branch?.branch_name || t.branch_id}`);
         });
         
+        // ⭐ ไม่ต้อง filter ซ้ำเพราะ query แรกกรองด้วย branch_id มาแล้ว
         console.log(`✅ All ${matchingTenants.length} tenant(s) are already in correct branch: ${destinationBranchId.substring(0, 12)}...`);
         
         if (matchingTenants.length === 0) {
@@ -965,6 +1023,7 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
             return;
         }
         
+        // ⭐ ถ้ามีหลาย record ในสาขาเดียวกัน → ลงทะเบียน record แรก
         if (matchingTenants.length > 1) {
             console.log(`⚠️ Found ${matchingTenants.length} duplicate records in same branch - registering first one`);
         }
@@ -987,6 +1046,59 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
     }
 }
 
+function extractAmount(slipData) {
+    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
+    
+    const possiblePaths = [
+        ['amount'],
+        ['transAmount'],
+        ['transaction', 'amount'],
+        ['payment', 'amount'],
+        ['data', 'amount'],
+        ['receiver', 'amount'],
+        ['sender', 'amount'],
+        ['receiver', 'account', 'amount'],
+        ['sender', 'account', 'amount']
+    ];
+    
+    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
+    
+    for (const path of possiblePaths) {
+        let current = slipData;
+        let isValid = true;
+        
+        console.log(`  Testing path: ${path.join('.')}`);
+        
+        for (const key of path) {
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
+            } else {
+                isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
+                break;
+            }
+        }
+        
+        if (isValid && current !== null && current !== undefined) {
+            const amount = typeof current === 'number' ? current : parseFloat(current);
+            if (!isNaN(amount) && amount > 0) {
+                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('=============================\n');
+                return { amount, path: path.join('.') };
+            } else {
+                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
+            }
+        }
+    }
+    
+    console.error('❌ FAILED! Could not find amount in ANY path!');
+    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
+    console.log('=============================\n');
+    return { amount: 0, path: 'not found' };
+}
+
 async function handleSlipImage(base44, lineUserId, messageId, branchId = null, replyToken = null) {
     const lineToken = await getLineToken(base44, branchId);
     const slip2goApiKey = Deno.env.get('SLIP2GO_API_KEY');
@@ -997,6 +1109,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
     }
 
     try {
+        
+        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
         if (!branchId) {
             console.error(`❌ CRITICAL: No branchId available for slip verification`);
             await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
@@ -1019,7 +1133,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐ ดึงบิลที่ค้างชำระทั้งหมด
+        // ⭐ CRITICAL: Filter payments รวมทั้ง partial_paid (ชำระไม่ครบ)
         let pendingPayments = [];
         try {
             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
@@ -1042,7 +1156,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // เรียงบิลตามวันครบกำหนด (เก่า → ใหม่)
         pendingPayments.sort((a, b) => {
             try {
                 return new Date(a.due_date) - new Date(b.due_date);
@@ -1050,6 +1163,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 return 0;
             }
         });
+        
+        const pendingPayment = pendingPayments[0];
         
         let imageResponse;
         let retryCount = 0;
@@ -1075,6 +1190,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 retryCount++;
                 
                 if (retryCount < maxRetries) {
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
                     const backoffMs = 2000 * Math.pow(2, retryCount);
                     console.log(`⏳ Download retry waiting ${backoffMs}ms...`);
                     await new Promise(resolve => setTimeout(resolve, backoffMs));
@@ -1085,6 +1201,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 retryCount++;
                 
                 if (retryCount < maxRetries) {
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
                     const backoffMs = 2000 * Math.pow(2, retryCount);
                     console.log(`⏳ Download error retry waiting ${backoffMs}ms...`);
                     await new Promise(resolve => setTimeout(resolve, backoffMs));
@@ -1112,7 +1229,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             );
             return;
         }
-
         let slipImageUrl = '';
         let uploadRetryCount = 0;
         const maxUploadRetries = 3;
@@ -1128,8 +1244,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 uploadRetryCount++;
                 
                 if (uploadRetryCount >= maxUploadRetries) {
-                    await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
-                        notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่อัพโหลดไม่สำเร็จ - กรุณาให้ส่งใหม่`
+                    await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                        notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่อัพโหลดไม่สำเร็จ - กรุณาให้ส่งใหม่`
                     });
                     
                     await sendMessage(base44, lineUserId, 
@@ -1170,6 +1286,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const responseText = await slip2goResponse.text();
             slip2goData = JSON.parse(responseText);
             
+            // ⭐ ตรวจสอบว่าสลิป valid หรือไม่ (รวมทั้ง code 200200 = Slip is valid)
             const isValidCode = slip2goData.code === '200200' || slip2goData.code === 200200;
             
             if ((slip2goResponse.ok && slip2goData.success && slip2goData.data) || (isValidCode && slip2goData.data)) {
@@ -1178,9 +1295,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
             
             if (slip2goResponse.status === 504 || responseText.includes('504')) {
-                await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                     payment_slip_url: slipImageUrl,
-                    notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
+                    notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
                 });
                 
                 await sendMessage(base44, lineUserId, 
@@ -1192,21 +1309,22 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
             
         } catch (fetchError) {
+            // Log to DB
             await base44.asServiceRole.entities.WebhookLog.create({
                 webhook_type: 'line',
                 branch_id: branchId,
                 event_type: 'slip_verification_error',
                 line_user_id: lineUserId,
                 tenant_id: tenant?.id,
-                payment_id: pendingPayments[0].id,
+                payment_id: pendingPayment.id,
                 status: 'error',
                 message: 'Slip2Go API error',
                 error_message: fetchError.message
             }).catch(() => {});
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
             });
             
             await sendMessage(base44, lineUserId, 
@@ -1223,13 +1341,14 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const isDuplicateError = errorCode === '200501' || errorMessage.toLowerCase().includes('duplicate');
 
         if (isDuplicateError) {
+            // Log duplicate
             await base44.asServiceRole.entities.WebhookLog.create({
                 webhook_type: 'line',
                 branch_id: branchId,
                 event_type: 'slip_duplicate',
                 line_user_id: lineUserId,
                 tenant_id: tenant?.id,
-                payment_id: pendingPayments[0].id,
+                payment_id: pendingPayment.id,
                 status: 'warning',
                 message: 'Duplicate slip detected'
             }).catch(() => {});
@@ -1242,16 +1361,22 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
+        // ⭐⭐⭐ Slip2Go Error Codes:
+        // 200500 = Fraud (สลิปปลอม) → ไม่ตอบ ไม่บันทึก
+        // 200404 = Not found (ธนาคารยัง sync ไม่ทัน) → บันทึกรอตรวจซ้ำ
+        // อื่นๆ = Unknown error → ไม่ตอบ ไม่บันทึก
+
         const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
 
         if (isFraudSlip && !verificationSuccess) {
+            // Log fraud attempt
             await base44.asServiceRole.entities.WebhookLog.create({
                 webhook_type: 'line',
                 branch_id: branchId,
                 event_type: 'slip_fraud',
                 line_user_id: lineUserId,
                 tenant_id: tenant?.id,
-                payment_id: pendingPayments[0].id,
+                payment_id: pendingPayment.id,
                 status: 'warning',
                 message: 'Fraud slip detected',
                 details: { error_code: errorCode }
@@ -1266,11 +1391,12 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
             if (isSlipNotFound) {
                 const now = new Date().toISOString();
-                await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                     payment_slip_url: slipImageUrl,
-                    notes: `${pendingPayments[0].notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
+                    notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
                 });
 
+                // ⭐ ไม่ตอบกลับอะไร - ให้ cron job ตรวจสอบซ้ำแบบเงียบๆ
                 console.log('📸 Slip saved silently - waiting for cron recheck');
                 return;
             }
@@ -1279,16 +1405,16 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         const slipData = slip2goData.data;
-        const { amount: totalSlipAmount } = extractAmount(slipData);
+        const { amount: slipAmount } = extractAmount(slipData);
         
         const senderName = slipData.sender?.account?.name?.th || 
                           slipData.sender?.displayName || 'N/A';
         const transDate = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
 
-        if (totalSlipAmount === 0) {
-            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+        if (slipAmount === 0) {
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
             });
             
             await sendMessage(base44, lineUserId, 
@@ -1299,9 +1425,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        console.log(`💰 Total slip amount: ${totalSlipAmount.toLocaleString()}฿`);
-        console.log(`📊 Processing ${pendingPayments.length} pending bill(s)...`);
-
+        // ⭐⭐⭐ เช็คเลขบัญชีก่อนเช็คยอด (แบบเดียวกับ verifySlip - ไม่เช็คชื่อ)
         const now2 = Date.now();
         let configs;
         if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
@@ -1324,6 +1448,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const expectedAccountNumber = getConfigValue('bank_account_number');
         const expectedPromptPay = getConfigValue('promptpay');
 
+        // ⭐ ดึงข้อมูลจาก Slip2Go Response
         const receiverAccount = slipData.receiver?.account?.bank?.account || '';
         const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
         const receiverName = slipData.receiver?.account?.name || '';
@@ -1337,17 +1462,18 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
         console.log('  Receiver Name:', receiverName || '(empty)');
 
+        // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
         if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
             (!expectedPromptPay || expectedPromptPay.trim() === '')) {
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayments[0].room_id });
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
 
             console.log('⚠️ NO CONFIG FOUND - Manual review required');
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
             });
 
             await sendMessage(base44, lineUserId, 
@@ -1361,6 +1487,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let matchMethod = '';
 
+        // ⭐ เช็คเลขบัญชีธนาคาร
         if (expectedAccountNumber) {
             console.log('\n🔍 Checking Bank Account Number...');
             accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
@@ -1370,6 +1497,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
         }
 
+        // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
         if (!accountMatch && expectedPromptPay) {
             console.log('\n🔍 Checking PromptPay...');
             console.log('  Trying receiverPromptPay vs expectedPromptPay...');
@@ -1397,15 +1525,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         if (!accountMatch) {
             console.log('❌ Account mismatch - saving for manual review');
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayments[0].room_id });
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
 
             const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
 
             await sendMessage(base44, lineUserId, 
@@ -1417,234 +1545,107 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        console.log('✅ Account verified - processing smart bill matching...');
+        console.log('💰 Account verified - calculating amounts...');
+        const baseAmount = (parseFloat(pendingPayment.rent_amount) || 0) +
+                          (parseFloat(pendingPayment.water_amount) || 0) +
+                          (parseFloat(pendingPayment.electricity_amount) || 0) +
+                          (parseFloat(pendingPayment.internet_amount) || 0) +
+                          (parseFloat(pendingPayment.common_fee_amount) || 0) +
+                          (parseFloat(pendingPayment.parking_fee_amount) || 0) +
+                          (parseFloat(pendingPayment.other_amount) || 0);
         
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        
+        console.log('📊 Base amount:', baseAmount);
+        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
+        console.log(`💸 Late fee calculated: ${lateFeeAmount}฿ (${daysLate} days)`);
+        
+        const expectedAmount = baseAmount + lateFeeAmount;
+        const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
+        const totalPaid = currentPaid + slipAmount;
 
-        // ⭐⭐⭐ STEP 1: คำนวณยอดทุกบิล (รวมค่าปรับ)
-        const billsWithAmounts = pendingPayments.map(payment => {
-            const baseAmount = (parseFloat(payment.rent_amount) || 0) +
-                              (parseFloat(payment.water_amount) || 0) +
-                              (parseFloat(payment.electricity_amount) || 0) +
-                              (parseFloat(payment.internet_amount) || 0) +
-                              (parseFloat(payment.common_fee_amount) || 0) +
-                              (parseFloat(payment.parking_fee_amount) || 0) +
-                              (parseFloat(payment.other_amount) || 0);
+        console.log(`💰 Payment check: slip=${slipAmount}฿, expected=${expectedAmount}฿, total=${totalPaid}฿`);
+        
+        // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
+        if (totalPaid < expectedAmount * 0.95) {
+            console.log('⚠️ Partial payment detected - updating status...');
+            const shortfall = expectedAmount - totalPaid;
             
-            const { lateFeeAmount, daysLate } = calculateLateFee(payment, configs, branchId, today);
-            const expectedAmount = baseAmount + lateFeeAmount;
-            const currentPaid = parseFloat(payment.paid_amount || 0);
-            const amountNeeded = expectedAmount - currentPaid;
-
-            return {
-                payment,
-                baseAmount,
-                lateFeeAmount,
-                daysLate,
-                expectedAmount,
-                currentPaid,
-                amountNeeded
-            };
-        });
-
-        console.log(`💰 Slip Amount: ${totalSlipAmount.toLocaleString()}฿`);
-        console.log(`📊 Found ${billsWithAmounts.length} pending bill(s):`);
-        billsWithAmounts.forEach((b, i) => {
-            console.log(`   ${i + 1}. Need ${b.amountNeeded.toLocaleString()}฿ (ID: ${b.payment.id.substring(0, 8)}...)`);
-        });
-
-        // ⭐⭐⭐ STEP 2: SMART MATCHING - หาบิลที่ยอดตรงกับสลิป ±5%
-        let matchedBill = null;
-        let matchType = '';
-
-        for (const bill of billsWithAmounts) {
-            const lowerBound = bill.amountNeeded * 0.95;
-            const upperBound = bill.amountNeeded * 1.05;
-            
-            if (totalSlipAmount >= lowerBound && totalSlipAmount <= upperBound) {
-                matchedBill = bill;
-                matchType = 'exact_match';
-                console.log(`🎯 EXACT MATCH! Slip ${totalSlipAmount.toLocaleString()}฿ ≈ Bill ${bill.amountNeeded.toLocaleString()}฿`);
-                break;
-            }
-        }
-
-        // ⭐⭐⭐ STEP 3: ประมวลผลตาม matching result
-        let remainingAmount = totalSlipAmount;
-        const paidBills = [];
-        const partialBills = [];
-        let updatesToProcess = [];
-
-        if (matchedBill) {
-            // ⭐ กรณี: ยอดตรงพอดี → จ่ายบิลนั้นเลย
-            console.log(`✅ Processing matched bill...`);
-            
-            const amountUsed = Math.min(totalSlipAmount, matchedBill.expectedAmount);
-            
-            updatesToProcess.push({
-                id: matchedBill.payment.id,
-                data: {
-                    status: 'paid',
-                    payment_date: transDate.split('T')[0],
-                    payment_slip_url: slipImageUrl,
-                    late_fee_amount: matchedBill.lateFeeAmount,
-                    total_amount: matchedBill.expectedAmount,
-                    paid_amount: matchedBill.expectedAmount,
-                    notes: `${matchedBill.payment.notes || ''}\n\n✅ ชำระผ่าน LINE (ยอดตรง): ${senderName} โอน ${amountUsed.toLocaleString()} บาท${matchedBill.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${matchedBill.lateFeeAmount.toLocaleString()} บาท)` : ''}`
-                },
-                tenant_id: tenant.id,
-                amount_used: amountUsed
+            // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                status: 'partial_paid',
+                paid_amount: totalPaid,
+                payment_slip_url: slipImageUrl,
+                late_fee_amount: lateFeeAmount,
+                total_amount: expectedAmount,
+                notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
             });
-            
-            paidBills.push({ payment: matchedBill.payment, amountUsed, lateFeeAmount: matchedBill.lateFeeAmount, daysLate: matchedBill.daysLate });
-            remainingAmount -= amountUsed;
-            
-            console.log(`   ✅ PAID (Exact Match): ${amountUsed.toLocaleString()}฿, Remaining: ${remainingAmount.toLocaleString()}฿`);
-            
-            // ⭐ ถ้ายังเหลือเงิน → cascade ต่อกับบิลอื่น
-            if (remainingAmount > 0) {
-                console.log(`💰 Remaining ${remainingAmount.toLocaleString()}฿ - cascading to other bills...`);
-                
-                for (const bill of billsWithAmounts) {
-                    if (bill.payment.id === matchedBill.payment.id) continue;
-                    if (remainingAmount <= 0) break;
-                    
-                    if (remainingAmount >= bill.amountNeeded * 0.95) {
-                        const amountUsed = Math.min(remainingAmount, bill.expectedAmount);
-                        
-                        updatesToProcess.push({
-                            id: bill.payment.id,
-                            data: {
-                                status: 'paid',
-                                payment_date: transDate.split('T')[0],
-                                payment_slip_url: slipImageUrl,
-                                late_fee_amount: bill.lateFeeAmount,
-                                total_amount: bill.expectedAmount,
-                                paid_amount: bill.expectedAmount,
-                                notes: `${bill.payment.notes || ''}\n\n✅ ชำระผ่าน LINE (เงินเหลือจาก cascade): ${amountUsed.toLocaleString()} บาท${bill.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${bill.lateFeeAmount.toLocaleString()} บาท)` : ''}`
-                            },
-                            tenant_id: tenant.id,
-                            amount_used: amountUsed
-                        });
-                        
-                        paidBills.push({ payment: bill.payment, amountUsed, lateFeeAmount: bill.lateFeeAmount, daysLate: bill.daysLate });
-                        remainingAmount -= amountUsed;
-                        console.log(`   ✅ CASCADE PAID: ${amountUsed.toLocaleString()}฿, Remaining: ${remainingAmount.toLocaleString()}฿`);
-                    } else if (remainingAmount > 0) {
-                        const newPaidAmount = bill.currentPaid + remainingAmount;
-                        
-                        updatesToProcess.push({
-                            id: bill.payment.id,
-                            data: {
-                                status: 'partial_paid',
-                                paid_amount: newPaidAmount,
-                                payment_slip_url: slipImageUrl,
-                                late_fee_amount: bill.lateFeeAmount,
-                                total_amount: bill.expectedAmount,
-                                notes: `${bill.payment.notes || ''}\n\n💰 ชำระบางส่วน (cascade): ${remainingAmount.toLocaleString()} บาท (รวมแล้ว ${newPaidAmount.toLocaleString()}/${bill.expectedAmount.toLocaleString()} บาท)`
-                            }
-                        });
-                        
-                        partialBills.push({ payment: bill.payment, amountUsed: remainingAmount, shortfall: bill.expectedAmount - newPaidAmount });
-                        console.log(`   ⚠️ CASCADE PARTIAL: ${remainingAmount.toLocaleString()}฿`);
-                        remainingAmount = 0;
-                    }
-                }
-            }
-        } else {
-            // ⭐ กรณี: ไม่มียอดตรงพอดี → Cascade ตามเดิม (เรียงตามวันครบกำหนด)
-            console.log(`⚠️ No exact match - using CASCADE mode (oldest bill first)`);
-            
-            for (let i = 0; i < billsWithAmounts.length && remainingAmount > 0; i++) {
-                const bill = billsWithAmounts[i];
-                
-                console.log(`📋 Bill ${i + 1}: Need ${bill.amountNeeded.toLocaleString()}฿`);
+            console.log('✅ Payment updated (partial_paid)');
 
-                if (remainingAmount >= bill.amountNeeded * 0.95) {
-                    const amountUsed = Math.min(remainingAmount, bill.expectedAmount);
-                    
-                    updatesToProcess.push({
-                        id: bill.payment.id,
-                        data: {
-                            status: 'paid',
-                            payment_date: transDate.split('T')[0],
-                            payment_slip_url: slipImageUrl,
-                            late_fee_amount: bill.lateFeeAmount,
-                            total_amount: bill.expectedAmount,
-                            paid_amount: bill.expectedAmount,
-                            notes: `${bill.payment.notes || ''}\n\n✅ ชำระผ่าน LINE (cascade): ${senderName} โอน ${amountUsed.toLocaleString()}/${totalSlipAmount.toLocaleString()} บาท${bill.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${bill.lateFeeAmount.toLocaleString()} บาท)` : ''}`
-                        },
-                        tenant_id: tenant.id,
-                        amount_used: amountUsed
-                    });
-                    
-                    paidBills.push({ payment: bill.payment, amountUsed, lateFeeAmount: bill.lateFeeAmount, daysLate: bill.daysLate });
-                    remainingAmount -= amountUsed;
-                    console.log(`   ✅ CASCADE PAID: ${amountUsed.toLocaleString()}฿, Remaining: ${remainingAmount.toLocaleString()}฿`);
-                } else if (remainingAmount > 0) {
-                    const newPaidAmount = bill.currentPaid + remainingAmount;
-                    
-                    updatesToProcess.push({
-                        id: bill.payment.id,
-                        data: {
-                            status: 'partial_paid',
-                            paid_amount: newPaidAmount,
-                            payment_slip_url: slipImageUrl,
-                            late_fee_amount: bill.lateFeeAmount,
-                            total_amount: bill.expectedAmount,
-                            notes: `${bill.payment.notes || ''}\n\n💰 ชำระบางส่วน (cascade): ${remainingAmount.toLocaleString()} บาท (รวมแล้ว ${newPaidAmount.toLocaleString()}/${bill.expectedAmount.toLocaleString()} บาท)`
-                        }
-                    });
-                    
-                    partialBills.push({ payment: bill.payment, amountUsed: remainingAmount, shortfall: bill.expectedAmount - newPaidAmount });
-                    console.log(`   ⚠️ CASCADE PARTIAL: ${remainingAmount.toLocaleString()}฿`);
-                    remainingAmount = 0;
-                }
-            }
+            // Log partial payment
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'partial_payment',
+                line_user_id: lineUserId,
+                tenant_id: tenant?.id,
+                payment_id: pendingPayment.id,
+                amount: slipAmount,
+                status: 'success',
+                message: `Partial: ${totalPaid}/${expectedAmount}`,
+                details: { late_fee: lateFeeAmount, days_late: daysLate }
+            }).catch(() => {});
+            
+            await sendMessage(base44, lineUserId, 
+                `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
+                `✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
+                `💵 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n` +
+                `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
+                `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
+                branchId,
+                replyToken
+            );
+            console.log('✅ Sent partial payment message');
+            return;
         }
 
-        // ⭐ Batch Update ทุกบิลพร้อมกัน
-        console.log(`📝 Updating ${updatesToProcess.length} bill(s)...`);
-        for (const update of updatesToProcess) {
-            await base44.asServiceRole.entities.Payment.update(update.id, update.data);
-        }
-        console.log('✅ All bills updated');
+        // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
+        console.log('✅ Full payment verified - updating status...');
+        await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+            status: 'paid',
+            payment_date: transDate.split('T')[0],
+            payment_slip_url: slipImageUrl,
+            late_fee_amount: lateFeeAmount,
+            total_amount: expectedAmount,
+            paid_amount: expectedAmount,
+            notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
+        });
+        console.log('✅ Payment updated (status=paid)');
 
-        // ⭐ ถ้ายอดเหลือ → เติม prepaid_balance
-        if (remainingAmount > 0) {
-            const currentPrepaid = tenant.prepaid_balance || 0;
-            const newPrepaid = currentPrepaid + remainingAmount;
-            
-            await base44.asServiceRole.entities.Tenant.update(tenant.id, {
-                prepaid_balance: newPrepaid
-            });
-            
-            console.log(`💵 Added to prepaid: ${remainingAmount.toLocaleString()}฿ (${currentPrepaid}฿ → ${newPrepaid}฿)`);
-        }
-
-        // ⭐ Log webhook success
+        // Log successful payment
         await base44.asServiceRole.entities.WebhookLog.create({
             webhook_type: 'line',
             branch_id: branchId,
-            event_type: 'multi_payment_verified',
+            event_type: 'payment_verified',
             line_user_id: lineUserId,
             tenant_id: tenant?.id,
-            amount: totalSlipAmount,
+            payment_id: pendingPayment.id,
+            amount: slipAmount,
             status: 'success',
-            message: `Paid ${paidBills.length} bill(s), Partial ${partialBills.length}`,
+            message: 'Payment verified successfully',
             details: { 
-                paid_count: paidBills.length,
-                partial_count: partialBills.length,
-                remaining: remainingAmount,
+                late_fee: lateFeeAmount, 
+                days_late: daysLate,
                 sender_name: senderName,
-                match_type: matchType || 'cascade'
+                verification_method: verificationMethod
             }
         }).catch(() => {});
+        console.log('✅ WebhookLog created');
 
-        // ⭐ คำนวณคะแนนการชำระเงิน
-        if (tenant?.id && paidBills.length > 0) {
+        // คำนวณคะแนน
+        if (tenant?.id) {
             try {
                 console.log('📊 Calculating payment score...');
                 await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
@@ -1655,76 +1656,29 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 console.log('⚠️ Score calculation failed:', scoreError.message);
             }
         }
-
-        // ⭐⭐⭐ ส่งใบเสร็จแยกทีละห้อง
-        console.log(`📨 Sending ${paidBills.length} receipt(s)...`);
-        const receiptResults = [];
         
-        for (let i = 0; i < paidBills.length; i++) {
-            const { payment } = paidBills[i];
-            try {
-                await base44.asServiceRole.functions.invoke('sendReceipt', { 
-                    paymentId: payment.id 
-                });
-                receiptResults.push({ room: payment.room_id, status: 'sent' });
-                console.log(`   ✅ Receipt ${i + 1}/${paidBills.length} sent`);
-                
-                if (i < paidBills.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            } catch (receiptError) {
-                console.error(`   ❌ Receipt ${i + 1} failed:`, receiptError.message);
-                receiptResults.push({ room: payment.room_id, status: 'failed' });
-            }
+        console.log('📨 Sending receipt...');
+        try {
+            await base44.asServiceRole.functions.invoke('sendReceipt', { 
+                paymentId: pendingPayment.id 
+            });
+            console.log('✅ Receipt sent successfully');
+        } catch (receiptError) {
+            console.error('❌ Receipt send failed:', receiptError.message);
+            await sendMessage(base44, lineUserId, 
+                `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
+                branchId,
+                replyToken
+            );
+            console.log('✅ Sent fallback success message (receipt failed)');
         }
-
-        // ⭐ ส่งข้อความสรุป
-        let summaryMessage = `✅ ตรวจสอบสลิปสำเร็จ!\n\n`;
-        summaryMessage += `💰 ยอดโอน: ${totalSlipAmount.toLocaleString()} บาท\n`;
-        summaryMessage += `📅 วันที่: ${transDate.split('T')[0]}\n`;
-        
-        if (matchType === 'exact_match') {
-            summaryMessage += `🎯 ระบบจับคู่ยอดอัตโนมัติ\n\n`;
-        } else {
-            summaryMessage += `📊 จ่ายตามลำดับวันครบกำหนด\n\n`;
-        }
-        
-        if (paidBills.length > 0) {
-            summaryMessage += `━━━━━━━━━━━━━━━━━━━━\n`;
-            summaryMessage += `✅ ชำระครบ ${paidBills.length} ห้อง:\n`;
-            
-            for (const { payment, amountUsed } of paidBills) {
-                const roomResult = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
-                const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-                const roomNumber = room?.room_number || 'N/A';
-                summaryMessage += `   • ห้อง ${roomNumber}: ${amountUsed.toLocaleString()}฿\n`;
-            }
-            summaryMessage += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-        }
-        
-        if (partialBills.length > 0) {
-            const { payment, shortfall } = partialBills[0];
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
-            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-            const roomNumber = room?.room_number || 'N/A';
-            summaryMessage += `⚠️ ห้อง ${roomNumber}: ต้องโอนเพิ่มอีก ${shortfall.toLocaleString()}฿\n\n`;
-        }
-        
-        if (remainingAmount > 0) {
-            summaryMessage += `💵 เงินคงเหลือ: ${remainingAmount.toLocaleString()}฿\n(เติมเข้าบัญชีล่วงหน้าแล้ว)\n\n`;
-        }
-        
-        summaryMessage += `📨 ส่งใบเสร็จแล้ว ${paidBills.length} ใบ\n\n`;
-        summaryMessage += `ขอบคุณที่ชำระเงินค่ะ 🙏`;
-
-        await sendMessage(base44, lineUserId, summaryMessage, branchId, replyToken);
-        console.log('✅ Sent summary message');
 
     } catch (error) {
         console.error('❌ === SLIP PROCESSING ERROR ===');
         console.error('Error:', error.message);
         console.error('Stack:', error.stack);
         
+        // Log critical error to DB
         await base44.asServiceRole.entities.WebhookLog.create({
             webhook_type: 'line',
             branch_id: branchId,
@@ -1740,8 +1694,406 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
     }
 }
 
+async function sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId = null, replyToken = null) {
+    const templateText = 
+        `📝 บันทึกค่าใช้จ่าย\n` +
+        `หัวข้อ : ${pendingData.title || '...........'}\n` +
+        `ยอดเงิน : ${pendingData.amount.toLocaleString()} บาท\n` +
+        `ประเภท : ${categoryTh[pendingData.category]}\n` +
+        `วันที่ : ${pendingData.date}\n` +
+        `รายละเอียด : ${pendingData.description || '...........'}\n` +
+        `รูปสลิป/บิล : (แนบมาแล้ว)\n` +
+        `หมายเหตุ : ...........`;
+    
+    await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
+}
+
+// ⭐⭐⭐ Flex Message สำหรับข้อความที่ไม่มีรูป
+async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ตรวจสอบค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#1E40AF',
+                            margin: 'sm'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'lg'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#F97316', size: 'xs', flex: 5 }
+                            ]
+                        }
+                    ],
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent Flex message with upload option');
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
+}
+
+async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        // เช็คว่ามีรูปสลิปหรือไม่
+        const hasReceipt = analysis.receipt_image && analysis.receipt_image.trim() !== '';
+
+        // สร้าง body contents - แยกรูปไว้ต่างหาก
+        const bodyContents = [
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                    { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'separator',
+                margin: 'lg'
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { 
+                        type: 'text', 
+                        text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
+                        wrap: true, 
+                        color: hasReceipt ? '#16A34A' : '#F97316', 
+                        size: 'xs', 
+                        flex: 5 
+                    }
+                ]
+            }
+        ];
+
+        // ถ้ามีรูปสลิป ให้แสดงรูปด้วย
+        if (hasReceipt) {
+            bodyContents.push({
+                type: 'image',
+                url: analysis.receipt_image,
+                size: 'full',
+                aspectRatio: '1.5:1',
+                aspectMode: 'cover',
+                margin: 'md'
+            });
+        }
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ยืนยันค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#1E40AF',
+                            margin: 'sm'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: bodyContents,
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        const responseText = await response.text();
+        console.log(`📬 LINE API Response (${endpoint.includes('reply') ? 'REPLY' : 'PUSH'}):`, response.status, responseText);
+
+        if (!response.ok && replyToken) {
+            console.log('⚠️ Reply failed - attempting PUSH fallback...');
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            const fallbackResponse = await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+
+            const fallbackText = await fallbackResponse.text();
+            console.log(`📬 PUSH Fallback Response:`, fallbackResponse.status, fallbackText);
+
+            if (!fallbackResponse.ok) {
+                console.error('❌ Both REPLY and PUSH failed!');
+                console.error('   Reply Error:', responseText);
+                console.error('   Push Error:', fallbackText);
+                throw new Error(`LINE API failed: ${fallbackText}`);
+            }
+
+            console.log('✅ Sent Flex confirmation via PUSH fallback');
+        } else if (response.ok) {
+            console.log('✅ Sent Flex confirmation message via REPLY');
+        } else {
+            console.error('❌ Flex message failed (no fallback attempted)');
+            throw new Error(`LINE API error: ${responseText}`);
+        }
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
+}
+
 async function sendMessage(base44, lineUserId, text, branchId = null, replyToken = null) {
     try {
+        // เช็ค rate limit - ถ้าเพิ่งส่งไปไม่เกิน 5 นาทีให้ข้าม (เฉพาะ push)
         const cacheKey = `${lineUserId}_${text.substring(0, 50)}`;
         if (!replyToken) {
             const lastSent = messageSentCache.get(cacheKey);
@@ -1755,6 +2107,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         console.log(`🔑 Reply Token: ${replyToken ? `${replyToken.substring(0, 20)}...` : 'NOT PROVIDED'}`);
         console.log(`📬 Method: ${replyToken ? '⭐ REPLY (จะลองก่อน)' : '📮 PUSH'}`);
 
+        // ใช้ฟังก์ชันใหม่ในการดึง token
         const lineToken = await getLineToken(base44, branchId);
 
         if (!lineToken) {
@@ -1766,6 +2119,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 
         console.log(`✅ Found LINE token for branch: ${branchId ? branchId.substring(0, 12) + '...' : 'global'} (Token: ${lineToken.substring(0, 20)}...)`);  
 
+        // ⭐ ลอง reply ก่อน ถ้าไม่สำเร็จให้ fallback เป็น push
         let endpoint = replyToken 
             ? 'https://api.line.me/v2/bot/message/reply'
             : 'https://api.line.me/v2/bot/message/push';
@@ -1790,6 +2144,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         const usedReplyFirst = replyToken && endpoint.includes('reply');
         console.log(`📬 LINE API Response (${usedReplyFirst ? 'REPLY' : 'PUSH'}):`, response.status, responseText.substring(0, 300));
 
+        // ⭐ ถ้า reply ไม่สำเร็จ (error 400 = Invalid reply token) ให้ลอง push แทน
         if (!response.ok && replyToken) {
             console.error(`❌ Reply failed: ${response.status} - ${responseText}`);
 
@@ -1820,6 +2175,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
             console.error('❌ Final endpoint used:', endpoint);
             console.error('❌ Message content:', text.substring(0, 100));
 
+            // ถ้าเป็น error เรื่อง rate limit ให้ลบ cache เพื่อให้ลองใหม่ได้
             if (responseText.includes('rate limit') || responseText.includes('429')) {
                 messageSentCache.delete(cacheKey);
             }
@@ -1828,9 +2184,11 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
             console.log(`✅ Message sent successfully via ${usedMethod}`);
             console.log(`📊 Stats: replyToken=${replyToken ? 'YES' : 'NO'}, endpoint=${endpoint.includes('reply') ? 'REPLY' : 'PUSH'}`);
 
+            // บันทึกเวลาที่ส่งสำเร็จ (เฉพาะ push หรือ fallback จาก reply)
             if (!replyToken || endpoint.includes('push')) {
                 messageSentCache.set(cacheKey, Date.now());
 
+                // จำกัดขนาด cache ไม่ให้เกิน 1000 รายการ
                 if (messageSentCache.size > 1000) {
                     const firstKey = messageSentCache.keys().next().value;
                     messageSentCache.delete(firstKey);
@@ -1841,6 +2199,22 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         console.error('❌ Error sending LINE message:', error);
         console.error('Error stack:', error.stack);
     }
+}
+
+async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToken = null) {
+    // ดึงชื่อหอพักจากการตั้งค่า
+    const configs = await base44.asServiceRole.entities.Config.list();
+    const getConfigValue = (key) => {
+        const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+        if (branchConfig?.value) return branchConfig.value;
+        const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+        return globalConfig?.value || 'W RESIDENTS';
+    };
+    
+    const buildingName = getConfigValue('building_name');
+    const welcomeText = `🏡 ยินดีต้อนรับสู่หอพัก ${buildingName}`;
+
+    await sendMessage(base44, lineUserId, welcomeText, branchId, replyToken);
 }
 
 async function sendConfirmationMessage(base44, lineUserId, tenant, branch, replyToken = null) {
@@ -1856,27 +2230,984 @@ async function sendConfirmationMessage(base44, lineUserId, tenant, branch, reply
 }
 
 function sendNotFoundMessage(base44, lineUserId, phoneNumber, branchId = null, replyToken = null) {
+    // ไม่ตอบกลับอะไรเลยถ้าไม่พบข้อมูลในระบบ
     console.log(`ℹ️ No data found for "${phoneNumber}" - not sending any response`);
     return;
 }
 
+// ปิดการลงทะเบียนด้วยชื่อ - ไม่ใช้งานแล้ว
 function handleNameRegistration(base44, lineUserId, nameQuery, replyToken = null) {
+    // ปิดการลงทะเบียนด้วยชื่อ - ไม่ตอบกลับอะไรเลย
     console.log(`ℹ️ Name registration is disabled - ignoring query: "${nameQuery}"`);
     return;
 }
 
+// ⭐⭐⭐ จัดการค่าใช้จ่าย - ข้อความเปล่า
 async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, messageText, replyToken, branchId) {
-    console.log(`💼 Employee detected - forwarding to expense handler`);
+    try {
+        console.log(`💼 Employee expense submission: ${messageText}`);
+        
+        // ⭐ รอ 1.5 วินาทีให้รูปที่ส่งมาก่อนหน้าทันอัปโหลดและบันทึกเข้า temp_expense_image_url
+        console.log('⏳ Waiting 1.5s for image to be saved...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // ⭐ โหลด employee ใหม่เพื่อเอาข้อมูลล่าสุด (ป้องกัน race condition)
+        const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const freshEmployee = Array.isArray(freshEmployeeResult) ? freshEmployeeResult[0] : freshEmployeeResult;
+        
+        if (!freshEmployee) {
+            console.log('❌ Employee not found in fresh query');
+            return;
+        }
+        
+        // ใช้ข้อมูลจาก fresh query
+        const pendingData = freshEmployee.expense_pending_data;
+        const tempImageUrl = freshEmployee.temp_expense_image_url;
+        
+        console.log('🔍 Fresh Employee Data:', {
+            hasPendingData: !!pendingData,
+            hasTempImage: !!tempImageUrl,
+            editMode: freshEmployee.expense_edit_mode
+        });
+        
+        if (messageText.toLowerCase().includes('ยกเลิก')) {
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: null,
+                temp_expense_image_url: null
+            });
+            await sendMessage(base44, lineUserId, '❌ ยกเลิกการบันทึกค่าใช้จ่ายแล้ว', branchId, replyToken);
+            return;
+        }
+        
+        // ⭐ ถ้ากด "แก้ไข" แต่ไม่มี pending data → ไม่ส่งอะไรเลย
+        if (!pendingData && (messageText.toLowerCase().includes('แก้') || messageText === '✏️ แก้ไข')) {
+            console.log('ℹ️ Edit requested but no pending data - not responding');
+            return;
+        }
+        
+        if (pendingData && (messageText.includes('ยืนยัน') || messageText.includes('✅'))) {
+            console.log('========================================');
+            console.log('✅ CONFIRMING EXPENSE');
+            console.log(`📊 Pending Data:`, JSON.stringify(pendingData, null, 2));
+            console.log(`👤 Employee:`, employee.email);
+            console.log(`🏢 Branch ID:`, employee.assigned_branch_id || branchId);
+            console.log('========================================');
+            
+            // ตรวจสอบข้อมูลก่อน create
+            if (!pendingData.title || !pendingData.amount || !pendingData.category || !pendingData.date) {
+                console.error('❌ Missing required fields:', {
+                    title: !!pendingData.title,
+                    amount: !!pendingData.amount,
+                    category: !!pendingData.category,
+                    date: !!pendingData.date
+                });
+                await sendMessage(base44, lineUserId,
+                    '❌ ข้อมูลไม่ครบ กรุณาส่งใหม่อีกครั้ง',
+                    branchId,
+                    replyToken
+                );
+                return;
+            }
+            
+            // บันทึก Expense
+            const expenseData = {
+                branch_id: freshEmployee.assigned_branch_id || branchId,
+                title: pendingData.title,
+                amount: pendingData.amount,
+                category: pendingData.category,
+                date: pendingData.date,
+                description: pendingData.description,
+                receipt_image: pendingData.receipt_image || null,
+                notes: `ส่งโดย ${employee.full_name || employee.email} ผ่าน LINE`
+            };
+            
+            console.log('💾 Creating Expense with data:', JSON.stringify(expenseData, null, 2));
+            
+            const createdExpense = await base44.asServiceRole.entities.Expense.create(expenseData);
+            
+            console.log('✅ Expense created successfully! ID:', createdExpense.id);
+            
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: null,
+                temp_expense_image_url: null
+            });
+            
+            console.log('✅ Cleared pending data and temp image from employee');
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // ส่ง Flex Message แสดงว่าบันทึกสำเร็จ
+            const successFlex = {
+                type: 'flex',
+                altText: '✅ บันทึกค่าใช้จ่ายสำเร็จ',
+                contents: {
+                    type: 'bubble',
+                    hero: {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                contents: [
+                                    {
+                                        type: 'text',
+                                        text: '✅',
+                                        size: 'xxl',
+                                        align: 'center',
+                                        color: '#06C755'
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: 'บันทึกสำเร็จ',
+                                        size: 'xl',
+                                        weight: 'bold',
+                                        align: 'center',
+                                        color: '#06C755',
+                                        margin: 'md'
+                                    }
+                                ],
+                                paddingAll: 'xl',
+                                backgroundColor: '#F0FFF4'
+                            }
+                        ],
+                        paddingAll: 'none'
+                    },
+                    body: {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'text',
+                                text: pendingData.title,
+                                size: 'lg',
+                                weight: 'bold',
+                                wrap: true,
+                                color: '#1a1a1a'
+                            },
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                contents: [
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '💰', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'ยอดเงิน:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: `${parseFloat(pendingData.amount).toLocaleString()} บาท`, size: 'sm', weight: 'bold', color: '#06C755', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'md'
+                                    },
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '📁', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'ประเภท:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: categoryTh[pendingData.category] || pendingData.category, size: 'sm', color: '#1a1a1a', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'sm'
+                                    },
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '📅', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'วันที่:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: pendingData.date, size: 'sm', color: '#1a1a1a', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'sm'
+                                    }
+                                ]
+                            }
+                        ],
+                        spacing: 'md'
+                    },
+                    styles: {
+                        footer: { separator: false }
+                    }
+                }
+            };
+            
+            const lineToken = await getLineToken(base44, branchId);
+            if (lineToken) {
+                const endpoint = replyToken 
+                    ? 'https://api.line.me/v2/bot/message/reply'
+                    : 'https://api.line.me/v2/bot/message/push';
+
+                const body = replyToken
+                    ? { replyToken, messages: [successFlex] }
+                    : { to: lineUserId, messages: [successFlex] };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lineToken}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok && replyToken) {
+                    const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+                    const fallbackBody = { to: lineUserId, messages: [successFlex] };
+                    
+                    await fetch(fallbackEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${lineToken}`
+                        },
+                        body: JSON.stringify(fallbackBody)
+                    });
+                }
+            }
+            
+            console.log('✅ Success Flex message sent');
+            return;
+        }
+        
+        if (pendingData && (messageText.toLowerCase().includes('แก้') || messageText === '✏️ แก้ไข')) {
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+
+            // ส่ง text template และตั้งค่าโหมดแก้ไข
+            await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
+            
+            // ตั้งค่า flag แก้ไข (ไม่ลบ pending data)
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_edit_mode: true
+            });
+            return;
+        }
+        
+        // ⭐⭐⭐ เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+        if (freshEmployee.expense_edit_mode === true) {
+            console.log('✏️ Edit mode detected - analyzing edited message');
+            
+            // ⭐ Extract บรรทัด "ประเภท :" ด้วย regex ก่อน
+            const categoryLineMatch = messageText.match(/ประเภท\s*[:：]\s*(.+)/i);
+            const categoryText = categoryLineMatch ? categoryLineMatch[1].trim() : null;
+            
+            console.log('🔍 [REGEX] Category line found:', categoryText || 'NOT FOUND');
+            
+            // ⭐ แปลงเป็น enum ด้วย mapping
+            const categoryMapping = {
+                'ค่าไฟ': 'electricity',
+                'ไฟฟ้า': 'electricity',
+                'ค่าน้ำ': 'water',
+                'ค่านำ้': 'water', // รองรับพิมพ์ผิด
+                'น้ำ': 'water',
+                'นำ้': 'water', // รองรับพิมพ์ผิด
+                'ค่าซ่อม': 'repair',
+                'ซ่อม': 'repair',
+                'ค่าเน็ต': 'internet',
+                'อินเทอร์เน็ต': 'internet',
+                'เงินเดือน': 'salary',
+                'อุปกรณ์': 'supplies',
+                'คืนเงินมัดจำ': 'refund_deposit',
+                'มัดจำ': 'refund_deposit'
+            };
+            
+            let extractedCategory = 'other';
+            if (categoryText) {
+                // หาคีย์ที่ตรงกับข้อความ (ใช้ includes เพื่อรองรับ substring)
+                for (const [key, value] of Object.entries(categoryMapping)) {
+                    if (categoryText.includes(key)) {
+                        extractedCategory = value;
+                        console.log(`✅ [REGEX] Mapped "${categoryText}" → ${value}`);
+                        break;
+                    }
+                }
+            }
+            
+            // วิเคราะห์ส่วนอื่นด้วย AI (ไม่ให้ AI ตีความ category อีก)
+            const editedAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายที่แก้ไขแล้ว (ไม่ต้องสน category):
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
+1. amount: ดูจากบรรทัด "ยอดเงิน :" (ตัวเลขเท่านั้น)
+2. date: ดูจากบรรทัด "วันที่ :" ในรูป YYYY-MM-DD
+3. description: ดูจากบรรทัด "รายละเอียด :"
+4. title: ดูจากบรรทัด "หัวข้อ :"`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        amount: { type: "number" },
+                        date: { type: "string" },
+                        description: { type: "string" },
+                        title: { type: "string" }
+                    },
+                    required: ["amount", "date", "title"]
+                }
+            });
+            
+            // รวม category จาก regex + ส่วนอื่นจาก AI
+            editedAnalysis.category = extractedCategory;
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // สร้าง pending data ใหม่ (เก็บรูปเดิมถ้ามี)
+            const updatedData = {
+                title: editedAnalysis.title,
+                amount: editedAnalysis.amount,
+                category: editedAnalysis.category,
+                date: editedAnalysis.date,
+                description: editedAnalysis.description || editedAnalysis.title,
+                receipt_image: pendingData?.receipt_image || null
+            };
+            
+            // อัพเดท pending data และปิดโหมดแก้ไข
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: updatedData,
+                expense_edit_mode: false
+            });
+            
+            console.log('✅ Updated data from edit:', updatedData);
+            console.log('🔍 [EDIT] Final category:', updatedData.category);
+            
+            // ส่ง Flex confirmation
+            await sendFlexConfirmation(base44, lineUserId, updatedData, categoryTh, branchId, replyToken);
+            return;
+        }
+        
+        // ⭐⭐⭐ เช็คว่ามีรูปส่งมาก่อนหน้านี้หรือไม่ (จาก temp_expense_image_url)
+        console.log('🔍 Checking for temp image:', {
+            hasTempImage: !!tempImageUrl,
+            tempImageUrl: tempImageUrl || 'null'
+        });
+        
+        if (tempImageUrl) {
+            console.log('🔄 Found temp image - Auto-Merging image (from temp) + text');
+            
+            // วิเคราะห์ข้อความเพื่อเอา title, description, date
+            const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
+3. description: รายละเอียดสั้นๆ
+4. date: วันที่ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
+   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
+   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        category: {
+                            type: "string",
+                            enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                        },
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        date: { type: "string" }
+                    },
+                    required: ["category", "title", "date"]
+                }
+            });
+            
+            // วิเคราะห์รูปเพื่อเอา amount และ date
+            const imageAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract เฉพาะ:
+1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
+2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
+                file_urls: [tempImageUrl],
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        amount: { type: "number" },
+                        date: { type: "string" }
+                    },
+                    required: ["amount", "date"]
+                }
+            });
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // รวมข้อมูล: title/category/description/date จากข้อความ + amount/รูปจากรูปภาพ
+            const mergedData = {
+                title: textAnalysis.title,
+                amount: imageAnalysis.amount,
+                category: textAnalysis.category,
+                date: textAnalysis.date || imageAnalysis.date, // ใช้วันที่จากข้อความก่อน ถ้าไม่มีค่อยใช้จากรูป
+                description: textAnalysis.description || textAnalysis.title,
+                receipt_image: tempImageUrl
+            };
+            
+            // อัพเดท pending data และลบ temp
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: mergedData,
+                temp_expense_image_url: null
+            });
+            
+            console.log('✅ Merged data (image first):', mergedData);
+            console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
+            
+            // ส่ง Flex confirmation เพียงครั้งเดียว (ไม่ส่งข้อความธรรมดา)
+            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            return;
+        }
+        
+        // ⭐⭐⭐ ถ้ามี pending data ที่มีรูปอยู่แล้ว + ส่งข้อความตาม → Auto-Merge
+        if (pendingData && pendingData.receipt_image) {
+            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → รวมข้อมูล');
+            
+            // AI Extract category, title, description, date จากข้อความ
+            const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
+3. description: รายละเอียดสั้นๆ
+4. date: วันที่ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
+   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
+   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        category: {
+                            type: "string",
+                            enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                        },
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        date: { type: "string" }
+                    },
+                    required: ["category", "title", "date"]
+                }
+            });
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/รูปจากเดิม, วันที่ใช้จากข้อความก่อน
+            const mergedData = {
+                title: textAnalysis.title,
+                amount: pendingData.amount,
+                category: textAnalysis.category,
+                date: textAnalysis.date || pendingData.date, // ใช้วันที่จากข้อความก่อน ถ้าไม่มีค่อยใช้เดิม
+                description: textAnalysis.description || textAnalysis.title,
+                receipt_image: pendingData.receipt_image
+            };
+            
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: mergedData
+            });
+            
+            console.log('✅ Merged data:', mergedData);
+            console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
+            
+            // ส่ง Flex confirmation เพียงครั้งเดียว (ไม่ส่งข้อความธรรมดา)
+            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            return;
+        }
+        
+        // ⭐ AI Extract ข้อมูล
+        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `วิเคราะห์ข้อความค่าใช้จ่ายต่อไปนี้:
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract ข้อมูล:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
+3. date: วันที่ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
+   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
+   - ถ้าพูดถึง "วันก่อน" ให้ใช้วันก่อนหน้า
+   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้
+4. description: รายละเอียดสั้นๆ
+5. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร`,
+            response_json_schema: {
+                type: "object",
+                properties: {
+                    category: {
+                        type: "string",
+                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                    },
+                    amount: { type: "number" },
+                    date: { type: "string" },
+                    description: { type: "string" },
+                    title: { type: "string" }
+                },
+                required: ["category", "amount", "date", "title"]
+            }
+        });
+        
+        const categoryTh = {
+            electricity: 'ค่าไฟ',
+            water: 'ค่าน้ำ',
+            repair: 'ค่าซ่อม',
+            internet: 'ค่าเน็ต',
+            salary: 'เงินเดือน',
+            supplies: 'อุปกรณ์',
+            refund_deposit: 'คืนเงินมัดจำ',
+            other: 'อื่นๆ'
+        };
+
+        // เก็บข้อมูล pending พร้อม timestamp
+        await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+            expense_pending_data: {
+                title: analysis.title,
+                amount: analysis.amount,
+                category: analysis.category,
+                date: analysis.date,
+                description: analysis.description || analysis.title,
+                receipt_image: null,
+                created_at: new Date().toISOString() // ⭐ เก็บเวลาสร้าง
+            },
+            temp_expense_image_url: null
+        });
+
+        console.log('📝 Expense text saved - sending Flex confirmation');
+        
+        // ⭐ ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
+        await sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        
+    } catch (error) {
+        console.error('❌ Expense submission error:', error);
+        await sendMessage(base44, lineUserId,
+            '❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+            branchId,
+            replyToken
+        );
+    }
 }
 
-async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, branchId) {
-    console.log(`📸 Employee image detected`);
+// ⭐⭐⭐ ส่งแจ้งเตือนเมื่อมีข้อมูลค่าใช้จ่ายรออยู่แล้ว
+async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl, categoryTh, branchId, replyToken) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: 'มีค่าใช้จ่ายรอยืนยันอยู่แล้ว',
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '⚠️ มีข้อมูลรอยืนยันอยู่',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#F59E0B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#475569',
+                            margin: 'sm'
+                        }
+                    ],
+                    backgroundColor: '#FEF3C7'
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: 'ข้อมูลค่าใช้จ่ายที่รอยืนยัน:',
+                            size: 'sm',
+                            color: '#64748B',
+                            margin: 'none'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: pendingData.title || 'ไม่ระบุ', wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${pendingData.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'md'
+                        },
+                        {
+                            type: 'text',
+                            text: 'คุณต้องการทำอย่างไรกับรูปสลิปใหม่?',
+                            size: 'sm',
+                            color: '#475569',
+                            margin: 'md',
+                            wrap: true
+                        }
+                    ],
+                    spacing: 'sm'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '🗑️ ลบข้อมูลเก่า ส่งใหม่',
+                                data: `cancel_old_expense`
+                            },
+                            style: 'primary',
+                            color: '#DC2626',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '✅ เก็บเดิมไว้',
+                                data: 'keep_old_expense'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent pending expense alert');
+    } catch (error) {
+        console.error('❌ Error sending pending expense alert:', error);
+    }
 }
 
+// ⭐⭐⭐ จัดการเมื่อเลือก "ยกเลิกเดิม ส่งข้อมูลใหม่"
 async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) {
-    console.log(`🗑️ Cancel old expense`);
+    try {
+        const employeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+        
+        if (!employee) return;
+        
+        // ⭐ ลบข้อมูลเก่าทั้งหมด (ไม่ประมวลผลรูปใหม่)
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            expense_pending_data: null,
+            temp_expense_image_url: null
+        });
+        
+        console.log('✅ Cleared old expense data - ready for new submission');
+        
+        // แจ้งให้ส่งข้อมูลใหม่
+        await sendMessage(base44, lineUserId, 
+            '🗑️ ลบข้อมูลเดิมแล้ว\n\n' +
+            'กรุณาส่งข้อมูลค่าใช้จ่ายใหม่อีกครั้ง\n\n' +
+            'ตัวอย่าง:\n' +
+            '• ซื้อหลอดไฟ 200 บาท\n' +
+            '• จ่ายค่าไฟ 1,500 บาท\n\n' +
+            'หรือส่งรูปใบเสร็จมาได้เลยค่ะ',
+            branchId,
+            replyToken
+        );
+        
+    } catch (error) {
+        console.error('❌ Error canceling old expense:', error);
+        await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', branchId, replyToken);
+    }
 }
 
+// ⭐⭐⭐ จัดการเมื่อเลือก "เก็บเดิมไว้"
 async function handleKeepOldExpense(base44, lineUserId, replyToken, branchId) {
-    console.log(`✅ Keep old expense`);
+    try {
+        const employeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+        
+        if (!employee) return;
+        
+        // ลบ temp image
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            temp_expense_image_url: null
+        });
+        
+        await sendMessage(base44, lineUserId, 
+            '✅ เก็บข้อมูลเดิมไว้แล้ว\n\n' +
+            'รูปใบเสร็จใหม่จะไม่ถูกใช้\n' +
+            'คุณสามารถกด "✅ ยืนยัน" เพื่อบันทึกข้อมูลเดิม หรือ "✏️ แก้ไข" เพื่อแก้ไขข้อมูลได้',
+            branchId,
+            replyToken
+        );
+        
+    } catch (error) {
+        console.error('❌ Error keeping old expense:', error);
+        await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาด', branchId, replyToken);
+    }
+}
+
+// ⭐⭐⭐ จัดการค่าใช้จ่าย - รูปใบเสร็จ
+async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, branchId) {
+    try {
+        console.log(`📸 Employee expense image from ${lineUserId}`);
+        
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) {
+            await sendMessage(base44, lineUserId, '❌ ระบบขัดข้อง กรุณาติดต่อผู้ดูแล', branchId, replyToken);
+            return;
+        }
+        
+        // ดาวน์โหลดรูป
+        const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+            headers: { 'Authorization': `Bearer ${lineToken}` }
+        });
+        
+        if (!imageResponse.ok) {
+            await sendMessage(base44, lineUserId, '❌ ไม่สามารถดาวน์โหลดรูปได้', branchId, replyToken);
+            return;
+        }
+        
+        const imageBlob = await imageResponse.blob();
+        const file = new File([imageBlob], `expense-${Date.now()}.jpg`, { type: imageBlob.type });
+        const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+        
+        console.log(`✅ Uploaded expense image: ${file_url}`);
+        
+        // ⭐ โหลดข้อมูล employee ใหม่อีกครั้ง (ป้องกัน race condition)
+        const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const freshEmployee = Array.isArray(freshEmployeeResult) ? freshEmployeeResult[0] : freshEmployeeResult;
+        const pendingData = freshEmployee?.expense_pending_data;
+        
+        if (pendingData) {
+            // เช็คว่า pending data ถูกสร้างมานานแค่ไหน (ถ้ามากกว่า 30 วินาที = ไม่ใช่ race condition)
+            const employeeUpdatedAt = freshEmployee.updated_date ? new Date(freshEmployee.updated_date) : new Date(0);
+            const nowTime = new Date();
+            const secondsSinceUpdate = (nowTime - employeeUpdatedAt) / 1000;
+            
+            console.log(`⏱️ Pending data age: ${secondsSinceUpdate.toFixed(1)} seconds`);
+            
+            // ⭐⭐⭐ ถ้ามีรูปอยู่แล้ว AND ข้อมูลเก่ากว่า 30 วินาที → ส่ง alert ให้เลือก
+            if (pendingData.receipt_image && secondsSinceUpdate > 30) {
+                console.log(`⚠️ Employee already has old expense with image - sending choice dialog`);
+                
+                const categoryTh = {
+                    electricity: 'ค่าไฟ',
+                    water: 'ค่าน้ำ',
+                    repair: 'ค่าซ่อม',
+                    internet: 'ค่าเน็ต',
+                    salary: 'เงินเดือน',
+                    supplies: 'อุปกรณ์',
+                    refund_deposit: 'คืนเงินมัดจำ',
+                    other: 'อื่นๆ'
+                };
+                
+                // เก็บรูปใหม่ไว้ชั่วคราว
+                await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                    temp_expense_image_url: file_url
+                });
+                
+                // ส่งแจ้งเตือนให้เลือก
+                await sendPendingExpenseAlert(base44, lineUserId, pendingData, file_url, categoryTh, branchId, replyToken);
+                return;
+            }
+            
+            // ⭐⭐⭐ ถ้ามีข้อความ (title/description) แต่ไม่มีรูป
+            if ((pendingData.title || pendingData.description) && !pendingData.receipt_image) {
+                console.log(`📝 Pending data found (${secondsSinceUpdate.toFixed(1)}s old)`);
+                
+                // ⭐ เช็คว่าอยู่ในช่วง 30 วินาทีหรือไม่
+                if (secondsSinceUpdate <= 30) {
+                    console.log(`⏱️ Within 30s window - AUTO-MERGING text + image`);
+                    
+                    // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
+                    const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                        prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract เฉพาะ:
+1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
+2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
+                        file_urls: [file_url],
+                        response_json_schema: {
+                            type: "object",
+                            properties: {
+                                amount: { type: "number" },
+                                date: { type: "string" }
+                            },
+                            required: ["amount", "date"]
+                        }
+                    });
+                    
+                    const categoryTh = {
+                        electricity: 'ค่าไฟ',
+                        water: 'ค่าน้ำ',
+                        repair: 'ค่าซ่อม',
+                        internet: 'ค่าเน็ต',
+                        salary: 'เงินเดือน',
+                        supplies: 'อุปกรณ์',
+                        refund_deposit: 'คืนเงินมัดจำ',
+                        other: 'อื่นๆ'
+                    };
+                        
+                    // รวมข้อมูล: ใช้ category/title/description จากข้อความ + amount/date จากรูป
+                    const mergedData = {
+                        title: pendingData.title,
+                        amount: analysis.amount,
+                        category: pendingData.category,
+                        date: analysis.date,
+                        description: pendingData.description,
+                        receipt_image: file_url
+                    };
+                    
+                    // อัพเดท pending data
+                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                        expense_pending_data: mergedData
+                    });
+                    
+                    console.log('✅ Auto-merged data:', mergedData);
+                    
+                    // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
+                    await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+                    return;
+                } else {
+                    console.log(`⚠️ Outside 30s window (${secondsSinceUpdate.toFixed(1)}s) - treating as separate expense, will analyze full data from image`);
+                    // ถ้าเกิน 30 วินาที → ถือว่าเป็นรูปใหม่ไม่เกี่ยวกับ pending เดิม → ส่งไป analyze ครบ
+                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                        expense_pending_data: null
+                    });
+                }
+            }
+        }
+        
+        // ⭐ ส่งรูปอย่างเดียว → เก็บ URL ไว้ใน temp_expense_image_url และไม่ส่งข้อความใดๆ
+        console.log('📸 Image only - saving to temp_expense_image_url and NOT responding');
+        
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            temp_expense_image_url: file_url
+        });
+        
+        console.log('✅ Saved temp_expense_image_url - waiting for text message');
+        
+    } catch (error) {
+        console.error('❌ Expense image error:', error);
+        await sendMessage(base44, lineUserId,
+            '❌ ไม่สามารถประมวลผลรูปได้ กรุณาลองใหม่',
+            branchId,
+            replyToken
+        );
+    }
 }
