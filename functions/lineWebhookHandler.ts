@@ -1548,7 +1548,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('💰 Account verified - Smart Bill Matching...');
         
         // ⭐ Import Smart Matching logic
-        const { processBillMatching } = require('./smartBillMatching.js');
+        const { processBillMatching } = await import('./smartBillMatching.js');
         
         // ⭐ Call Smart Matching
         await processBillMatching(
