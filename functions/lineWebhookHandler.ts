@@ -1242,8 +1242,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 uploadRetryCount++;
                 
                 if (uploadRetryCount >= maxUploadRetries) {
-                    await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                        notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่อัพโหลดไม่สำเร็จ - กรุณาให้ส่งใหม่`
+                    await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
+                        notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่อัพโหลดไม่สำเร็จ - กรุณาให้ส่งใหม่`
                     });
                     
                     await sendMessage(base44, lineUserId, 
