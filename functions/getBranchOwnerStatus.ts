@@ -6,24 +6,33 @@ Deno.serve(async (req) => {
         
         // Authenticate user
         const user = await base44.auth.me();
+        console.log('🔍 [getBranchOwnerStatus] Request from user:', user?.email);
+        
         if (!user) {
+            console.error('❌ [getBranchOwnerStatus] Unauthorized - no user');
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { branch_id } = await req.json();
+        console.log('📝 [getBranchOwnerStatus] branch_id:', branch_id);
         
         if (!branch_id) {
+            console.error('❌ [getBranchOwnerStatus] No branch_id provided');
             return Response.json({ error: 'branch_id required' }, { status: 400 });
         }
 
         // Get branch info
         const branches = await base44.asServiceRole.entities.Branch.filter({ id: branch_id }, null, 1);
+        console.log('🏢 [getBranchOwnerStatus] Found branches:', branches?.length);
+        
         if (!branches || branches.length === 0) {
+            console.error('❌ [getBranchOwnerStatus] Branch not found');
             return Response.json({ error: 'Branch not found' }, { status: 404 });
         }
 
         const branch = branches[0];
         const ownerEmail = branch.owner_id;
+        console.log('👤 [getBranchOwnerStatus] Branch owner email:', ownerEmail);
 
         if (!ownerEmail) {
             return Response.json({ error: 'Branch has no owner' }, { status: 404 });
