@@ -20,11 +20,37 @@ export async function processMultipleBillPayments(
     const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
 
+    // ⭐ Reorder payments: exact match first (smart bill matching)
+    const billsWithShortfall = [];
+    for (const payment of pendingPayments) {
+        const baseAmount = (parseFloat(payment.rent_amount) || 0) +
+                          (parseFloat(payment.water_amount) || 0) +
+                          (parseFloat(payment.electricity_amount) || 0) +
+                          (parseFloat(payment.internet_amount) || 0) +
+                          (parseFloat(payment.common_fee_amount) || 0) +
+                          (parseFloat(payment.parking_fee_amount) || 0) +
+                          (parseFloat(payment.other_amount) || 0);
+        const { lateFeeAmount } = calculateLateFee(payment, configs, branchId, today);
+        const expectedAmount = baseAmount + lateFeeAmount;
+        const currentPaid = parseFloat(payment.paid_amount || 0);
+        const shortfall = expectedAmount - currentPaid;
+        billsWithShortfall.push({ payment, shortfall });
+    }
+
+    // Sort: exact match first, then FIFO
+    const sortedPayments = billsWithShortfall.sort((a, b) => {
+        const aIsExactMatch = Math.abs(a.shortfall - slipAmount) < 0.01 ? 0 : 1;
+        const bIsExactMatch = Math.abs(b.shortfall - slipAmount) < 0.01 ? 0 : 1;
+        return aIsExactMatch - bIsExactMatch;
+    }).map(item => item.payment);
+
+    console.log(`💡 Smart Match: exact match prioritized, FIFO for others`);
+
     let remainingAmount = slipAmount;
     const processedPayments = [];
     const roomsMap = new Map();
 
-    for (const pendingPayment of pendingPayments) {
+    for (const pendingPayment of sortedPayments) {
         if (remainingAmount <= 0) {
             console.log(`⏭️ No remaining amount - stopping at ${processedPayments.length} bills`);
             break;
