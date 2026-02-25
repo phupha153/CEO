@@ -1314,15 +1314,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 event_type: 'slip_verification_error',
                 line_user_id: lineUserId,
                 tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
+                payment_id: pendingPayments[0].id,
                 status: 'error',
                 message: 'Slip2Go API error',
                 error_message: fetchError.message
             }).catch(() => {});
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
+                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
             });
             
             await sendMessage(base44, lineUserId, 
