@@ -1389,9 +1389,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
             if (isSlipNotFound) {
                 const now = new Date().toISOString();
-                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                     payment_slip_url: slipImageUrl,
-                    notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
+                    notes: `${pendingPayments[0].notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
                 });
 
                 // ⭐ ไม่ตอบกลับอะไร - ให้ cron job ตรวจสอบซ้ำแบบเงียบๆ
