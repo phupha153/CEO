@@ -3,47 +3,162 @@ import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    if (!maskedSlipAccount || !myRealAccount) return false;
+    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
+    console.log('  Input (from slip):', maskedSlipAccount);
+    console.log('  Expected (my account):', myRealAccount);
+    
+    if (!maskedSlipAccount || !myRealAccount) {
+        console.log('  ❌ Result: FAIL - Missing data');
+        return false;
+    }
+    
     const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
     const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
+    
+    console.log('  Cleaned slip account:', slipAcc);
+    console.log('  Cleaned my account:', myAcc);
+    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
+        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
+        return false;
+    }
+    
     let matchedCount = 0;
     const minRequired = slipAcc.length <= 4 ? 2 : 3;
+    
+    console.log(`  Min required matches: ${minRequired}`);
+    
     for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
-        if (slipAcc[i] === myAcc[i]) matchedCount++;
-        else return false;
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
+            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
+            continue;
+        }
+        if (slipAcc[i] === myAcc[i]) {
+            matchedCount++;
+            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
+        } else {
+            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
+            return false;
+        }
     }
-    return matchedCount >= minRequired;
+    
+    const isMatch = matchedCount >= minRequired;
+    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
+    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
+    console.log('=========================\n');
+    
+    return isMatch;
 }
 
+// ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
-    if (!payment || !payment.due_date) return { lateFeeAmount: 0, daysLate: 0 };
-    if (payment.status === 'paid') return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-    if (payment.late_fee_locked === true) return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-    const calcDate = calculationDate || new Date();
-    if (payment.late_fee_last_calculated) {
-        const lc = new Date(new Date(payment.late_fee_last_calculated).getTime() + 7*3600000);
-        const lcDay = new Date(lc.getFullYear(), lc.getMonth(), lc.getDate());
-        const n = new Date(new Date().getTime() + 7*3600000);
-        const tDay = new Date(n.getFullYear(), n.getMonth(), n.getDate());
-        if (lcDay.getTime() === tDay.getTime()) return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
+    
+    if (!payment || !payment.due_date) {
+        console.log('  ⏭️ SKIP: No due_date');
+        return { lateFeeAmount: 0, daysLate: 0 };
     }
+    
+    // 🔒 LOCK 1: ถ้าชำระแล้ว
+    if (payment.status === 'paid') {
+        console.log(`  🔒 SKIP: Already paid (locked: ${payment.late_fee_amount || 0}฿)`);
+        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    }
+    
+    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับ
+    if (payment.late_fee_locked === true) {
+        console.log(`  🔒 SKIP: Admin locked (${payment.late_fee_amount || 0}฿)`);
+        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    }
+    
+    const calcDate = calculationDate || new Date();
+    
+    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ทำงานเสมอ ไม่ว่า calculationDate มีค่าหรือไม่)
+    console.log(`  🔍 LOCK 3 Check: late_fee_last_calculated=${payment.late_fee_last_calculated || 'null'}`);
+    if (payment.late_fee_last_calculated) {
+        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
+        const lastCalcDate = new Date(payment.late_fee_last_calculated);
+        const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
+        const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
+        
+        // วันนี้ในเวลาไทย
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        
+        console.log(`  🔍 LastCalc(TH): ${lastCalcDay.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDay.getTime() === today.getTime()}`);
+        
+        if (lastCalcDay.getTime() === today.getTime()) {
+            console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
+            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+        }
+    } else {
+        console.log(`  ⚠️ No late_fee_last_calculated → Will calculate`);
+    }
+
     try {
-        const dd = parseISO(payment.due_date);
-        const dueDateStart = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
+        const dueDate = parseISO(payment.due_date);
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
         const calcDateStart = new Date(calcDate.getFullYear(), calcDate.getMonth(), calcDate.getDate());
         const daysOverdue = differenceInDays(calcDateStart, dueDateStart);
+
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
-        const gcv = (key, def = null) => { const b = configs.find(c => c.key === key && c.branch_id === branchId); if (b?.value != null) return b.value; const g = configs.find(c => c.key === key && !c.branch_id); return g?.value != null ? g.value : def; };
-        if (gcv('late_fee_tiers_enabled') === 'true') {
-            const tv = gcv('late_fee_tiers');
-            if (tv) { try { const tiers = JSON.parse(tv); let tf = 0; for (const t of tiers) { const df = t.days_from||1, dt = t.days_to||999, fp = parseFloat(t.fee_per_day||0); if (daysOverdue >= df) { const d = Math.min(daysOverdue, dt) - df + 1; if (d > 0) tf += d * fp; } if (daysOverdue <= dt) break; } return { lateFeeAmount: tf, daysLate: daysOverdue }; } catch(e) {} }
+
+        const getConfigValue = (key, defaultValue = null) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+        };
+
+        const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
+
+        if (tiersEnabled) {
+            const tiersConfigValue = getConfigValue('late_fee_tiers');
+
+            if (tiersConfigValue) {
+                try {
+                    const tiers = JSON.parse(tiersConfigValue);
+                    let totalFee = 0;
+
+                    for (const tier of tiers) {
+                        const daysFrom = tier.days_from || 1;
+                        const daysTo = tier.days_to || 999;
+                        const feePerDay = parseFloat(tier.fee_per_day || 0);
+
+                        if (daysOverdue >= daysFrom) {
+                            const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                            if (daysInThisTier > 0) {
+                                totalFee += daysInThisTier * feePerDay;
+                            }
+                        }
+
+                        if (daysOverdue <= daysTo) break;
+                    }
+
+                    console.log(`  ✅ Tiered: ${daysOverdue}d → ${totalFee}฿`);
+                    return { lateFeeAmount: totalFee, daysLate: daysOverdue };
+                } catch (e) {
+                    console.error('Error parsing late fee tiers:', e);
+                }
+            }
         }
-        const lpd = parseFloat(gcv('late_payment_fee_per_day', '0'));
-        if (lpd === 0 || isNaN(lpd)) return { lateFeeAmount: 0, daysLate: daysOverdue };
-        return { lateFeeAmount: daysOverdue * lpd, daysLate: daysOverdue };
-    } catch (error) { return { lateFeeAmount: 0, daysLate: 0 }; }
+
+        const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
+        
+        if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) {
+            console.log('  ⏭️ SKIP: No late fee config');
+            return { lateFeeAmount: 0, daysLate: daysOverdue };
+        }
+
+        const simpleFee = daysOverdue * lateFeePerDay;
+        console.log(`  ✅ Simple: ${daysOverdue}d × ${lateFeePerDay}฿ = ${simpleFee}฿`);
+        return { lateFeeAmount: simpleFee, daysLate: daysOverdue };
+    } catch (error) {
+        console.error('Error calculating late fee:', error);
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
 }
 
 const processedMessages = new Set();
@@ -932,14 +1047,55 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
 }
 
 function extractAmount(slipData) {
-    const paths = [['amount'],['transAmount'],['transaction','amount'],['payment','amount'],['data','amount'],['receiver','amount'],['sender','amount'],['receiver','account','amount'],['sender','account','amount']];
-    for (const path of paths) {
-        let cur = slipData;
-        let ok = true;
-        for (const k of path) { if (cur && typeof cur === 'object' && k in cur) cur = cur[k]; else { ok = false; break; } }
-        if (ok && cur != null) { const a = typeof cur === 'number' ? cur : parseFloat(cur); if (!isNaN(a) && a > 0) return { amount: a, path: path.join('.') }; }
+    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
+    
+    const possiblePaths = [
+        ['amount'],
+        ['transAmount'],
+        ['transaction', 'amount'],
+        ['payment', 'amount'],
+        ['data', 'amount'],
+        ['receiver', 'amount'],
+        ['sender', 'amount'],
+        ['receiver', 'account', 'amount'],
+        ['sender', 'account', 'amount']
+    ];
+    
+    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
+    
+    for (const path of possiblePaths) {
+        let current = slipData;
+        let isValid = true;
+        
+        console.log(`  Testing path: ${path.join('.')}`);
+        
+        for (const key of path) {
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
+            } else {
+                isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
+                break;
+            }
+        }
+        
+        if (isValid && current !== null && current !== undefined) {
+            const amount = typeof current === 'number' ? current : parseFloat(current);
+            if (!isNaN(amount) && amount > 0) {
+                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('=============================\n');
+                return { amount, path: path.join('.') };
+            } else {
+                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
+            }
+        }
     }
-    console.error('❌ Could not extract amount from slip', Object.keys(slipData || {}));
+    
+    console.error('❌ FAILED! Could not find amount in ANY path!');
+    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
+    console.log('=============================\n');
     return { amount: 0, path: 'not found' };
 }
 
