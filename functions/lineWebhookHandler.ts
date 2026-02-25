@@ -1,53 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
-// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (Minified)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
-    console.log('  Input (from slip):', maskedSlipAccount);
-    console.log('  Expected (my account):', myRealAccount);
-    
-    if (!maskedSlipAccount || !myRealAccount) {
-        console.log('  ❌ Result: FAIL - Missing data');
-        return false;
-    }
-    
+    if (!maskedSlipAccount || !myRealAccount) return false;
     const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
     const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
-    
-    console.log('  Cleaned slip account:', slipAcc);
-    console.log('  Cleaned my account:', myAcc);
-    
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
-        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
-        return false;
-    }
-    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
     let matchedCount = 0;
     const minRequired = slipAcc.length <= 4 ? 2 : 3;
-    
-    console.log(`  Min required matches: ${minRequired}`);
-    
     for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
-            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
-            continue;
-        }
-        if (slipAcc[i] === myAcc[i]) {
-            matchedCount++;
-            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
-        } else {
-            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
-            return false;
-        }
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
+        if (slipAcc[i] !== myAcc[i]) return false;
+        matchedCount++;
     }
-    
-    const isMatch = matchedCount >= minRequired;
-    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
-    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
-    console.log('=========================\n');
-    
-    return isMatch;
+    return matchedCount >= minRequired;
 }
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
@@ -1046,56 +1013,25 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
     }
 }
 
+// ⭐ Helper: Extract amount (Minified)
 function extractAmount(slipData) {
-    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
-    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
-    
     const possiblePaths = [
-        ['amount'],
-        ['transAmount'],
-        ['transaction', 'amount'],
-        ['payment', 'amount'],
-        ['data', 'amount'],
-        ['receiver', 'amount'],
-        ['sender', 'amount'],
-        ['receiver', 'account', 'amount'],
-        ['sender', 'account', 'amount']
+        ['amount'], ['transAmount'], ['transaction', 'amount'], ['payment', 'amount'],
+        ['data', 'amount'], ['receiver', 'amount'], ['sender', 'amount'],
+        ['receiver', 'account', 'amount'], ['sender', 'account', 'amount']
     ];
-    
-    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
-    
     for (const path of possiblePaths) {
         let current = slipData;
         let isValid = true;
-        
-        console.log(`  Testing path: ${path.join('.')}`);
-        
         for (const key of path) {
-            if (current && typeof current === 'object' && key in current) {
-                current = current[key];
-                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
-            } else {
-                isValid = false;
-                console.log(`    ✗ Key "${key}" not found`);
-                break;
-            }
+            if (current && typeof current === 'object' && key in current) current = current[key];
+            else { isValid = false; break; }
         }
-        
-        if (isValid && current !== null && current !== undefined) {
+        if (isValid && current != null) {
             const amount = typeof current === 'number' ? current : parseFloat(current);
-            if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
-                console.log('=============================\n');
-                return { amount, path: path.join('.') };
-            } else {
-                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
-            }
+            if (!isNaN(amount) && amount > 0) return { amount, path: path.join('.') };
         }
     }
-    
-    console.error('❌ FAILED! Could not find amount in ANY path!');
-    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
-    console.log('=============================\n');
     return { amount: 0, path: 'not found' };
 }
 
