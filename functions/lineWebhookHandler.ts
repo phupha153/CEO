@@ -1293,9 +1293,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
             
             if (slip2goResponse.status === 504 || responseText.includes('504')) {
-                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                     payment_slip_url: slipImageUrl,
-                    notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
+                    notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
                 });
                 
                 await sendMessage(base44, lineUserId, 
