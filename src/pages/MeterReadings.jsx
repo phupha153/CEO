@@ -35,7 +35,12 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState('auto'); // จะตั้งค่าจริงหลังจากโหลด config
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const nowUTC = new Date();
+    const thaiOffset = 7 * 60;
+    const nowThailand = new Date(nowUTC.getTime() + thaiOffset * 60 * 1000);
+    return `${nowThailand.getUTCFullYear()}-${String(nowThailand.getUTCMonth() + 1).padStart(2, '0')}`;
+  });
   const [editingPreviousForRoom, setEditingPreviousForRoom] = useState(null); // room_id ที่กำลังแก้ไขค่าก่อน
   const [showAddMoreFormForRoom, setShowAddMoreFormForRoom] = useState(null); // room_id ที่กำลังแสดงฟอร์มบันทึกเพิ่ม
   const [meterTypeSelection, setMeterTypeSelection] = useState({}); // room_id -> 'water' | 'electricity' | 'both'
@@ -268,18 +273,7 @@ export default function MeterReadings() {
   const allowMeterEditingConfig = configs.find(c => c.key === 'allow_meter_history_editing' && (c.branch_id === selectedBranchId || !c.branch_id));
   const canEditHistory = canEditHistoryPermission && (allowMeterEditingConfig?.value === 'true');
 
-  // ✅ ตั้งค่าเดือนเป็นเดือนปัจจุบัน (เวลาไทย UTC+7) เสมอ
-  useEffect(() => {
-    if (selectedMonth !== 'auto') return;
 
-    // ใช้เวลาไทย (UTC+7)
-    const nowUTC = new Date();
-    const thaiOffset = 7 * 60; // UTC+7 = 420 minutes
-    const nowThailand = new Date(nowUTC.getTime() + thaiOffset * 60 * 1000);
-    
-    const currentMonth = `${nowThailand.getUTCFullYear()}-${String(nowThailand.getUTCMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(currentMonth);
-  }, [selectedMonth]);
 
   // ✅ ดาวน์โหลด Template Excel
   const handleDownloadTemplate = () => {
