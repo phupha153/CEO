@@ -254,23 +254,7 @@ Deno.serve(async (req) => {
         }
 
         console.log(`✅ Total bookings: ${bookings.length}`);
-        
-        // ⭐ FIX: เลือก booking ล่าสุดสำหรับแต่ละห้อง (กรณีมี duplicate bookings)
-        const activeBookings = bookings
-            .filter(b => b.status === 'active')
-            .sort((a, b) => {
-                const dateA = new Date(a.created_date || a.check_in_date || 0);
-                const dateB = new Date(b.created_date || b.check_in_date || 0);
-                return dateB - dateA; // ล่าสุดก่อน
-            });
-        
-        // ⭐ CRITICAL FIX: ใช้ loop แทน .map() เพื่อเก็บเฉพาะ booking แรก (ล่าสุด) ต่อห้อง
-        const bookingsMap = new Map();
-        for (const booking of activeBookings) {
-            if (!bookingsMap.has(booking.room_id)) {
-                bookingsMap.set(booking.room_id, booking); // เก็บเฉพาะตัวแรกที่เจอ = ล่าสุด
-            }
-        }
+        const bookingsMap = new Map(bookings.filter(b => b.status === 'active').map(b => [b.room_id, b])); // ⭐ NEW: Map for O(1) lookup
         // await delay(500); // ⭐ REMOVED: Unnecessary delay
 
         const normalizeEntity = (entity) => {
