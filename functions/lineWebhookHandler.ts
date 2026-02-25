@@ -1523,15 +1523,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         if (!accountMatch) {
             console.log('❌ Account mismatch - saving for manual review');
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayments[0].room_id });
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
 
             const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
 
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+            await base44.asServiceRole.entities.Payment.update(pendingPayments[0].id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayments[0].notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
 
             await sendMessage(base44, lineUserId, 
