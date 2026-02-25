@@ -196,18 +196,18 @@ async function chargeExactMatch(
         console.warn('⚠️ WebhookLog creation failed:', err.message);
     }
     
-    // Score
+    // ⭐ FIX #10: Score calculation (non-blocking)
     if (tenant?.id) {
         try {
             await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                 tenant_id: tenant.id
             });
         } catch (e) {
-            console.log('⚠️ Score calculation failed');
+            console.warn('⚠️ Score calculation failed:', e.message);
         }
     }
     
-    // Receipt
+    // ⭐ FIX #11: Receipt generation (non-blocking)
     try {
         await base44.asServiceRole.functions.invoke('sendReceipt', { 
             paymentId: bill.id 
