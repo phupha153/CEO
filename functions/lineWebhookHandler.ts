@@ -1164,7 +1164,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
         });
         
-        const pendingPayment = pendingPayments[0];
+        let pendingPayment = pendingPayments[0];
         
         let imageResponse;
         let retryCount = 0;
