@@ -1545,8 +1545,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         console.log(`💰 Processing ${pendingPayments.length} pending bills with slip ${slipAmount.toLocaleString()}฿...`);
         
-        // ⭐ Import and call multi-bill payment processor
-        const { processMultipleBillPayments } = await import('./utils/processMultipleBillPayments.js');
+        // ⭐ Call multi-bill payment processor (inline to avoid import path issues)
         await processMultipleBillPayments(
             base44, 
             pendingPayments, 
