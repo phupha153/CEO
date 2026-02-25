@@ -474,7 +474,7 @@ Deno.serve(async (req) => {
                             continue;
                         }
 
-                        if (messageText.toLowerCase().includes('แจ้งซ่อม')) {
+                        if (messageText.includes('แจ้งซ่อม') || messageText.includes('เเจ้งซ่อม')) {
                             console.log('🔧 Detected maintenance request keyword');
                             // ⭐ ใช้ filter แทน list + find + branch_id
                             let tenant = null;
@@ -503,7 +503,7 @@ Deno.serve(async (req) => {
 
                             // ⭐ ถ้าพิมพ์ "แจ้งซ่อม" ตามด้วยรายละเอียด → บันทึกเลย
                             // เช่น "แจ้งซ่อม แอร์ไม่เย็น" หรือ "แจ้งซ่อม ไฟดับ"
-                            const maintenanceKeywords = ['แจ้งซ่อม', 'แจ้ง ซ่อม'];
+                            const maintenanceKeywords = ['แจ้งซ่อม', 'แจ้ง ซ่อม', 'เเจ้งซ่อม', 'เเจ้ง ซ่อม'];
                             let problemDescription = messageText;
                             
                             for (const keyword of maintenanceKeywords) {
