@@ -90,9 +90,13 @@ async function processBillMatching(
     // ⭐ ค้นหาบิลที่มียอดตรงกับสลิป ±1%
     for (let i = 0; i < pendingPayments.length; i++) {
         const bill = pendingPayments[i];
+        
+        // ⭐ FIX #3: Safety check
+        if (!bill || !bill.id) continue;
+        
         const billTotal = parseFloat(bill.total_amount) || 0;
         
-        if (billTotal === 0) continue;
+        if (billTotal <= 0) continue; // Changed from === 0 to <= 0
         
         const diffPercent = Math.abs(slipAmount - billTotal) / billTotal * 100;
         
