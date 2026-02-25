@@ -239,13 +239,17 @@ async function chargeCascadePayment(
         const newStatus = (newPaidAmount >= billTotal * 0.95) ? 'paid' : 'partial_paid';
         
         cascadeIndex++;
+        
+        // ⭐ FIX #5: Add original bill reference for later lookup
         billsToUpdate.push({
             id: bill.id,
             paymentAmount,
             newPaidAmount,
             newStatus,
             billTotal,
-            billRemaining
+            billRemaining,
+            due_date: bill.due_date,
+            original: bill // Keep reference to original bill data
         });
         
         console.log(`   💳 Bill #${i + 1}: ชำระ ${paymentAmount.toLocaleString()}฿ (รวม ${newPaidAmount.toLocaleString()}/${billTotal}฿)`);
