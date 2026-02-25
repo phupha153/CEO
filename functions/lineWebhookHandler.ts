@@ -3,51 +3,18 @@ import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
-    console.log('  Input (from slip):', maskedSlipAccount);
-    console.log('  Expected (my account):', myRealAccount);
-    
-    if (!maskedSlipAccount || !myRealAccount) {
-        console.log('  ❌ Result: FAIL - Missing data');
-        return false;
-    }
-    
+    if (!maskedSlipAccount || !myRealAccount) return false;
     const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
     const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
-    
-    console.log('  Cleaned slip account:', slipAcc);
-    console.log('  Cleaned my account:', myAcc);
-    
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
-        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
-        return false;
-    }
-    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
     let matchedCount = 0;
     const minRequired = slipAcc.length <= 4 ? 2 : 3;
-    
-    console.log(`  Min required matches: ${minRequired}`);
-    
     for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
-            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
-            continue;
-        }
-        if (slipAcc[i] === myAcc[i]) {
-            matchedCount++;
-            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
-        } else {
-            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
-            return false;
-        }
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
+        if (slipAcc[i] === myAcc[i]) matchedCount++;
+        else return false;
     }
-    
-    const isMatch = matchedCount >= minRequired;
-    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
-    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
-    console.log('=========================\n');
-    
-    return isMatch;
+    return matchedCount >= minRequired;
 }
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
