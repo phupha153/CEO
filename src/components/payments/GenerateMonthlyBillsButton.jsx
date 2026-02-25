@@ -12,6 +12,14 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
 
   const handleGenerateBills = async () => {
+    // ⚠️ DEBUG: ตรวจสอบ branchId ที่ได้รับมา
+    console.log('🔍 [GenerateMonthlyBillsButton] Received branchId:', branchId);
+    
+    if (!branchId) {
+      toast.error('❌ ไม่พบ branch_id กรุณารีเฟรชหน้าใหม่');
+      return;
+    }
+    
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
       return;
     }
@@ -26,7 +34,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     
     try {
       // ✅ FIX: เช็คสิทธิ์เข้าถึง feature ก่อน (ผ่าน branch owner's plan)
-      console.log('🔍 Checking branch owner access...');
+      console.log('🔍 Checking branch owner access for branch:', branchId);
       const accessCheck = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: branchId
       });
