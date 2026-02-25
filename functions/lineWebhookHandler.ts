@@ -2962,8 +2962,8 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             return;
         }
         
-        const imageBlob = await imageResponse.blob();
-        const file = new File([imageBlob], `expense-${Date.now()}.jpg`, { type: imageBlob.type });
+        const b = await imageResponse.arrayBuffer();
+        const file = new File([new Blob([b], { type: 'image/jpeg' })], `exp.jpg`, { type: 'image/jpeg' });
         const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
         
         console.log(`✅ Uploaded expense image: ${file_url}`);
