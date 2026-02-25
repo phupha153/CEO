@@ -166,9 +166,15 @@ async function chargeExactMatch(
         total_amount: expectedAmount,
         paid_amount: expectedAmount,
         notes: `${bill.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE (EXACT MATCH): ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}`
-    });
+        });
+    } catch (err) {
+        console.error('❌ Payment update failed:', err.message);
+        throw err;
+    }
     
-    await base44.asServiceRole.entities.WebhookLog.create({
+    // ⭐ FIX #9: Try-catch for WebhookLog.create
+    try {
+        await base44.asServiceRole.entities.WebhookLog.create({
         webhook_type: 'line',
         branch_id: branchId,
         event_type: 'payment_verified',
