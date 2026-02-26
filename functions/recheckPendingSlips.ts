@@ -514,11 +514,13 @@ Deno.serve(async (req) => {
                 console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
                 console.log(`  Method: ${matchMethod || 'None'}`);
                 console.log('====================================================\n');
+                
+                const isReceiverDataEmpty = !receiverAccount && !receiverPromptPay;
 
-                if (!accountMatch) {
+                if (!accountMatch && !isReceiverDataEmpty) {
                     console.log(`   ⚠️ Account mismatch - notifying customer`);
                     
-                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+                    const errorMsg = `โอนเงินผิดบัญชี\nเข้า: ${receiverAccount || receiverPromptPay}\nควรเข้า: ${expectedAccountNumber || expectedPromptPay}`;
                     
                     await entityService.Payment.update(payment.id, {
                         notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
@@ -528,7 +530,7 @@ Deno.serve(async (req) => {
                     const tenant = tenants.find(t => t.id === payment.tenant_id);
                     if (tenant?.line_user_id) {
                         await sendLineMessage(base44, tenant.line_user_id, 
-                            `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
+                            `❌ ${errorMsg}\n\nกรุณารอตรวจสอบค่ะ 🙏`,
                             payment.branch_id,
                             configs
                         );
@@ -536,6 +538,8 @@ Deno.serve(async (req) => {
                     
                     failCount++;
                     continue;
+                } else if (isReceiverDataEmpty) {
+                    console.log('⚠️ Receiver data is empty from slip2go, bypassing strict account match');
                 }
 
                 // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คบัญชีผ่านแล้ว
