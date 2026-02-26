@@ -241,11 +241,13 @@ Deno.serve(async (req) => {
             
             if (Array.isArray(batch) && batch.length > 0) {
                 // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ (รองรับทั้ง "รอตรวจสอบ" และ "รอตรวจสอบซ้ำ")
+                // แต่ต้องไม่มีคำว่า "ตรวจสอบไม่ผ่าน" (เพื่อไม่ให้ตรวจซ้ำกรณีผิดบัญชี)
                 const filtered = batch.filter(p => 
                     p.payment_slip_url && 
                     p.branch_id &&
                     p.notes && 
-                    p.notes.includes('รอตรวจสอบ')
+                    p.notes.includes('รอตรวจสอบ') &&
+                    !p.notes.includes('ตรวจสอบไม่ผ่าน')
                 );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
