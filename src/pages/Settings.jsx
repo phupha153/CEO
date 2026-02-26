@@ -604,9 +604,9 @@ export default function Settings() {
     const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token', false);
     const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing', false);
 
-    setBuildingLogo(buildingLogoConfig?.value || '');
-    setSignatureImage(signatureConfig?.value || '');
-    setStampImage(stampConfig?.value || '');
+    const defBranchConf = configs.find(c => c.key === 'default_communication_branch' && !c.branch_id);
+    setDefaultCommunicationBranch(defBranchConf?.value || 'none');
+    setBuildingLogo(buildingLogoConfig?.value || ''); setSignatureImage(signatureConfig?.value || ''); setStampImage(stampConfig?.value || '');
     
     // ✅ อัปเดต LINE settings - อัปเดตทุกครั้งเพื่อให้แน่ใจว่าสอดคล้องกับ config
     const newTokenValue = lineTokenConfig?.value || '';
