@@ -3225,7 +3225,7 @@ export default function Settings() {
                           <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
                             <h4 className="font-semibold text-indigo-900 mb-2">สาขาหลักสำหรับรับข้อความ (Default Branch)</h4>
                             <p className="text-xs text-indigo-700 mb-2">ข้อความที่ระบบไม่ทราบว่าอยู่สาขาไหน จะถูกส่งไปที่สาขานี้</p>
-                            <Select value={defaultCommunicationBranch} onValueChange={setDefaultCommunicationBranch}>
+                            <Select value={defaultCommunicationBranch} onValueChange={async (v)=>{setDefaultCommunicationBranch(v);try{const c=await base44.entities.Config.filter({key:'default_communication_branch'},'',100);const d=c.find(x=>!x.branch_id);if(d){if(v&&v!=='none')await base44.entities.Config.update(d.id,{value:v});else await base44.entities.Config.delete(d.id);}else if(v&&v!=='none')await base44.entities.Config.create({key:'default_communication_branch',value:v,category:'notification'});await queryClient.refetchQueries({queryKey:['configs']});toast.success('บันทึกสาขาหลักสำเร็จ');}catch(e){toast.error('บันทึกไม่สำเร็จ');}}}>
                               <SelectTrigger className="bg-white"><SelectValue placeholder="เลือกสาขาหลัก (ถ้ามี)" /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">-- ไม่ระบุ --</SelectItem>
