@@ -661,17 +661,11 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     try {
         console.log(`🔧 Processing maintenance report from ${lineUserId}: "${problemDescription}"`);
         
-        // ⭐ ใช้ filter พร้อม branch_id เพื่อความแม่นยำ
         let tenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                line_user_id: lineUserId,
-                branch_id: branchId
-            });
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-        } catch (e) {
-            console.log('⚠️ Could not find tenant:', e.message);
-        }
+        } catch (e) {}
         
         if (!tenant) {
             console.log('❌ Tenant not found');
