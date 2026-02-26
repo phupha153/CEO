@@ -970,7 +970,7 @@ export default function Settings() {
         }
         
         return processInChunks(ownedBranchIds, async (branchId, index) => {
-          const existingConfigs = configs.filter(c => c.key === key && c.branch_id === branchId);
+          const existingConfigs = await base44.entities.Config.filter({ key, branch_id: branchId }, '', 1);
           
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
