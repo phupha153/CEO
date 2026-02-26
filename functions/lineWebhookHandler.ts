@@ -2,19 +2,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (Minified)
-function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    if (!maskedSlipAccount || !myRealAccount) return false;
-    const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
-    const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
-    let matchedCount = 0;
-    const minRequired = slipAcc.length <= 4 ? 2 : 3;
-    for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
-        if (slipAcc[i] !== myAcc[i]) return false;
-        matchedCount++;
+function isAccountMatch(m, r) {
+    if(!m||!r) return false;
+    let s = String(m).replace(/[- ]/g,'').toLowerCase();
+    let a = String(r).replace(/[- ]/g,'').toLowerCase();
+    if(s.startsWith('66')&&s.length===11) s='0'+s.slice(2);
+    if(a.startsWith('66')&&a.length===11) a='0'+a.slice(2);
+    let c=0, i=s.length-1, j=a.length-1;
+    while(i>=0&&j>=0){
+        if(s[i]==='x'||s[i]==='*'){i--;j--;continue;}
+        if(s[i]===a[j]){c++;i--;j--;}else return false;
     }
-    return matchedCount >= minRequired;
+    return c>=(s.replace(/[x*]/g,'').length<=3?2:3);
 }
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
