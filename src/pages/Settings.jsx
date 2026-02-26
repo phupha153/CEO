@@ -24,7 +24,6 @@ import { th } from 'date-fns/locale';
 import { createPageUrl } from "@/utils";
 import { PERMISSIONS_LIST, DEFAULT_PERMISSIONS_MAP, CATEGORY_ICONS, PERMISSION_CATEGORIES_DISPLAY } from "../components/settings/permissions";
 import { BranchToggle } from "../components/settings/BranchToggle";
-import SharedBranchSettings from "../components/settings/SharedBranchSettings";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('building');
