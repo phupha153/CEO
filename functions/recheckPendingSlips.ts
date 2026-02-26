@@ -475,6 +475,14 @@ Deno.serve(async (req) => {
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
                 
+                // ⭐ ถ้าไม่มี config บัญชีเลย = ข้ามไปก่อน (ไม่ส่งผิดบัญชี)
+                if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
+                    (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+                    console.log('⚠️ NO CONFIG FOUND - Skipping account check');
+                    skippedCount++;
+                    continue;
+                }
+
                 const receiverAccount = slipData.receiver?.account?.bank?.account || '';
                 const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
 
