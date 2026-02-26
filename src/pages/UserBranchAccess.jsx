@@ -46,6 +46,9 @@ export default function UserBranchAccess() {
     promptpay: ''
   });
 
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferTarget, setTransferTarget] = useState(null);
+  const [targetTransferBranchId, setTargetTransferBranchId] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -304,7 +307,59 @@ export default function UserBranchAccess() {
     }
   });
 
+  const transferOwnershipMutation = useMutation({
+    mutationFn: async ({ newOwnerUserId, newOwnerEmail, branch_id }) => {
+      if (!branch_id) throw new Error('ไม่พบรหัสสาขาที่จะโอน');
 
+      const branch = allBranches.find(b => b.id === branch_id);
+      
+      if (!branch?.owner_id) {
+         // ถ้าสาขายังไม่มีเจ้าของเลย (เพิ่งสร้างใหม่)
+         await base44.entities.Branch.update(branch_id, { owner_id: newOwnerEmail });
+         
+         // ให้สิทธิ์ owner แก่ user ใหม่
+         await base44.entities.User.update(newOwnerUserId, {
+           custom_role: 'owner',
+           permissions: [
+             "dashboard_view", "rooms_view", "rooms_add", "rooms_edit", "rooms_delete",
+             "tenants_view", "tenants_add", "tenants_edit", "tenants_delete",
+             "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
+             "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly", "contracts_delete_monthly",
+             "payments_view", "payments_add", "payments_edit", "payments_confirm", "payments_send_receipt", "payments_send_comms_manual", "payments_delete",
+             "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history", "meter_readings_delete",
+             "expenses_view", "expenses_add", "expenses_edit", "expenses_delete",
+             "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_delete", "maintenance_update_status",
+             "reports_view_all", "reports_export", "accounting_view_all", "accounting_export", "announcements_send", "settings_view", "settings_edit"
+           ]
+         });
+         return { new_owner: newOwnerEmail };
+      }
+
+      // 2. ถ้าเป็น Developer ให้ส่งเจ้าของปัจจุบันไปเลยเพื่อผ่านการตรวจสอบใน backend
+      const currentOwner = branch.owner_id;
+
+      // 3. เรียก backend
+      const response = await base44.functions.invoke('transferOwnership', {
+        branch_id: branch_id,
+        new_owner_email: newOwnerEmail,
+        old_owner_email: isDeveloper ? currentOwner : currentUser?.email
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['branches']);
+      toast.success(`เปลี่ยนเจ้าของสาขาสำเร็จ`);
+      
+      setShowTransferDialog(false);
+      setShowBranchDialog(false);
+      
+      setTimeout(() => window.location.reload(), 2000);
+    },
+    onError: (error) => {
+      toast.error('เปลี่ยนเจ้าของสาขาไม่สำเร็จ: ' + error.message);
+    }
+  });
 
   const handleOpenBranchDialog = (user) => {
     setSelectedUser(user);
