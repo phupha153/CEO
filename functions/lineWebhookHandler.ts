@@ -335,19 +335,18 @@ Deno.serve(async (req) => {
 
                     // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
-                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
-                        let tenant = null;
-                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
+                        let tenant = null, finalBranchId = destinationBranchId;
                         try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                line_user_id: lineUserId,
-                                branch_id: msgBranchId 
-                            });
-                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                        } catch (e) {
-                            console.log('⚠️ Could not find tenant:', e.message);
-                        }
-                        const finalBranchId = tenant?.branch_id || msgBranchId;
+                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
+                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
+                            if (tenant) finalBranchId = tenant.branch_id;
+                            else {
+                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
+                                const cArr = Array.isArray(cRes) ? cRes : (cRes ? [cRes] : []);
+                                const dbCfg = cArr.find(c => !c.branch_id);
+                                if (dbCfg?.value) finalBranchId = dbCfg.value;
+                            }
+                        } catch (e) {}
 
                         // ดึง LINE Profile เสมอ
                         let displayName = null;
