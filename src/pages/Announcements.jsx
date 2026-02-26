@@ -116,13 +116,15 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
 
-      let isDefaultBranch = false;
+      let allowedUnlinkedBranches = [selectedBranchId];
       try {
           const configs = await base44.entities.Config.list('', 1000);
           const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
           const defaultBranchConfig = configList.find(c => c.key === 'default_communication_branch');
           if (defaultBranchConfig && defaultBranchConfig.value === selectedBranchId) {
-              isDefaultBranch = true;
+              const branches = await base44.entities.Branch.list('', 100);
+              const branchList = Array.isArray(branches) ? branches : (branches ? [branches] : []);
+              allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...branchList.map(b => b.id)])];
           }
       } catch (e) { console.error('Error fetching config:', e); }
 
@@ -134,13 +136,11 @@ export default function Announcements() {
       
       let unlinkedMessages = [];
       try {
-          if (isDefaultBranch) {
-              const res = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 200);
-              unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
-          } else {
-              const res = await base44.entities.LineMessage.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
-              unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
-          }
+          const unlinkedPromises = allowedUnlinkedBranches.map(id => 
+              base44.entities.LineMessage.filter({ tenant_id: null, branch_id: id }, '-created_date', 100)
+          );
+          const unlinkedResults = await Promise.all(unlinkedPromises);
+          unlinkedMessages = unlinkedResults.flatMap(res => Array.isArray(res) ? res : (res ? [res] : []));
       } catch (e) { console.error('Error fetching unlinked messages:', e); }
       
       const allMessages = [...branchMessages, ...unlinkedMessages];
