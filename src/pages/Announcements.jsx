@@ -115,10 +115,13 @@ export default function Announcements() {
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // 🔒 Multi-Tenancy: ดึงเฉพาะข้อความของสาขาที่เลือกเท่านั้น 
-      // (ข้อความจากลูกค้าใหม่ที่ยังไม่มีสาขา จะถูกระบบส่งไปที่ Default Branch ตามที่ตั้งค่าไว้ 
-      // ดังนั้นหากต้องการดูข้อความใหม่ ต้องสลับไปที่ Default Branch)
-      return await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+      // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง (tenant_id: null)
+      const branchMessages = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+      const unlinkedMessages = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 100);
+      
+      const allMessages = [...(branchMessages || []), ...(unlinkedMessages || [])];
+      const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
+      return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
     staleTime: 30 * 1000,
     refetchInterval: false,
@@ -132,8 +135,13 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        // 🔒 Multi-Tenancy: ดึงเฉพาะข้อความของสาขาที่เลือกเท่านั้น
-        return await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
+        // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง
+        const branchMessages = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
+        const unlinkedMessages = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 100) || [];
+        
+        const allMessages = [...branchMessages, ...unlinkedMessages];
+        const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
+        return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
       } catch {
         return [];
       }
