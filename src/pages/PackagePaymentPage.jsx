@@ -48,10 +48,10 @@ export default function PackagePaymentPage() {
     return (config && config.value && config.value.trim() !== '') ? config.value : defaultValue;
   };
 
-  const bankName = 'ธนาคารกสิกรไทย';
-  const accountNumber = '042-3-49594-4';
-  const accountName = 'บจก.ธนานนท์ พรมพักตร์';
-  const promptpay = null; // ปิดพร้อมเพย์สำหรับหน้าชำระแพ็กเกจ
+  const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
+  const accountNumber = getConfigValue('bank_account_number', '042-3-49594-4');
+  const accountName = getConfigValue('bank_account_name', 'บริษัท ธนานนท์ พรมพักตร์');
+  const promptpay = getConfigValue('promptpay', '0812345678');
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
   const userAccessibleBranches = currentUser?.accessible_branches || [];
