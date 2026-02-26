@@ -50,7 +50,8 @@ export default function Announcements() {
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId });
+      const res = await base44.entities.Tenant.filter({ branch_id: selectedBranchId });
+      const allTenants = Array.isArray(res) ? res : (res ? [res] : []);
       console.log('✅ Loaded tenants:', allTenants.length);
       return allTenants;
     },
@@ -63,7 +64,8 @@ export default function Announcements() {
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId });
+      const res = await base44.entities.Room.filter({ branch_id: selectedBranchId });
+      const allRooms = Array.isArray(res) ? res : (res ? [res] : []);
       console.log('✅ Loaded rooms:', allRooms.length);
       return allRooms;
     },
@@ -76,7 +78,8 @@ export default function Announcements() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId });
+      const res = await base44.entities.Booking.filter({ branch_id: selectedBranchId });
+      const allBookings = Array.isArray(res) ? res : (res ? [res] : []);
       console.log('✅ Loaded bookings:', allBookings.length);
       return allBookings;
     },
