@@ -79,21 +79,10 @@ export default function Dashboard() {
     queryKey: ['configs', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // 🔒 SECURITY FIX: Use backend function to filter configs
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Config',
-        filters: { branch_id: selectedBranchId },
-        limit: 1000
-      });
-      
-      // รวมกับ global configs (branch_id = null)
-      const globalResponse = await base44.functions.invoke('getSecureData', {
-        entity: 'Config',
-        filters: { branch_id: null },
-        limit: 1000
-      });
-      
-      return [...(response.data?.data || []), ...(globalResponse.data?.data || [])];
+      // Use direct DB query instead of backend function
+      const branchConfigs = await base44.entities.Config.filter({ branch_id: selectedBranchId }, '', 1000);
+      const globalConfigs = await base44.entities.Config.filter({ branch_id: null }, '', 1000);
+      return [...(branchConfigs || []), ...(globalConfigs || [])];
     },
     enabled: !!currentUser && !!selectedBranchId,
     ...retryConfig,
@@ -290,16 +279,10 @@ export default function Dashboard() {
   const dateRange = getMainDateRange();
 
   const { data: rooms = [], isFetching: roomsFetching, error: roomsError } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: '-room_number',
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 10000);
     },
     enabled: !!selectedBranchId,
     retry: 2,
@@ -325,21 +308,10 @@ export default function Dashboard() {
   });
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, 'all', 'all', null, '', 1, 'due_date'],
+    queryKey: ['payments-filtered', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getFilteredPayments', {
-        branch_id: selectedBranchId,
-        status_filter: 'all',
-        date_range_type: 'all',
-        custom_range: null,
-        search_query: '',
-        page: 1,
-        limit: 1000,
-        sort_by: 'due_date',
-        debug: false
-      });
-      return response.data?.data || [];
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-due_date', 1000);
     },
     enabled: !!selectedBranchId,
     retry: 2,
