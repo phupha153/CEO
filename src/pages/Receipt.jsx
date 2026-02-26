@@ -612,20 +612,15 @@ export default function Receipt() {
                     <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
                     {receiptData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
                     {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
-                    <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.company_address && <p>{receiptData.recipient.company_address}</p>}
                     {receiptData.recipient?.company_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.company_phone}</p>}
                   </>
                 ) : receiptData.recipient?.lessor_name ? (
                   <>
                     <p className="font-medium text-slate-800">{receiptData.recipient.lessor_name}</p>
                     {receiptData.recipient.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.lessor_id}</p>}
-                    <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
-                    {receiptData.recipient?.building_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.building_phone}</p>}
-                  </>
-                ) : receiptData.recipient?.building_address ? (
-                  <>
-                    <p>{receiptData.recipient.building_address}</p>
-                    {receiptData.recipient?.building_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.building_phone}</p>}
+                    {receiptData.recipient?.lessor_address && <p>{receiptData.recipient.lessor_address}</p>}
+                    {receiptData.recipient?.lessor_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.lessor_phone}</p>}
                   </>
                 ) : null}
               </div>
@@ -655,15 +650,15 @@ export default function Receipt() {
                     <>
                       <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
                       {receiptData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
-                      <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
+                      {receiptData.recipient?.company_address && <p>{receiptData.recipient.company_address}</p>}
                     </>
-                  ) : (
+                  ) : receiptData.recipient?.lessor_name ? (
                     <>
-                      <p className="font-medium text-slate-800">{receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
+                      <p className="font-medium text-slate-800">{receiptData.recipient.lessor_name}</p>
                       {receiptData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.lessor_id}</p>}
-                      <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                      {receiptData.recipient?.lessor_address && <p>{receiptData.recipient.lessor_address}</p>}
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -748,7 +743,7 @@ export default function Receipt() {
                   )}
                 </div>
                 <p className="text-[8px] md:text-xs text-slate-600">
-                  ผู้รับเงิน: {receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
+                  ผู้รับเงิน: {receiptData.recipient?.lessor_name || '________________'}
                 </p>
               </div>
             </div>
