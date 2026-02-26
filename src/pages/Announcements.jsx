@@ -159,14 +159,12 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        let allowedUnlinkedBranches = [selectedBranchId];
+        let isDefaultBranch = false;
         const configs = await base44.entities.Config.list('', 1000);
         const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-        const sharedConfig = configList.find(c => c.key === 'shared_unlinked_branches' && c.branch_id === selectedBranchId) || 
-                             configList.find(c => c.key === 'shared_unlinked_branches' && !c.branch_id);
-        if (sharedConfig && sharedConfig.value) {
-            const sharedIds = sharedConfig.value.split(',').map(id => id.trim());
-            allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...sharedIds])];
+        const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
+        if (defConfig && defConfig.value === selectedBranchId) {
+            isDefaultBranch = true;
         }
 
         let branchMessages = [];
@@ -174,11 +172,13 @@ export default function Announcements() {
         branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
         
         let unlinkedMessages = [];
-        const unlinkedPromises = allowedUnlinkedBranches.map(id => 
-            base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: id }, '-created_date', 100)
-        );
-        const unlinkedResults = await Promise.all(unlinkedPromises);
-        unlinkedMessages = unlinkedResults.flatMap(res => Array.isArray(res) ? res : (res ? [res] : []));
+        if (isDefaultBranch) {
+            const resUnlinked = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 200);
+            unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
+        } else {
+            const resUnlinked = await base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
+            unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
+        }
         
         const allMessages = [...branchMessages, ...unlinkedMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
