@@ -882,22 +882,13 @@ async function fetchAllWithPagination(entity, batchSize = 5000) {
 
 async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, branchCode = null, replyToken = null, destinationBranchId = null) {
     try {
-        // ⭐⭐⭐ CRITICAL FIX: ต้องมี destinationBranchId เสมอ (ป้องกัน Data Leak)
-        if (!destinationBranchId) {
-            console.error('❌ CRITICAL: Missing destinationBranchId - cannot register without branch context');
-            await sendMessage(base44, lineUserId, 
-                '❌ กรุณาลงทะเบียนผ่าน LINE OA ของสาขาที่ถูกต้องค่ะ\n\nถ้าไม่แน่ใจกรุณาติดต่อเจ้าของหอพัก',
-                null,
-                replyToken
-            );
-            return;
+        // ⭐ อนุญาตให้ค้นหาข้ามสาขาได้ ถ้าไม่มี destinationBranchId
+        const queryFilter = { phone: phoneNumber };
+        if (destinationBranchId) {
+            queryFilter.branch_id = destinationBranchId;
         }
 
-        // ⭐ ดึงเฉพาะสาขาที่ระบุ (ไม่โหลดทั้งหมด)
-        const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-            phone: phoneNumber,
-            branch_id: destinationBranchId 
-        });
+        const tenantResult = await base44.asServiceRole.entities.Tenant.filter(queryFilter);
         let tenants = Array.isArray(tenantResult) ? tenantResult : (tenantResult ? [tenantResult] : []);
         console.log(`🎯 Filtered tenants in branch ${destinationBranchId.substring(0, 8)}... → Found ${tenants.length}`);
 
