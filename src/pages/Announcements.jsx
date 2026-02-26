@@ -115,10 +115,9 @@ export default function Announcements() {
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง (tenant_id: null) **เฉพาะสาขานี้**
+      // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง (tenant_id: null)
       const branchMessages = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-      // ⭐ FIX: เพิ่ม branch_id เพื่อป้องกัน Data Leak ข้ามสาขา
-      const unlinkedMessages = await base44.entities.LineMessage.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
+      const unlinkedMessages = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 100);
       
       const allMessages = [...(branchMessages || []), ...(unlinkedMessages || [])];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
@@ -136,10 +135,9 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง **เฉพาะสาขานี้**
+        // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก + ข้อความที่ยังไม่ถูกเชื่อมโยง
         const branchMessages = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
-        // ⭐ FIX: เพิ่ม branch_id เพื่อป้องกัน Data Leak ข้ามสาขา
-        const unlinkedMessages = await base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100) || [];
+        const unlinkedMessages = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 100) || [];
         
         const allMessages = [...branchMessages, ...unlinkedMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
