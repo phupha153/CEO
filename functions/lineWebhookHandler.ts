@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             if (events.length === 0) return;
             
             let destinationBranchId = queryBranchId;
-            if (!destinationBranchId) {
+            if (!destinationBranchId || destinationBranchId === 'global') {
                 try {
                     const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
                     if (def && def.length > 0) destinationBranchId = def[0].value;
