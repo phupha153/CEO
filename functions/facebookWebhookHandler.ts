@@ -147,7 +147,17 @@ Deno.serve(async (req) => {
                                 const tenant = tenants.find(t => t.facebook_user_id === senderPsid);
                                 console.log(`🔍 Matched tenant:`, tenant ? tenant.full_name : 'None');
                                 
-                                const branchId = tenant?.branch_id || null;
+                                let branchId = tenant?.branch_id || null;
+                                
+                                // ⭐ ถ้ายังไม่มีสาขา (ลูกค้าใหม่) ให้วิ่งเข้าสาขาหลัก (ถ้าตั้งไว้)
+                                if (!branchId) {
+                                    try {
+                                        const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
+                                        if (def && def.length > 0 && def[0].value !== 'none') {
+                                            branchId = def[0].value;
+                                        }
+                                    } catch(e) {}
+                                }
 
                                 if (webhookEvent.message) {
                                                 console.log('📝 Message content:', webhookEvent.message);
