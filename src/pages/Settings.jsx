@@ -1584,9 +1584,7 @@ export default function Settings() {
         // Secret
         let secretPromise = Promise.resolve();
         if (lineSettings.line_channel_secret?.trim()) {
-          const existingSecretConfig = configs.find(c => 
-            c.key === 'line_channel_secret' && c.branch_id === branchId
-          );
+          const existingSecretConfig = (await base44.entities.Config.filter({ key: 'line_channel_secret', branch_id: branchId }, '', 1))[0];
           
           secretPromise = existingSecretConfig
             ? base44.entities.Config.update(existingSecretConfig.id, {
