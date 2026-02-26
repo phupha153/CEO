@@ -202,16 +202,14 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         // ⭐ ตรวจสอบ auth - ถ้าไม่มี user หรือไม่ใช่ admin ให้ใช้ service role
-        let isServiceRole = true;
-        if (req.headers.has('authorization')) {
-            try {
-                const currentUser = await base44.auth.me();
-                if (currentUser) {
-                    isServiceRole = false;
-                }
-            } catch (authError) {
-                // Ignore 401 from SDK when running via Cron
+        let isServiceRole = false;
+        try {
+            const currentUser = await base44.auth.me();
+            if (!currentUser) {
+                isServiceRole = true;
             }
+        } catch (authError) {
+            isServiceRole = true;
         }
         
         const slip2goApiKey = Deno.env.get('SLIP2GO_API_KEY');
@@ -249,8 +247,7 @@ Deno.serve(async (req) => {
                     p.branch_id &&
                     p.notes && 
                     p.notes.includes('รอตรวจสอบ') &&
-                    !p.notes.includes('ตรวจสอบไม่ผ่าน') &&
-                    !p.notes.includes('ตรวจสอบไม่สำเร็จ')
+                    !p.notes.includes('ตรวจสอบไม่ผ่าน')
                 );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
@@ -328,25 +325,9 @@ Deno.serve(async (req) => {
                 }
 
                 // ดาวน์โหลดรูปสลิปจาก URL
-                let imageResponse;
-                try {
-                    imageResponse = await fetch(payment.payment_slip_url);
-                } catch (err) {
-                    console.error(`   ❌ Network error downloading slip: ${err.message}`);
-                    // บันทึกว่าดาวน์โหลดไม่ได้ เพื่อไม่ให้วนลูป
-                    await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: โหลดรูปสลิปไม่ได้ (Network Error)`
-                    });
-                    failCount++;
-                    continue;
-                }
-
+                const imageResponse = await fetch(payment.payment_slip_url);
                 if (!imageResponse.ok) {
-                    console.error(`   ❌ Failed to download slip image: ${imageResponse.status}`);
-                    // บันทึกว่าดาวน์โหลดไม่ได้ เพื่อไม่ให้วนลูป
-                    await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: โหลดรูปสลิปไม่ได้ (Status ${imageResponse.status})`
-                    });
+                    console.error(`   ❌ Failed to download slip image`);
                     failCount++;
                     continue;
                 }
@@ -394,10 +375,6 @@ Deno.serve(async (req) => {
                     slip2goData = JSON.parse(responseText);
                 } catch (e) {
                     console.error(`   ❌ Failed to parse Slip2Go response`);
-                    // บันทึก Error เพื่อไม่ให้วนลูป
-                    await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ระบบตรวจสอบขัดข้อง (Response Error)`
-                    });
                     failCount++;
                     continue;
                 }
@@ -418,7 +395,7 @@ Deno.serve(async (req) => {
                         console.log(`   ❌ Max retries reached (${retryCount}), marking for manual review`);
 
                         await entityService.Payment.update(payment.id, {
-                            notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: สลิปอ่านไม่ได้หลังลอง ${retryCount + 1} ครั้ง - กรุณาตรวจสอบด้วยตนเอง`
+                            notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่สำเร็จหลังลอง ${retryCount + 1} ครั้ง - กรุณาตรวจสอบด้วยตนเอง`
                         });
 
                         // ไม่ส่ง LINE แจ้งลูกค้า - รอ admin ตรวจสอบเอง
@@ -448,13 +425,10 @@ Deno.serve(async (req) => {
                         console.log(`   💰 Slip Amount: ${slipAmount} บาท`);
                         console.log(`   👤 Sender: ${senderName}`);
                         
-                        // ⭐ ถ้ายอด = 0 ให้ถือว่าสลิปอ่านไม่ได้
+                        // ⭐ ถ้ายอด = 0 → เงียบ ไม่ตอบอะไร (รอตรวจสอบซ้ำรอบถัดไป)
                         if (slipAmount === 0 || isNaN(slipAmount)) {
-                            console.log(`   ❌ Amount is 0 or invalid - marking as failed`);
-                            await entityService.Payment.update(payment.id, {
-                                notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ไม่พบยอดเงินในสลิป - กรุณาตรวจสอบด้วยตนเอง`
-                            });
-                            failCount++;
+                            console.log(`   ⏳ Amount is 0 or invalid - skipping silently (waiting for next recheck)`);
+                            skippedCount++;
                             continue;
                         }
 
@@ -476,18 +450,13 @@ Deno.serve(async (req) => {
                             console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
                             const shortfall = expectedAmount - totalPaid;
                             
-                            try {
-                                await entityService.Payment.update(payment.id, {
-                                    status: 'partial_paid',
-                                    paid_amount: totalPaid,
-                                    late_fee_amount: lateFeeAmount,
-                                    total_amount: expectedAmount,
-                                    notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-                                });
-                                console.log('   ✅ Updated status to partial_paid');
-                            } catch (updateError) {
-                                console.error('   ❌ Failed to update partial_paid status:', updateError);
-                            }
+                            await entityService.Payment.update(payment.id, {
+                                status: 'partial_paid',
+                                paid_amount: totalPaid,
+                                late_fee_amount: lateFeeAmount,
+                                total_amount: expectedAmount,
+                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                            });
                             
                             const tenant = tenants.find(t => t.id === payment.tenant_id);
                             if (tenant?.line_user_id) {
@@ -498,8 +467,7 @@ Deno.serve(async (req) => {
                                 );
                             }
                             
-                            // ถือว่าเป็น Success ในแง่ของการ process (เพราะหยุด loop แล้ว)
-                            successCount++; 
+                            failCount++;
                             continue;
                         }
 
@@ -507,86 +475,86 @@ Deno.serve(async (req) => {
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
                 
-                // ⭐ ถ้าไม่มี config บัญชีเลย = ข้ามการตรวจสอบบัญชี แล้วให้ผ่านไปเลย (อนุโลม)
-                const hasConfig = (expectedAccountNumber && expectedAccountNumber.trim() !== '') || 
-                                 (expectedPromptPay && expectedPromptPay.trim() !== '');
+                // ⭐ ถ้าไม่มี config บัญชีเลย = ข้ามไปก่อน (ไม่ส่งผิดบัญชี)
+                if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
+                    (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+                    console.log('⚠️ NO CONFIG FOUND - Skipping account check');
+                    skippedCount++;
+                    continue;
+                }
 
-                if (!hasConfig) {
-                    console.log('⚠️ NO CONFIG FOUND - Skipping account check and assuming it is correct');
-                } else {
-                    const receiverAccount = slipData.receiver?.account?.bank?.account || '';
-                    const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
+                const receiverAccount = slipData.receiver?.account?.bank?.account || '';
+                const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
 
-                    console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
-                    console.log('📋 Expected Configuration:');
-                    console.log('  Bank Account:', expectedAccountNumber || '(not set)');
-                    console.log('  PromptPay:', expectedPromptPay || '(not set)');
-                    console.log('\n📋 Received from Slip:');
-                    console.log('  Receiver Account:', receiverAccount || '(empty)');
-                    console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
+                console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
+                console.log('📋 Expected Configuration:');
+                console.log('  Bank Account:', expectedAccountNumber || '(not set)');
+                console.log('  PromptPay:', expectedPromptPay || '(not set)');
+                console.log('\n📋 Received from Slip:');
+                console.log('  Receiver Account:', receiverAccount || '(empty)');
+                console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
 
-                    let accountMatch = false;
-                    let matchMethod = '';
+                let accountMatch = false;
+                let matchMethod = '';
+                
+                // ⭐ เช็คเลขบัญชีธนาคาร
+                if (expectedAccountNumber) {
+                    console.log('\n🔍 Checking Bank Account Number...');
+                    accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
+                    if (accountMatch) {
+                        matchMethod = 'Bank Account';
+                        console.log(`✅ MATCHED via Bank Account Number`);
+                    }
+                }
+                
+                // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
+                if (!accountMatch && expectedPromptPay) {
+                    console.log('\n🔍 Checking PromptPay...');
+                    console.log('  Trying receiverPromptPay vs expectedPromptPay...');
+                    const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
                     
-                    // ⭐ เช็คเลขบัญชีธนาคาร
-                    if (expectedAccountNumber) {
-                        console.log('\n🔍 Checking Bank Account Number...');
-                        accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
-                        if (accountMatch) {
-                            matchMethod = 'Bank Account';
-                            console.log(`✅ MATCHED via Bank Account Number`);
-                        }
+                    if (!promptPayMatch1) {
+                        console.log('  Trying receiverAccount vs expectedPromptPay...');
+                        const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                        accountMatch = promptPayMatch2;
+                        if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
+                    } else {
+                        accountMatch = true;
+                        matchMethod = 'PromptPay';
                     }
                     
-                    // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
-                    if (!accountMatch && expectedPromptPay) {
-                        console.log('\n🔍 Checking PromptPay...');
-                        console.log('  Trying receiverPromptPay vs expectedPromptPay...');
-                        const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
-                        
-                        if (!promptPayMatch1) {
-                            console.log('  Trying receiverAccount vs expectedPromptPay...');
-                            const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
-                            accountMatch = promptPayMatch2;
-                            if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
-                        } else {
-                            accountMatch = true;
-                            matchMethod = 'PromptPay';
-                        }
-                        
-                        if (accountMatch) {
-                            console.log(`✅ MATCHED via ${matchMethod}`);
-                        }
+                    if (accountMatch) {
+                        console.log(`✅ MATCHED via ${matchMethod}`);
                     }
+                }
 
-                    console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
-                    console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
-                    console.log(`  Method: ${matchMethod || 'None'}`);
-                    console.log('====================================================\n');
+                console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
+                console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
+                console.log(`  Method: ${matchMethod || 'None'}`);
+                console.log('====================================================\n');
 
-                    if (!accountMatch) {
-                        console.log(`   ⚠️ Account mismatch - notifying customer`);
-                        
-                        const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
-                        
-                        // เพิ่มสถานะไว้ใน notes เพื่อไม่ให้ตรวจซ้ำ
-                        await entityService.Payment.update(payment.id, {
-                            notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ${errorMsg}\n⚠️ กรุณาตรวจสอบด้วยตนเอง`
-                        });
-                        
-                        // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
-                        const tenant = tenants.find(t => t.id === payment.tenant_id);
-                        if (tenant?.line_user_id) {
-                            await sendLineMessage(base44, tenant.line_user_id, 
-                                `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
-                                payment.branch_id,
-                                configs
-                            );
-                        }
-                        
-                        failCount++;
-                        continue;
+                if (!accountMatch) {
+                    console.log(`   ⚠️ Account mismatch - notifying customer`);
+                    
+                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+                    
+                    // เพิ่มสถานะไว้ใน notes เพื่อไม่ให้ตรวจซ้ำ
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ${errorMsg}\n⚠️ กรุณาตรวจสอบด้วยตนเอง`
+                    });
+                    
+                    // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
+                            `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
+                            payment.branch_id,
+                            configs
+                        );
                     }
+                    
+                    failCount++;
+                    continue;
                 }
 
                 // ✅ ทุกอย่างถูกต้อง - อัปเดตเป็น paid
