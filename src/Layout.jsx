@@ -783,32 +783,6 @@ export default function Layout({ children, currentPageName }) {
   const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
-  // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
-  const userRole = (() => {
-    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
-    if (currentUser?.role === 'admin') {
-      return 'developer';
-    }
-    
-    let effectiveRole = currentUser?.custom_role;
-    
-    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
-    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
-      effectiveRole = crmAccess.role;
-    }
-    
-    const role = effectiveRole || 'employee';
-    return role;
-  })();
-  const userPermissions = currentUser?.permissions || [];
-  
-  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
-  const userAccessibleBranches = currentUser?.accessible_branches;
-
-  // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
-  // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
-  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-
   const canAccessBranch = (() => {
     if (!selectedBranch) return false;
     if (userRole === 'developer') return true;
