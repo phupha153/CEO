@@ -3421,40 +3421,16 @@ export default function Settings() {
                             </div>
                           </div>
 
-                          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                              <Zap className="w-5 h-5" />
-                              Webhook URL สำหรับสาขานี้
-                            </h4>
-                            <div className="space-y-3">
-                              <div className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-2">
-                                <code className="flex-1 text-sm text-slate-700 font-mono break-all">
-                                  {showWebhookUrl 
-                                    ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`
-                                    : '••••••••••••••••••••••••••••••••••••••••••••••'}
-                                </code>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setShowWebhookUrl(!showWebhookUrl)}
-                                  className="flex-shrink-0"
-                                >
-                                  {showWebhookUrl ? 'ซ่อน' : 'ดู'}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`);
-                                    toast.success('คัดลอก Webhook URL แล้ว');
-                                  }}
-                                  className="flex-shrink-0"
-                                >
-                                  คัดลอก
-                                </Button>
-                              </div>
+                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-sm">
+                            <p className="font-semibold text-slate-700 mb-1">1. Webhook URL (แยกสาขา - แนะนำถ้ามี LINE แยก)</p>
+                            <code className="block bg-white p-2 rounded border mb-2 font-mono text-xs">{showWebhookUrl ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}` : '••••••••'}</code>
+                            <p className="font-semibold text-slate-700 mb-1 mt-3">2. Webhook URL (รวมทุกสาขา - ใช้ LINE ตัวเดียวกัน)</p>
+                            <code className="block bg-white p-2 rounded border mb-2 font-mono text-xs">{showWebhookUrl ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler` : '••••••••'}</code>
+                            <p className="text-xs text-slate-500 mb-2">หากใช้ลิงก์รวม ระบบจะค้นหาผู้เช่าจากเบอร์โทรและประวัติอัตโนมัติ ไม่ต้องแยกสาขา</p>
+                            <div className="flex gap-2">
+                              <Button type="button" size="sm" variant="outline" onClick={() => setShowWebhookUrl(!showWebhookUrl)}>{showWebhookUrl ? 'ซ่อน' : 'ดู'}</Button>
+                              <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`); toast.success('คัดลอกแบบแยกสาขาแล้ว'); }}>คัดลอก (แยก)</Button>
+                              <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler`); toast.success('คัดลอกแบบรวมสาขาแล้ว'); }}>คัดลอก (รวม)</Button>
                             </div>
                           </div>
 

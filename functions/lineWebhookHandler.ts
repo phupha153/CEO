@@ -700,10 +700,9 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         // ⭐ ใช้ filter พร้อม branch_id เพื่อความแม่นยำ
         let tenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                line_user_id: lineUserId,
-                branch_id: branchId
-            });
+            const filter = { line_user_id: lineUserId };
+            if (branchId) filter.branch_id = branchId;
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter(filter);
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant:', e.message);
