@@ -1172,7 +1172,7 @@ export default function Settings() {
         }
         
         return processInChunks(ownedBranchIds, async (branchId) => {
-          const existingConfigs = notificationConfigs.filter(c => c.branch_id === branchId);
+          const existingConfigs = await base44.entities.NotificationConfig.filter({ branch_id: branchId }, '', 1);
           
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
