@@ -48,7 +48,7 @@ export default function UserBranchAccess() {
 
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [transferTarget, setTransferTarget] = useState(null);
-  const [targetTransferBranchId, setTargetTransferBranchId] = useState(null);
+  const [targetTransferBranchIds, setTargetTransferBranchIds] = useState([]);
 
   const queryClient = useQueryClient();
 
