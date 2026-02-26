@@ -1978,7 +1978,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         if (!response.ok && replyToken) {
             console.error(`❌ Reply failed: ${response.status} - ${responseText}`);
 
-            if (response.status === 400 && (responseText.includes('Invalid reply token') || responseText.includes('Failed to send messages'))) {
+            if (response.status === 400) {
                 console.log('⚠️ Reply token expired or invalid, falling back to PUSH');
 
                 endpoint = 'https://api.line.me/v2/bot/message/push';
