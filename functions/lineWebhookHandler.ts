@@ -1384,9 +1384,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const expectedPromptPay = getConfigValue('promptpay');
 
         // ⭐ ดึงข้อมูลจาก Slip2Go Response
-        const receiverAccount = slipData.receiver?.account?.bank?.account || '';
-        const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
-        const receiverName = slipData.receiver?.account?.name || '';
+        const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
+        const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
+        const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
 
         console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
         console.log('📋 Expected Configuration:');
