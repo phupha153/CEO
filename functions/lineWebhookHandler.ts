@@ -986,8 +986,534 @@ function extractAmount(slipData) {
 }
 
 async function handleSlipImage(base44, lineUserId, messageId, branchId = null, replyToken = null) {
-    console.log('🔄 Calling processSlipImage for verification...');
-    await base44.asServiceRole.functions.invoke('processSlipImage', { lineUserId, messageId, branchId, replyToken });
+    const lineToken = await getLineToken(base44, branchId);
+    const slip2goApiKey = Deno.env.get('SLIP2GO_API_KEY');
+    
+    if (!lineToken || !slip2goApiKey) {
+        await sendMessage(base44, lineUserId, '❌ ระบบขัดข้อง กรุณาติดต่อเจ้าของหอพัก', branchId, replyToken);
+        return;
+    }
+
+    try {
+        
+        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
+        if (!branchId) {
+            console.error(`❌ CRITICAL: No branchId available for slip verification`);
+            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
+            return;
+        }
+
+        let tenant = null;
+        try {
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
+            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+            if (tenant) branchId = tenant.branch_id;
+        } catch (e) {}
+
+        if (!tenant) {
+            await sendMessage(base44, lineUserId, 'กรุณาลงทะเบียนด้วยหมายเลขโทรศัพท์ก่อนใช้งาน\nพิมพ์: ลงทะเบียน 0812345678', branchId, replyToken);
+            return;
+        }
+
+        // ⭐ CRITICAL: Filter payments รวมทั้ง partial_paid (ชำระไม่ครบ)
+        let pendingPayments = [];
+        try {
+            const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
+                tenant_id: tenant.id,
+                branch_id: branchId,
+                status: { $in: ['pending', 'overdue', 'partial_paid'] }
+            });
+            pendingPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
+        } catch (e) {
+            console.log('⚠️ Could not filter payments:', e.message);
+            const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 500);
+            pendingPayments = allPayments.filter(p => 
+                p.tenant_id === tenant.id && 
+                p.branch_id === branchId &&
+                (p.status === 'pending' || p.status === 'overdue' || p.status === 'partial_paid')
+            );
+        }
+
+        if (pendingPayments.length === 0) {
+            return;
+        }
+
+        pendingPayments.sort((a, b) => {
+            try {
+                return new Date(a.due_date) - new Date(b.due_date);
+            } catch {
+                return 0;
+            }
+        });
+        
+        const pendingPayment = pendingPayments[0];
+        
+        let imageResponse;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+                    headers: { 'Authorization': `Bearer ${lineToken}` },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (imageResponse.ok) {
+                    break;
+                }
+                
+                console.log(`Download attempt ${retryCount + 1} failed: ${imageResponse.status}`);
+                retryCount++;
+                
+                if (retryCount < maxRetries) {
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
+                    const backoffMs = 2000 * Math.pow(2, retryCount);
+                    console.log(`⏳ Download retry waiting ${backoffMs}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                }
+                
+            } catch (downloadError) {
+                console.error(`Download attempt ${retryCount + 1} error:`, downloadError.message);
+                retryCount++;
+                
+                if (retryCount < maxRetries) {
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
+                    const backoffMs = 2000 * Math.pow(2, retryCount);
+                    console.log(`⏳ Download error retry waiting ${backoffMs}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                }
+            }
+        }
+
+        if (!imageResponse || !imageResponse.ok) {
+            console.error('❌ Failed to download image after retries');
+            await sendMessage(base44, lineUserId, 
+                '❌ ไม่สามารถดาวน์โหลดรูปภาพได้\n\nสาเหตุที่อาจเป็นไปได้:\n• รูปภาพมีขนาดใหญ่เกินไป\n• การเชื่อมต่อขาดหาย\n\nวิธีแก้:\n1. ลองส่งรูปที่มีขนาดเล็กกว่า\n2. ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต\n3. หรือติดต่อเจ้าของหอพักโดยตรงค่ะ',
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
+        if (imageBlob.size > 10 * 1024 * 1024) {
+            await sendMessage(base44, lineUserId, 
+                '❌ รูปภาพมีขนาดใหญ่เกินไป (เกิน 10MB)\n\nกรุณาส่งรูปที่มีขนาดเล็กกว่าค่ะ',
+                branchId,
+                replyToken
+            );
+            return;
+        }
+        let slipImageUrl = '';
+        let uploadRetryCount = 0;
+        const maxUploadRetries = 3;
+        
+        while (uploadRetryCount < maxUploadRetries) {
+            try {
+                const file = new File([imageBlob], `slip-${Date.now()}.jpg`, { type: imageBlob.type });
+                const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+                slipImageUrl = uploadResult.file_url;
+                break;
+                
+            } catch (uploadError) {
+                uploadRetryCount++;
+                
+                if (uploadRetryCount >= maxUploadRetries) {
+                    await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                        notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่อัพโหลดไม่สำเร็จ - กรุณาให้ส่งใหม่`
+                    });
+                    
+                    await sendMessage(base44, lineUserId, 
+                        '⚠️ ระบบไม่สามารถบันทึกรูปสลิปได้\n\nกรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าของหอพักค่ะ',
+                        branchId,
+                        replyToken
+                    );
+                    return;
+                }
+                
+                const backoffMs = 2000 * Math.pow(2, uploadRetryCount);
+                await new Promise(resolve => setTimeout(resolve, backoffMs));
+            }
+        }
+
+        const formData = new FormData();
+        formData.append('file', imageBlob, 'slip.jpg');
+        formData.append('payload', JSON.stringify({ checkDuplicate: true }));
+        
+        let slip2goResponse;
+        let slip2goData;
+        let verificationMethod = '';
+        let verificationSuccess = false;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            
+            slip2goResponse = await fetch('https://connect.slip2go.com/api/verify-slip/qr-image/info', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${slip2goApiKey.trim()}` },
+                body: formData,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            const responseText = await slip2goResponse.text();
+            slip2goData = JSON.parse(responseText);
+            
+            // ⭐ ตรวจสอบว่าสลิป valid หรือไม่ (รวมทั้ง code 200200 = Slip is valid)
+            const isValidCode = slip2goData.code === '200200' || slip2goData.code === 200200;
+            
+            if ((slip2goResponse.ok && slip2goData.success && slip2goData.data) || (isValidCode && slip2goData.data)) {
+                verificationMethod = 'qr-image';
+                verificationSuccess = true;
+            }
+            
+            if (slip2goResponse.status === 504 || responseText.includes('504')) {
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                    payment_slip_url: slipImageUrl,
+                    notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
+                });
+                
+                await sendMessage(base44, lineUserId, 
+                    `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                    branchId,
+                    replyToken
+                );
+                return;
+            }
+            
+        } catch (fetchError) {
+            // Log to DB
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'slip_verification_error',
+                line_user_id: lineUserId,
+                tenant_id: tenant?.id,
+                payment_id: pendingPayment.id,
+                status: 'error',
+                message: 'Slip2Go API error',
+                error_message: fetchError.message
+            }).catch(() => {});
+
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
+            });
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        const errorCode = slip2goData.code;
+        const errorMessage = slip2goData.message || '';
+
+        const isDuplicateError = errorCode === '200501' || errorMessage.toLowerCase().includes('duplicate');
+
+        if (isDuplicateError) {
+            // Log duplicate
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'slip_duplicate',
+                line_user_id: lineUserId,
+                tenant_id: tenant?.id,
+                payment_id: pendingPayment.id,
+                status: 'warning',
+                message: 'Duplicate slip detected'
+            }).catch(() => {});
+
+            await sendMessage(base44, lineUserId, 
+                `⚠️ สลิปนี้เคยถูกใช้ไปแล้ว\n\nกรุณาส่งสลิปใหม่ค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        // ⭐⭐⭐ Slip2Go Error Codes:
+        // 200500 = Fraud (สลิปปลอม) → ไม่ตอบ ไม่บันทึก
+        // 200404 = Not found (ธนาคารยัง sync ไม่ทัน) → บันทึกรอตรวจซ้ำ
+        // อื่นๆ = Unknown error → ไม่ตอบ ไม่บันทึก
+
+        const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
+
+        if (isFraudSlip && !verificationSuccess) {
+            // Log fraud attempt
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'slip_fraud',
+                line_user_id: lineUserId,
+                tenant_id: tenant?.id,
+                payment_id: pendingPayment.id,
+                status: 'warning',
+                message: 'Fraud slip detected',
+                details: { error_code: errorCode }
+            }).catch(() => {});
+            return;
+        }
+
+        const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
+
+        if (!isSlipValid) {
+            const isSlipNotFound = errorCode === '200404' || errorMessage === 'Slip not found';
+
+            if (isSlipNotFound) {
+                const now = new Date().toISOString();
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                    payment_slip_url: slipImageUrl,
+                    notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
+                });
+
+                // ⭐ ไม่ตอบกลับอะไร - ให้ cron job ตรวจสอบซ้ำแบบเงียบๆ
+                console.log('📸 Slip saved silently - waiting for cron recheck');
+                return;
+            }
+
+            return;
+        }
+
+        const slipData = slip2goData.data;
+        const { amount: slipAmount } = extractAmount(slipData);
+        
+        const senderName = slipData.sender?.account?.name?.th || 
+                          slipData.sender?.displayName || 'N/A';
+        const transDate = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
+
+        if (slipAmount === 0) {
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
+            });
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        // ⭐⭐⭐ เช็คเลขบัญชีก่อนเช็คยอด (แบบเดียวกับ verifySlip - ไม่เช็คชื่อ)
+        const now2 = Date.now();
+        let configs;
+        if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
+            configs = await base44.asServiceRole.entities.Config.list();
+            configCache = configs;
+            configCacheTime = now2;
+            console.log(`✅ Refreshed config cache (${configs.length} items)`);
+        } else {
+            configs = configCache;
+            console.log(`✅ Using cached config (${configs.length} items)`);
+        }
+
+        const getConfigValue = (key) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig) return branchConfig.value;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value || null;
+        };
+
+        const expectedAccountNumber = getConfigValue('bank_account_number');
+        const expectedPromptPay = getConfigValue('promptpay');
+
+        // ⭐ ดึงข้อมูลจาก Slip2Go Response
+        const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
+        const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
+        const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
+
+        console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
+        console.log('📋 Expected Configuration:');
+        console.log('  Bank Account:', expectedAccountNumber || '(not set)');
+        console.log('  PromptPay:', expectedPromptPay || '(not set)');
+        console.log('\n📋 Received from Slip:');
+        console.log('  Receiver Account:', receiverAccount || '(empty)');
+        console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
+        console.log('  Receiver Name:', receiverName || '(empty)');
+
+        // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
+        if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
+            (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
+            const roomNumber = room?.room_number || 'ไม่ทราบ';
+
+            console.log('⚠️ NO CONFIG FOUND - Manual review required');
+
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+            });
+
+            await sendMessage(base44, lineUserId, 
+                `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        let accountMatch = false;
+        let matchMethod = '';
+
+        // ⭐ เช็คเลขบัญชีธนาคาร
+        if (expectedAccountNumber) {
+            console.log('\n🔍 Checking Bank Account Number...');
+            accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
+            if (accountMatch) {
+                matchMethod = 'Bank Account';
+                console.log(`✅ MATCHED via Bank Account Number`);
+            }
+        }
+
+        // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
+        if (!accountMatch && expectedPromptPay) {
+            console.log('\n🔍 Checking PromptPay...');
+            console.log('  Trying receiverPromptPay vs expectedPromptPay...');
+            const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
+            
+            if (!promptPayMatch1) {
+                console.log('  Trying receiverAccount vs expectedPromptPay...');
+                const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                accountMatch = promptPayMatch2;
+                if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
+            } else {
+                accountMatch = true;
+                matchMethod = 'PromptPay';
+            }
+            
+            if (accountMatch) {
+                console.log(`✅ MATCHED via ${matchMethod}`);
+            }
+        }
+
+        console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
+        console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
+        console.log(`  Method: ${matchMethod || 'None'}`);
+        console.log('====================================================\n');
+
+        if (!accountMatch) {
+            console.log('❌ Account mismatch - saving for manual review');
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
+            const roomNumber = room?.room_number || 'ไม่ทราบ';
+
+            const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+            });
+
+            await sendMessage(base44, lineUserId, 
+                `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`,
+                branchId,
+                replyToken
+            );
+            console.log('✅ Sent account mismatch message');
+            return;
+        }
+
+        const today = new Date(new Date().getTime() + (7 * 3600000)); today.setHours(0,0,0,0);
+        const pList = pendingPayments.map(p => { 
+            const late = calculateLateFee(p, configs, branchId, today); 
+            const exp = ['rent_amount','water_amount','electricity_amount','internet_amount','common_fee_amount','parking_fee_amount','other_amount'].reduce((s, k) => s + (parseFloat(p[k]) || 0), 0) + late.lateFeeAmount; 
+            return { ...p, expectedAmount: exp, remainingToPay: exp - parseFloat(p.paid_amount || 0), currentPaid: parseFloat(p.paid_amount || 0), lateFeeAmount: late.lateFeeAmount, daysLate: late.daysLate }; 
+        });
+        const exact = pList.find(p => Math.abs(p.remainingToPay - slipAmount) <= Math.max(1, p.expectedAmount * 0.05));
+        const search = (i, sub, sum) => { if (sum > 0 && Math.abs(sum - slipAmount) <= sub.length * 2) return sub; if (sum > slipAmount + 5 || i >= Math.min(pList.length, 15)) return null; const sP = [...pList].sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)); return search(i + 1, [...sub, sP[i]], sum + sP[i].remainingToPay) || search(i + 1, sub, sum); };
+        const processList = exact ? [exact] : (search(0, [], 0) || pList);
+        let remainingSlipAmount = slipAmount, processedIds = [], partialInfo = null;
+        let isExactCombo = processList.length > 0 && Math.abs(processList.reduce((sum, p) => sum + p.remainingToPay, 0) - slipAmount) <= processList.length * 2;
+
+        for (const p of processList) {
+            if (remainingSlipAmount <= 0) break;
+            const payAmount = Math.min(p.remainingToPay, remainingSlipAmount);
+            const newTotalPaid = p.currentPaid + payAmount;
+            const status = newTotalPaid >= p.expectedAmount * 0.95 ? 'paid' : 'partial_paid';
+            if (status !== 'paid') partialInfo = { expected: p.expectedAmount, paidNow: newTotalPaid, shortfall: p.expectedAmount - newTotalPaid, lateFee: p.lateFeeAmount, daysLate: p.daysLate };
+
+            remainingSlipAmount -= payAmount;
+            processedIds.push({ id: p.id, status });
+
+            const isExact = isExactCombo ? ' (ตรงตามยอดบิล)' : '';
+            const note = status === 'paid'
+                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿ (จากยอดรวม ${slipAmount.toLocaleString()}฿)${isExact}${p.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${p.lateFeeAmount.toLocaleString()}฿ ${p.daysLate}วัน)` : ''}`
+                : `\n\n💰 ชำระบางส่วน: ${payAmount.toLocaleString()}฿ (รวม ${newTotalPaid.toLocaleString()}/${p.expectedAmount.toLocaleString()}฿)`;
+
+            await base44.asServiceRole.entities.Payment.update(p.id, {
+                status, paid_amount: newTotalPaid, payment_slip_url: slipImageUrl,
+                late_fee_amount: p.lateFeeAmount, total_amount: p.expectedAmount,
+                ...(status === 'paid' ? { payment_date: transDate.split('T')[0] } : {}),
+                notes: `${p.notes || ''}${note}`
+            });
+
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line', branch_id: branchId, event_type: status === 'paid' ? 'payment_verified' : 'partial_payment',
+                line_user_id: lineUserId, tenant_id: tenant?.id, payment_id: p.id, amount: payAmount, status: 'success',
+                message: status === 'paid' ? 'Verified' : `Partial: ${newTotalPaid}/${p.expectedAmount}`,
+                details: { late_fee: p.lateFeeAmount, days_late: p.daysLate, sender: senderName, method: verificationMethod, slip_amount: slipAmount }
+            }).catch(() => {});
+        }
+
+        if (remainingSlipAmount > 0 && tenant?.id) {
+            console.log(`💰 Excess ${remainingSlipAmount}฿ -> Prepaid`);
+            await base44.asServiceRole.entities.Tenant.update(tenant.id, {
+                prepaid_balance: (parseFloat(tenant.prepaid_balance || 0) + remainingSlipAmount),
+                notes: `${tenant.notes || ''}\n[${new Date().toISOString().split('T')[0]}] ส่วนเกินสลิป: +${remainingSlipAmount}฿`
+            });
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line', branch_id: branchId, event_type: 'prepaid_added', line_user_id: lineUserId,
+                tenant_id: tenant.id, amount: remainingSlipAmount, status: 'success', message: `Prepaid added: ${remainingSlipAmount}`
+            }).catch(() => {});
+        }
+
+        if (tenant?.id) {
+            try { await base44.asServiceRole.functions.invoke('calculatePaymentScores', { tenant_id: tenant.id }); } catch (e) {}
+        }
+        
+        if (partialInfo && remainingSlipAmount <= 0) await sendMessage(base44, lineUserId, `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`, branchId, replyToken);
+        else if (remainingSlipAmount > 0) await sendMessage(base44, lineUserId, `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต\nขอบคุณค่ะ 🙏`, branchId, replyToken);
+
+        for (const item of processedIds) {
+            if (item.status === 'paid') {
+                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id }); } 
+                catch (e) { console.error(`❌ Receipt failed ${item.id}:`, e.message); }
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ === SLIP PROCESSING ERROR ===');
+        console.error('Error:', error.message);
+        console.error('Stack:', error.stack);
+        
+        // Log critical error to DB
+        await base44.asServiceRole.entities.WebhookLog.create({
+            webhook_type: 'line',
+            branch_id: branchId,
+            event_type: 'slip_processing_error',
+            line_user_id: lineUserId,
+            status: 'error',
+            message: 'Slip processing failed',
+            error_message: error.message
+        }).catch(() => {});
+
+        await sendMessage(base44, lineUserId, 'เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง', branchId, replyToken);
+        console.log('✅ Sent error message to user');
+    }
 }
 
 async function sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId = null, replyToken = null) {
