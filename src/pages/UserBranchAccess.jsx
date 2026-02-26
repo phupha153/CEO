@@ -308,43 +308,42 @@ export default function UserBranchAccess() {
   });
 
   const transferOwnershipMutation = useMutation({
-    mutationFn: async ({ newOwnerUserId, newOwnerEmail, branch_id }) => {
-      if (!branch_id) throw new Error('ไม่พบรหัสสาขาที่จะโอน');
+    mutationFn: async ({ newOwnerUserId, newOwnerEmail, branch_ids }) => {
+      if (!branch_ids || branch_ids.length === 0) throw new Error('ไม่พบรหัสสาขาที่จะโอน');
 
-      const branch = allBranches.find(b => b.id === branch_id);
-      
-      if (!branch?.owner_id) {
-         // ถ้าสาขายังไม่มีเจ้าของเลย (เพิ่งสร้างใหม่)
-         await base44.entities.Branch.update(branch_id, { owner_id: newOwnerEmail });
-         
-         // ให้สิทธิ์ owner แก่ user ใหม่
-         await base44.entities.User.update(newOwnerUserId, {
-           custom_role: 'owner',
-           permissions: [
-             "dashboard_view", "rooms_view", "rooms_add", "rooms_edit", "rooms_delete",
-             "tenants_view", "tenants_add", "tenants_edit", "tenants_delete",
-             "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
-             "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly", "contracts_delete_monthly",
-             "payments_view", "payments_add", "payments_edit", "payments_confirm", "payments_send_receipt", "payments_send_comms_manual", "payments_delete",
-             "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history", "meter_readings_delete",
-             "expenses_view", "expenses_add", "expenses_edit", "expenses_delete",
-             "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_delete", "maintenance_update_status",
-             "reports_view_all", "reports_export", "accounting_view_all", "accounting_export", "announcements_send", "settings_view", "settings_edit"
-           ]
-         });
-         return { new_owner: newOwnerEmail };
+      const results = [];
+      for (const b_id of branch_ids) {
+        const branch = allBranches.find(b => b.id === b_id);
+        
+        if (!branch?.owner_id) {
+           await base44.entities.Branch.update(b_id, { owner_id: newOwnerEmail });
+           
+           await base44.entities.User.update(newOwnerUserId, {
+             custom_role: 'owner',
+             permissions: [
+               "dashboard_view", "rooms_view", "rooms_add", "rooms_edit", "rooms_delete",
+               "tenants_view", "tenants_add", "tenants_edit", "tenants_delete",
+               "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
+               "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly", "contracts_delete_monthly",
+               "payments_view", "payments_add", "payments_edit", "payments_confirm", "payments_send_receipt", "payments_send_comms_manual", "payments_delete",
+               "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history", "meter_readings_delete",
+               "expenses_view", "expenses_add", "expenses_edit", "expenses_delete",
+               "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_delete", "maintenance_update_status",
+               "reports_view_all", "reports_export", "accounting_view_all", "accounting_export", "announcements_send", "settings_view", "settings_edit"
+             ]
+           });
+           results.push({ new_owner: newOwnerEmail });
+        } else {
+          const currentOwner = branch.owner_id;
+          const response = await base44.functions.invoke('transferOwnership', {
+            branch_id: b_id,
+            new_owner_email: newOwnerEmail,
+            old_owner_email: isDeveloper ? currentOwner : currentUser?.email
+          });
+          results.push(response.data);
+        }
       }
-
-      // 2. ถ้าเป็น Developer ให้ส่งเจ้าของปัจจุบันไปเลยเพื่อผ่านการตรวจสอบใน backend
-      const currentOwner = branch.owner_id;
-
-      // 3. เรียก backend
-      const response = await base44.functions.invoke('transferOwnership', {
-        branch_id: branch_id,
-        new_owner_email: newOwnerEmail,
-        old_owner_email: isDeveloper ? currentOwner : currentUser?.email
-      });
-      return response.data;
+      return results;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['users']);
@@ -367,7 +366,7 @@ export default function UserBranchAccess() {
     const currentRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     setUserRoles({ [user.id]: currentRole });
     // รีเซ็ตค่าสาขาที่จะโอนเมื่อเปิด dialog ใหม่
-    setTargetTransferBranchId(null);
+    setTargetTransferBranchIds([]);
     setShowBranchDialog(true);
   };
 
@@ -975,14 +974,8 @@ export default function UserBranchAccess() {
 
                         // ถ้าเป็น developer เเละเลือกสาขาที่ตัวเองไม่ได้เป็นเจ้าของ เเต่ผู้ใช้นั้นเป็นเจ้าของ จะเข้ากรณีนี้ไม่ได้
                         if (selectedRole === 'owner') {
-                          // Developer สามารถสร้าง owner ให้สาขาใหม่ได้ หรือสาขาที่ยังไม่มี owner ได้ด้วย
-                          // ตอนนี้เพื่อความง่าย ให้เปิดหน้าโอนให้เลย เเล้วไปเลือกสาขาอีกที 
                           setTransferTarget(selectedUser);
-                          if (selectedBranches.length === 1) {
-                            setTargetTransferBranchId(selectedBranches[0]);
-                          } else {
-                            setTargetTransferBranchId(null);
-                          }
+                          setTargetTransferBranchIds(selectedBranches);
                           setShowTransferDialog(true);
                           return;
                         }
@@ -1156,25 +1149,32 @@ export default function UserBranchAccess() {
                   </AlertDescription>
                 </Alert>
 
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   <Label>เลือกสาขาที่ต้องการโอน *</Label>
-                  <Select
-                    value={targetTransferBranchId}
-                    onValueChange={setTargetTransferBranchId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="-- เลือกสาขา --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branches.map(branch => (
-                        <SelectItem key={branch.id} value={branch.id}>
-                          {branch.branch_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-slate-500">
-                    เลือกสาขาที่คุณต้องการโอนกรรมสิทธิ์ให้ผู้ใช้นี้
+                  <div className="space-y-2 mt-2">
+                    {branches.map(branch => {
+                      const isChecked = targetTransferBranchIds.includes(branch.id);
+                      return (
+                        <label key={branch.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isChecked ? 'bg-red-50 border-red-300' : 'hover:bg-slate-50 border-slate-200'}`}>
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded text-red-600"
+                            checked={isChecked}
+                            onChange={() => {
+                              setTargetTransferBranchIds(prev => 
+                                prev.includes(branch.id) 
+                                  ? prev.filter(id => id !== branch.id)
+                                  : [...prev, branch.id]
+                              );
+                            }}
+                          />
+                          <span className={isChecked ? 'font-semibold text-red-800' : 'text-slate-700'}>{branch.branch_name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    สามารถเลือกได้หลายสาขาเพื่อโอนกรรมสิทธิ์พร้อมกัน
                   </p>
                 </div>
 
@@ -1185,23 +1185,22 @@ export default function UserBranchAccess() {
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      if (!targetTransferBranchId) {
-                        toast.error('กรุณาเลือกสาขาที่ต้องการโอน');
+                      if (!targetTransferBranchIds || targetTransferBranchIds.length === 0) {
+                        toast.error('กรุณาเลือกสาขาที่ต้องการโอนอย่างน้อย 1 สาขา');
                         return;
                       }
                       
                       transferOwnershipMutation.mutate({
                         newOwnerUserId: transferTarget.id,
                         newOwnerEmail: transferTarget.email,
-                        // Override branch_id ใน mutation ด้วย branch ที่เลือก
-                        branch_id: targetTransferBranchId 
+                        branch_ids: targetTransferBranchIds 
                       });
                       setShowTransferDialog(false);
                       setShowBranchDialog(false);
                     }}
                     disabled={transferOwnershipMutation.isPending}
                   >
-                    {transferOwnershipMutation.isPending ? 'กำลังดำเนินการ...' : 'ยืนยันโอนสิทธิ์'}
+                    {transferOwnershipMutation.isPending ? 'กำลังดำเนินการ...' : `ยืนยันโอนสิทธิ์ (${targetTransferBranchIds.length} สาขา)`}
                   </Button>
                 </div>
               </div>
