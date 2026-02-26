@@ -691,7 +691,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                 line_user_id: lineUserId,
-                branch_id: branchId
+                ...(branchId ? { branch_id: branchId } : {})
             });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
@@ -844,7 +844,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                 line_user_id: lineUserId,
-                branch_id: branchId
+                ...(branchId ? { branch_id: branchId } : {})
             });
             errorTenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
@@ -1037,7 +1037,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                 line_user_id: lineUserId,
-                branch_id: branchId
+                ...(branchId ? { branch_id: branchId } : {})
             });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
