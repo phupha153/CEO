@@ -823,14 +823,6 @@ export default function Announcements() {
                 
                 {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
                 <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
-                  {tenantsLoading || roomsLoading || bookingsLoading ? (
-                    <div className="flex items-center justify-center h-full bg-slate-50">
-                      <div className="text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
-                        <p className="text-sm text-slate-600">กำลังโหลดข้อมูล...</p>
-                      </div>
-                    </div>
-                  ) : (
                     <ChatWindow
                       key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}-${rooms.length}-${bookings.length}`}
                       conversation={selectedConversation}
