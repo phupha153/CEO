@@ -1567,9 +1567,7 @@ export default function Settings() {
         const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
         
         // Token
-        const existingTokenConfig = configs.find(c => 
-          c.key === 'line_channel_access_token' && c.branch_id === branchId
-        );
+        const existingTokenConfig = (await base44.entities.Config.filter({ key: 'line_channel_access_token', branch_id: branchId }, '', 1))[0];
         
         const tokenPromise = existingTokenConfig
           ? base44.entities.Config.update(existingTokenConfig.id, {
