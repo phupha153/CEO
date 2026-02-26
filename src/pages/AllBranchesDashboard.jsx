@@ -95,15 +95,9 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['allRooms', 'secure'],
+    queryKey: ['allRooms'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: {},
-        sort: '-room_number',
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Room.list('-room_number', 1000);
     },
     retry: 2,
     staleTime: 2 * 60 * 1000,
@@ -118,14 +112,9 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings', 'secure'],
+    queryKey: ['allBookings'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Booking.list('-created_date', 1000);
     },
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -140,14 +129,9 @@ export default function AllBranchesDashboard() {
   }, [allBookings, accessibleBranchIds]);
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'secure'],
+    queryKey: ['allPayments'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Payment',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Payment.list('-due_date', 1000);
     },
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -162,14 +146,9 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants', 'secure'],
+    queryKey: ['allTenants'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Tenant.list('-created_date', 1000);
     },
     retry: 2,
     staleTime: 2 * 60 * 1000,
@@ -184,14 +163,9 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allMaintenance = [] } = useQuery({
-    queryKey: ['allMaintenance', 'secure'],
+    queryKey: ['allMaintenance'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'MaintenanceRequest',
-        filters: {},
-        limit: 1000
-      });
-      return response.data.data;
+      return await base44.entities.MaintenanceRequest.list('-created_date', 1000);
     },
     retry: 2,
     staleTime: 2 * 60 * 1000,
@@ -206,15 +180,9 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allExpenses = [] } = useQuery({
-    queryKey: ['allExpenses', 'secure'],
+    queryKey: ['allExpenses'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Expense',
-        filters: {},
-        sort: '-date',
-        limit: 10000
-      });
-      return response.data.data;
+      return await base44.entities.Expense.list('-date', 1000);
     },
     retry: 2,
     staleTime: 2 * 60 * 1000,
