@@ -862,6 +862,18 @@ export default function ChatWindow({
                             : { line_user_id: conversation.line_user_id };
                           
                           await base44.entities.Tenant.update(selectedRoomId, updateData);
+
+                          // ย้ายประวัติแชททั้งหมดมาที่สาขานี้
+                          try {
+                            const branchId = localStorage.getItem('selected_branch_id');
+                            const msgs = await base44.entities.LineMessage.filter(
+                              conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
+                            );
+                            const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
+                            for (const msg of msgsArr) {
+                              await base44.entities.LineMessage.update(msg.id, { branch_id: branchId, tenant_id: selectedRoomId });
+                            }
+                          } catch(e) { console.error('Failed to migrate messages:', e); }
                           
                           const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
                           toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
