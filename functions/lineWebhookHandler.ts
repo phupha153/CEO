@@ -245,7 +245,16 @@ Deno.serve(async (req) => {
         });
     }
 
-    // อนุญาตให้ queryBranchId ว่างได้สำหรับสาขาที่ใช้ Webhook ร่วมกัน
+    if (!queryBranchId) {
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'branch_id required' 
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     if (req.method !== 'POST') {
         return new Response(JSON.stringify({ message: 'OK' }), {
             status: 200,
