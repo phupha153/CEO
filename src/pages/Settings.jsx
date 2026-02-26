@@ -1452,15 +1452,6 @@ export default function Settings() {
         await Promise.all([tokenPromise, secretPromise]); return { branchId, branchName, tokenSaved: true };
       });
       const savedResults = await Promise.all(savePromises);
-      if (userRole === 'developer' || userRole === 'owner') {
-        const extDef = (await base44.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1))[0];
-        if (extDef) {
-          if (defaultCommunicationBranch && defaultCommunicationBranch !== 'none') await base44.entities.Config.update(extDef.id, { value: defaultCommunicationBranch });
-          else await base44.entities.Config.delete(extDef.id);
-        } else if (defaultCommunicationBranch && defaultCommunicationBranch !== 'none') {
-          await base44.entities.Config.create({ key: 'default_communication_branch', value: defaultCommunicationBranch, category: 'notification', description: 'สาขาหลักสำหรับรับข้อความแชท' });
-        }
-      }
       await queryClient.refetchQueries({ queryKey: ['configs'], type: 'active' });
       toast.success(`บันทึก LINE Token สำเร็จ - ${targetBranchIds.length} สาขา`, { description: savedResults.map(r => `✅ ${r.branchName}`).join('\n') });
     } catch (error) { toast.error('ไม่สามารถบันทึกได้: ' + (error?.message || 'กรุณาลองใหม่')); } finally { setIsSavingLineSettings(false); }
