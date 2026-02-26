@@ -111,75 +111,87 @@ export default function Announcements() {
   }, [tenants, rooms, bookings]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
-  // แยกการดึง Config ออกมาต่างหากเพื่อความเสถียร
-  const { data: defaultBranchConfig } = useQuery({
-    queryKey: ['defaultBranchConfig'],
-    queryFn: async () => {
-      const configs = await base44.entities.Config.filter({ key: 'default_communication_branch' }, '', 1);
-      return Array.isArray(configs) && configs.length > 0 ? configs[0].value : null;
-    },
-    staleTime: 5 * 60 * 1000, // Cache 5 นาที
-    refetchOnWindowFocus: false,
-  });
-
-  const isDefaultBranch = defaultBranchConfig === selectedBranchId;
-
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
-    queryKey: ['lineMessages', selectedBranchId, isDefaultBranch],
+    queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      
-      // ลบ try/catch ที่คืนค่า [] ออก เพื่อให้ react-query รับรู้ error และทำการ retry
-      const branchRes = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-      const branchMessages = Array.isArray(branchRes) ? branchRes : (branchRes ? [branchRes] : []);
+
+      let isDefaultBranch = false;
+      try {
+          const configs = await base44.entities.Config.list('', 1000);
+          const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+          const defaultBranchConfig = configList.find(c => c.key === 'default_communication_branch');
+          if (defaultBranchConfig && defaultBranchConfig.value === selectedBranchId) {
+              isDefaultBranch = true;
+          }
+      } catch (e) { console.error('Error fetching config:', e); }
+
+      let branchMessages = [];
+      try {
+          const res = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+          branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
+      } catch (e) { console.error('Error fetching branch messages:', e); }
       
       let unlinkedMessages = [];
-      if (isDefaultBranch) {
-          const res = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 200);
-          unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
-      } else {
-          const res = await base44.entities.LineMessage.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
-          unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
-      }
+      try {
+          if (isDefaultBranch) {
+              const res = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 200);
+              unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
+          } else {
+              const res = await base44.entities.LineMessage.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
+              unlinkedMessages = Array.isArray(res) ? res : (res ? [res] : []);
+          }
+      } catch (e) { console.error('Error fetching unlinked messages:', e); }
       
       const allMessages = [...branchMessages, ...unlinkedMessages];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
     staleTime: 30 * 1000,
-    retry: 3, // พยายามโหลดใหม่ 3 ครั้งถ้าพลาด
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    enabled: !!selectedBranchId && defaultBranchConfig !== undefined, // รอจนกว่าจะรู้ว่าเป็น default branch ไหม
+    enabled: !!selectedBranchId,
   });
 
   // ดึงข้อความ Facebook เฉพาะสาขานี้
   const { data: facebookMessages = [] } = useQuery({
-    queryKey: ['facebookMessages', selectedBranchId, isDefaultBranch],
+    queryKey: ['facebookMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      
-      const branchRes = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-      const branchMessages = Array.isArray(branchRes) ? branchRes : (branchRes ? [branchRes] : []);
-      
-      let unlinkedMessages = [];
-      if (isDefaultBranch) {
-          const fbRes = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 200);
-          unlinkedMessages = Array.isArray(fbRes) ? fbRes : (fbRes ? [fbRes] : []);
-      } else {
-          const fbRes = await base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
-          unlinkedMessages = Array.isArray(fbRes) ? fbRes : (fbRes ? [fbRes] : []);
+      try {
+        let isDefaultBranch = false;
+        const configs = await base44.entities.Config.list('', 1000);
+        const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+        const defaultBranchConfig = configList.find(c => c.key === 'default_communication_branch');
+        if (defaultBranchConfig && defaultBranchConfig.value === selectedBranchId) {
+            isDefaultBranch = true;
+        }
+
+        let branchMessages = [];
+        const res = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+        branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
+        
+        let unlinkedMessages = [];
+        if (isDefaultBranch) {
+            const fbRes = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 200);
+            unlinkedMessages = Array.isArray(fbRes) ? fbRes : (fbRes ? [fbRes] : []);
+        } else {
+            const fbRes = await base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
+            unlinkedMessages = Array.isArray(fbRes) ? fbRes : (fbRes ? [fbRes] : []);
+        }
+        
+        const allMessages = [...branchMessages, ...unlinkedMessages];
+        const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
+        return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
+      } catch (e) {
+        console.error('Error fetching Facebook messages:', e);
+        return [];
       }
-      
-      const allMessages = [...branchMessages, ...unlinkedMessages];
-      const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
-      return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
     staleTime: 30 * 1000,
-    retry: 3,
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    enabled: !!selectedBranchId && defaultBranchConfig !== undefined,
+    enabled: !!selectedBranchId,
   });
 
   const { data: announcementHistory = [] } = useQuery({
@@ -311,7 +323,46 @@ export default function Announcements() {
     return [];
   }, [lineMessages, facebookMessages, selectedConversation]);
 
-  // ⭐ ย้ายการอัปเดต unread messages ไปทำใน ChatWindow แทนเพื่อไม่ให้ trigger รีโหลดรัวๆ
+  // ⭐ เมื่อเปิด conversation ให้ mark unread messages เป็น read (ทีละ batch เพื่อป้องกัน rate limit)
+  React.useEffect(() => {
+    if (!selectedConversation) return;
+    
+    const unreadMessages = selectedMessages.filter(m => 
+      m.direction === 'incoming' && !m.is_read
+    );
+    
+    if (unreadMessages.length > 0) {
+      const entityName = selectedConversation.platform === 'facebook' ? 'FacebookMessage' : 'LineMessage';
+      
+      // ⚡ แบ่ง batch เพื่อป้องกัน rate limit (ครั้งละ 10 messages, หน่วง 500ms)
+      const batchSize = 10;
+      const batches = [];
+      for (let i = 0; i < unreadMessages.length; i += batchSize) {
+        batches.push(unreadMessages.slice(i, i + batchSize));
+      }
+      
+      (async () => {
+        for (const batch of batches) {
+          await Promise.all(
+            batch.map(msg => 
+              base44.entities[entityName]?.update(msg.id, { is_read: true })
+                .catch(err => console.warn('Failed to mark as read:', err))
+            )
+          );
+          if (batches.indexOf(batch) < batches.length - 1) {
+            await new Promise(r => setTimeout(r, 500)); // หน่วง 500ms ระหว่าง batch
+          }
+        }
+        
+        // Refresh messages หลังจาก mark เป็น read
+        if (selectedConversation.platform === 'facebook') {
+          queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
+        } else {
+          queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+        }
+      })();
+    }
+  }, [selectedConversation?.line_user_id, selectedConversation?.facebook_user_id, selectedMessages]);
 
   // นับผู้เช่าที่มี LINE/Facebook User ID
   const tenantsWithLine = tenants.filter(t => t.line_user_id);
@@ -754,7 +805,7 @@ export default function Announcements() {
                     </div>
                   ) : (
                     <ChatWindow
-                      key={`chat-${selectedConversation?.line_user_id || ''}-${selectedConversation?.facebook_user_id || ''}`}
+                      key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}-${rooms.length}-${bookings.length}`}
                       conversation={selectedConversation}
                       messages={selectedMessages}
                       onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
