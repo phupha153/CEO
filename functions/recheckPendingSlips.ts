@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
         }
 
         // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configs = await base44.asServiceRole.entities.Config.list('', 5000);
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -468,32 +468,6 @@ Deno.serve(async (req) => {
                         console.log(`   💰 Late Fee: ${lateFeeAmount} บาท (${daysLate} days)`);
                         console.log(`   💰 Total Paid: ${totalPaid} บาท`);
 
-                        // เช็คยอดเงิน (รองรับ partial payment)
-                        if (totalPaid < expectedAmount * 0.95) {
-                            console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
-                            const shortfall = expectedAmount - totalPaid;
-                            
-                            await entityService.Payment.update(payment.id, {
-                                status: 'partial_paid',
-                                paid_amount: totalPaid,
-                                late_fee_amount: lateFeeAmount,
-                                total_amount: expectedAmount,
-                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-                            });
-                            
-                            const tenant = tenants.find(t => t.id === payment.tenant_id);
-                            if (tenant?.line_user_id) {
-                                await sendLineMessage(base44, tenant.line_user_id, 
-                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
-                                    payment.branch_id,
-                                    configs
-                                );
-                            }
-                            
-                            failCount++;
-                            continue;
-                        }
-
                 // ⭐ เช็คบัญชีปลายทาง (เช็คเฉพาะเลขบัญชี ไม่เช็คชื่อ)
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
@@ -579,6 +553,32 @@ Deno.serve(async (req) => {
                     failCount++;
                     continue;
                 }
+
+                        // เช็คยอดเงิน (รองรับ partial payment)
+                        if (totalPaid < expectedAmount * 0.95) {
+                            console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
+                            const shortfall = expectedAmount - totalPaid;
+                            
+                            await entityService.Payment.update(payment.id, {
+                                status: 'partial_paid',
+                                paid_amount: totalPaid,
+                                late_fee_amount: lateFeeAmount,
+                                total_amount: expectedAmount,
+                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                            });
+                            
+                            const tenant = tenants.find(t => t.id === payment.tenant_id);
+                            if (tenant?.line_user_id) {
+                                await sendLineMessage(base44, tenant.line_user_id, 
+                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
+                                    payment.branch_id,
+                                    configs
+                                );
+                            }
+                            
+                            failCount++;
+                            continue;
+                        }
 
                 // ✅ ทุกอย่างถูกต้อง - อัปเดตเป็น paid
                 await entityService.Payment.update(payment.id, {
