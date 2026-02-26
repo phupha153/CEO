@@ -682,11 +682,14 @@ Deno.serve(async (req) => {
                 });
 
                 const result = fbResult.data;
-                successCount += result.success || 0;
-                failCount += result.failed || 0;
+                successCount += result.successCount || 0;
+                failCount += result.failCount || 0;
                 if (result.errors) errors.push(...result.errors);
 
-                console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
+                console.log(`✅ Facebook: ${result.successCount || 0}/${facebookRecipients.length} sent`);
+                if (result.errors && result.errors.length > 0) {
+                    console.error('❌ Facebook Send Errors:', JSON.stringify(result.errors, null, 2));
+                }
 
                 // 🚨 Alert if critical failure
                 if (result.failed > 0 && result.failed / facebookRecipients.length > 0.3) {
