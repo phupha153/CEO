@@ -359,7 +359,7 @@ export default function AllBranchesDashboard() {
       date: p.payment_date, 
       amount: p.total_amount 
     })),
-  }), [dateRangeType, dateRange, payments, branches, userRole, canViewAllBranches, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
+  }), [dateRangeType, dateRange, payments, branches, userRole, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
 
   const getMonthsForChart = () => {
     switch(dateRangeType) {
