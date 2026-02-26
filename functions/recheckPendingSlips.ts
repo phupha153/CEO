@@ -454,17 +454,26 @@ Deno.serve(async (req) => {
                 console.log('  Receiver Account:', receiverAccount || '(empty)');
                 console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
 
-                // ⭐ ปิดระบบการตรวจสอบเลขบัญชีที่เข้มงวดเกินไป เนื่องจากทำให้เกิดปัญหา "โอนผิดบัญชี" บ่อยครั้ง
-                // จากสาเหตุเช่น ลืมตั้งค่า หรือตั้งค่าผิดสาขา
-                
-                let accountMatch = true; // สมมติว่าผ่านไปเลยเพื่อแก้ปัญหาเฉพาะหน้า
-                
-                /* 
-                // โค้ดตรวจสอบบัญชีเดิมถูกคอมเมนต์ไว้
                 // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
                 if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
                     (!expectedPromptPay || expectedPromptPay.trim() === '')) {
-                    // ... โค้ดเดิม
+                    console.log('⚠️ NO CONFIG FOUND - Manual review required');
+
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes || ''}\n\n⚠️ รอตรวจสอบ: ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                    });
+
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
+                            `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
+                            payment.branch_id,
+                            configs
+                        );
+                    }
+                    
+                    skippedCount++;
+                    continue;
                 }
 
                 let accountMatch = false;
@@ -472,18 +481,62 @@ Deno.serve(async (req) => {
                 
                 // ⭐ เช็คเลขบัญชีธนาคาร
                 if (expectedAccountNumber) {
-                    // ... โค้ดเดิม
+                    console.log('\n🔍 Checking Bank Account Number...');
+                    accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
+                    if (accountMatch) {
+                        matchMethod = 'Bank Account';
+                        console.log(`✅ MATCHED via Bank Account Number`);
+                    }
                 }
                 
                 // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
                 if (!accountMatch && expectedPromptPay) {
-                    // ... โค้ดเดิม
+                    console.log('\n🔍 Checking PromptPay...');
+                    console.log('  Trying receiverPromptPay vs expectedPromptPay...');
+                    const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
+                    
+                    if (!promptPayMatch1) {
+                        console.log('  Trying receiverAccount vs expectedPromptPay...');
+                        const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                        accountMatch = promptPayMatch2;
+                        if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
+                    } else {
+                        accountMatch = true;
+                        matchMethod = 'PromptPay';
+                    }
+                    
+                    if (accountMatch) {
+                        console.log(`✅ MATCHED via ${matchMethod}`);
+                    }
                 }
-                
+
+                console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
+                console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
+                console.log(`  Method: ${matchMethod || 'None'}`);
+                console.log('====================================================\n');
+
                 if (!accountMatch) {
-                    // ... โค้ดเดิม
+                    console.log(`   ⚠️ Account mismatch - notifying customer`);
+                    
+                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+                    
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
+                    });
+                    
+                    // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
+                            `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
+                            payment.branch_id,
+                            configs
+                        );
+                    }
+                    
+                    failCount++;
+                    continue;
                 }
-                */
 
                 // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คบัญชีผ่านแล้ว
                 const paymentDateOnly = transDate.split('T')[0];
