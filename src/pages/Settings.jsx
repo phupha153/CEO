@@ -3230,91 +3230,36 @@ export default function Settings() {
                           canSetGlobalConfig={canSetGlobalConfig}
                         />
 
-                        {/* LINE Logo Banner */}
-                        <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl">
-                          <img 
-                            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" 
-                            alt="LINE Logo" 
-                            className="w-12 h-12 flex-shrink-0"
-                          />
-                          <div className="flex-1">
-                            <h3 className="text-white font-bold text-lg">LINE Official Account</h3>
-                            <p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p>
+                        {(userRole === 'developer' || userRole === 'owner') && (
+                          <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                            <h4 className="font-semibold text-indigo-900 mb-2">สาขาหลักสำหรับรับข้อความ (Default Branch)</h4>
+                            <p className="text-xs text-indigo-700 mb-2">ข้อความที่ระบบไม่ทราบว่าอยู่สาขาไหน จะถูกส่งไปที่สาขานี้</p>
+                            <Select value={defaultCommunicationBranch} onValueChange={setDefaultCommunicationBranch}>
+                              <SelectTrigger className="bg-white"><SelectValue placeholder="เลือกสาขาหลัก (ถ้ามี)" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">-- ไม่ระบุ --</SelectItem>
+                                {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
                           </div>
-                        </div>
-
-
-
+                        )}
+                        <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl"><img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" alt="LINE Logo" className="w-12 h-12 flex-shrink-0"/><div className="flex-1"><h3 className="text-white font-bold text-lg">LINE Official Account</h3><p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p></div></div>
                         <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
-                            <div>
-                              <Label>LINE Channel Access Token *</Label>
-                              <Input
-                                type="password"
-                                value={lineSettings.line_channel_access_token}
-                                onChange={(e) => setLineSettings({ ...lineSettings, line_channel_access_token: e.target.value })}
-                                placeholder="ใส่ Channel Access Token ที่ได้จาก LINE Developers"
-                              />
-                            </div>
-                            <div>
-                              <Label>LINE Channel Secret</Label>
-                              <Input
-                                type="password"
-                                value={lineSettings.line_channel_secret}
-                                onChange={(e) => setLineSettings({ ...lineSettings, line_channel_secret: e.target.value })}
-                                placeholder="ใส่ Channel Secret (สำหรับการยืนยันตัวตน)"
-                              />
-                            </div>
+                            <div><Label>LINE Channel Access Token *</Label><Input type="password" value={lineSettings.line_channel_access_token} onChange={(e) => setLineSettings({ ...lineSettings, line_channel_access_token: e.target.value })} placeholder="ใส่ Channel Access Token ที่ได้จาก LINE Developers" /></div>
+                            <div><Label>LINE Channel Secret</Label><Input type="password" value={lineSettings.line_channel_secret} onChange={(e) => setLineSettings({ ...lineSettings, line_channel_secret: e.target.value })} placeholder="ใส่ Channel Secret (สำหรับการยืนยันตัวตน)" /></div>
                           </div>
-
                           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                              <Zap className="w-5 h-5" />
-                              Webhook URL สำหรับสาขานี้
-                            </h4>
+                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2"><Zap className="w-5 h-5" /> Webhook URL สำหรับสาขานี้</h4>
                             <div className="space-y-3">
                               <div className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-2">
-                                <code className="flex-1 text-sm text-slate-700 font-mono break-all">
-                                  {showWebhookUrl 
-                                    ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`
-                                    : '••••••••••••••••••••••••••••••••••••••••••••••'}
-                                </code>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setShowWebhookUrl(!showWebhookUrl)}
-                                  className="flex-shrink-0"
-                                >
-                                  {showWebhookUrl ? 'ซ่อน' : 'ดู'}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`);
-                                    toast.success('คัดลอก Webhook URL แล้ว');
-                                  }}
-                                  className="flex-shrink-0"
-                                >
-                                  คัดลอก
-                                </Button>
+                                <code className="flex-1 text-sm text-slate-700 font-mono break-all">{showWebhookUrl ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}` : '••••••••••••••••••••••••••••••••••••••••••••••'}</code>
+                                <Button type="button" size="sm" variant="outline" onClick={() => setShowWebhookUrl(!showWebhookUrl)} className="flex-shrink-0">{showWebhookUrl ? 'ซ่อน' : 'ดู'}</Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`); toast.success('คัดลอก Webhook URL แล้ว'); }} className="flex-shrink-0">คัดลอก</Button>
                               </div>
                             </div>
                           </div>
-
-                          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                            <h4 className="font-semibold text-green-900 mb-2">วิธีตั้งค่า LINE Official Account:</h4>
-                            <ol className="text-sm text-green-700 space-y-2 list-decimal ml-5">
-                              <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li>
-                              <li>สร้าง Provider และ Messaging API Channel</li>
-                              <li>ไปที่ Messaging API → คัดลอก <strong>Channel Access Token</strong></li>
-                              <li>ไปที่ Basic Settings → คัดลอก <strong>Channel Secret</strong></li>
-                              <li>นำมาใส่ในฟอร์มด้านบนและกดบันทึก</li>
-                              <li>ตั้ง Webhook URL (ใช้ URL ด้านบน) ใน LINE Console</li>
-                            </ol>
-                          </div>
+                          <div className="bg-green-50 rounded-lg p-4 border border-green-200"><h4 className="font-semibold text-green-900 mb-2">วิธีตั้งค่า LINE Official Account:</h4><ol className="text-sm text-green-700 space-y-2 list-decimal ml-5"><li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li><li>สร้าง Provider และ Messaging API Channel</li><li>ไปที่ Messaging API → คัดลอก <strong>Channel Access Token</strong></li><li>ไปที่ Basic Settings → คัดลอก <strong>Channel Secret</strong></li><li>นำมาใส่ในฟอร์มด้านบนและกดบันทึก</li><li>ตั้ง Webhook URL (ใช้ URL ด้านบน) ใน LINE Console</li></ol></div>
 
                           <Button 
                             type="submit" 
