@@ -104,8 +104,8 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Announcements from './pages/Announcements';
 import Settings from './pages/Settings';
+import Announcements from './pages/Announcements';
 import __Layout from './Layout.jsx';
 
 
@@ -167,8 +167,8 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Announcements": Announcements,
     "Settings": Settings,
+    "Announcements": Announcements,
 }
 
 export const pagesConfig = {
