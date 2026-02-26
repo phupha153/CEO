@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
                                 await sendMessage(base44, lineUserId, 
                                     '❌ กรุณาลงทะเบียนก่อนใช้งานค่ะ\n\n' +
                                     'พิมพ์เบอร์โทรศัพท์ (10 หลัก) หรือ ชื่อ-นามสกุล เพื่อลงทะเบียน',
-                                    null,
+                                    destinationBranchId,
                                     replyToken
                                 );
                                 continue;
