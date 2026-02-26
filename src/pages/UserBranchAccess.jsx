@@ -972,40 +972,48 @@ export default function UserBranchAccess() {
                       </p>
                     </div>
                   )}
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => setShowBranchDialog(false)}>
-                      ยกเลิก
-                    </Button>
+                  <div className="flex justify-between items-center pt-4 border-t mt-4">
                     <Button
+                      variant="outline"
+                      className="text-red-600 hover:bg-red-50 border-red-200"
                       onClick={() => {
+                        setTransferTarget(selectedUser);
                         const selectedBranches = userBranchAccess[selectedUser.id] || [];
-                        const selectedRole = userRoles[selectedUser.id] || 'employee';
-
-                        // ถ้าเป็น developer เเละเลือกสาขาที่ตัวเองไม่ได้เป็นเจ้าของ เเต่ผู้ใช้นั้นเป็นเจ้าของ จะเข้ากรณีนี้ไม่ได้
-                        if (selectedRole === 'owner') {
-                          setTransferTarget(selectedUser);
-                          setTargetTransferBranchIds(selectedBranches);
-                          setShowTransferDialog(true);
-                          return;
-                        }
-
-                        console.log('💾 Saving:', { 
-                          userId: selectedUser.id, 
-                          email: selectedUser.email,
-                          accessible_branches: selectedBranches, 
-                          custom_role: selectedRole 
-                        });
-                        updateUserBranchesMutation.mutate({
-                          userId: selectedUser.id,
-                          accessible_branches: selectedBranches,
-                          custom_role: selectedRole
-                        });
+                        setTargetTransferBranchIds(selectedBranches);
+                        setShowTransferDialog(true);
                       }}
-                      disabled={updateUserBranchesMutation.isPending}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600"
                     >
-                      {updateUserBranchesMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                      <Crown className="w-4 h-4 mr-2" />
+                      โอนกรรมสิทธิ์เป็นเจ้าของ
                     </Button>
+                    
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setShowBranchDialog(false)}>
+                        ยกเลิก
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const selectedBranches = userBranchAccess[selectedUser.id] || [];
+                          const selectedRole = userRoles[selectedUser.id] || 'employee';
+
+                          console.log('💾 Saving:', { 
+                            userId: selectedUser.id, 
+                            email: selectedUser.email,
+                            accessible_branches: selectedBranches, 
+                            custom_role: selectedRole 
+                          });
+                          updateUserBranchesMutation.mutate({
+                            userId: selectedUser.id,
+                            accessible_branches: selectedBranches,
+                            custom_role: selectedRole
+                          });
+                        }}
+                        disabled={updateUserBranchesMutation.isPending}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                      >
+                        {updateUserBranchesMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์พนักงาน'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
