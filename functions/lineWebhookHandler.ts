@@ -974,13 +974,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
     try {
         
-        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
-        if (!branchId) {
-            console.error(`❌ CRITICAL: No branchId available for slip verification`);
-            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
-            return;
-        }
-
         let tenant = null;
         try {
             const filterObj = { line_user_id: lineUserId };
