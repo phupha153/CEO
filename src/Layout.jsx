@@ -660,6 +660,24 @@ export default function Layout({ children, currentPageName }) {
 
 
 
+  // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches
+  const userRole = (() => {
+    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
+    if (currentUser?.role === 'admin') return 'developer';
+    
+    let effectiveRole = currentUser?.custom_role;
+    
+    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+    }
+    
+    return effectiveRole || 'employee';
+  })();
+  const userPermissions = currentUser?.permissions || [];
+  const userAccessibleBranches = currentUser?.accessible_branches;
+  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
+
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches', currentUser?.email, userRole, userAccessibleBranches],
     queryFn: async () => {
