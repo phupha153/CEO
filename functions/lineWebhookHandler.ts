@@ -257,12 +257,7 @@ Deno.serve(async (req) => {
             if (events.length === 0) return;
             
             let destinationBranchId = queryBranchId;
-            if (!destinationBranchId) {
-                try {
-                    const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
-                    if (def && def.length > 0 && def[0].value !== 'none') destinationBranchId = def[0].value;
-                } catch(e) {}
-            }
+            try { if (!destinationBranchId) { const d = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') destinationBranchId = v; } } catch(e) {}
 
             for (const event of events) {
                 const lineUserId = event.source?.userId;
