@@ -912,7 +912,8 @@ export default function Announcements() {
                     try {
                       console.log('Unlinking tenant:', tenantId);
                       await base44.entities.Tenant.update(tenantId, {
-                        line_user_id: null
+                        line_user_id: null,
+                        facebook_user_id: null
                       });
                       
                       // ⭐ เคลียร์ selectedConversation ทันทีเพื่อบังคับ re-render
