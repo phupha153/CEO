@@ -2425,14 +2425,14 @@ export default function Settings() {
                         </div>
                       </div>
 
-                      {/* ข้อมูลผู้มีอำนาจลงนาม */}
+                      {/* ข้อมูลผู้รับเงินและผู้ให้เช่า */}
                       <div className="space-y-4 pt-4 border-t">
                         <h3 className="text-md font-semibold text-slate-700 flex items-center gap-2 border-b pb-2">
                           <Users className="w-5 h-5 text-purple-600" />
-                          ข้อมูลผู้มีอำนาจลงนาม (ผู้ให้เช่า)
+                          ข้อมูลผู้รับเงินและผู้ให้เช่า
                         </h3>
                         <p className="text-sm text-slate-600">
-                          ข้อมูลนี้จะแสดงในสัญญาเช่าฝ่ายผู้ให้เช่า
+                          ข้อมูลนี้จะแสดงในสัญญาเช่าฝ่ายผู้ให้เช่าและในใบแจ้งหนี้/ใบเสร็จ
                         </p>
                         <div className="space-y-4">
                           <div>
