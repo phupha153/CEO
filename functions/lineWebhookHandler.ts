@@ -1978,26 +1978,25 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         if (!response.ok && replyToken) {
             console.error(`❌ Reply failed: ${response.status} - ${responseText}`);
 
-            if (response.status === 400) {
-                console.log('⚠️ Reply token expired or invalid, falling back to PUSH');
+            // ให้ fallback ไปเป็น PUSH เสมอถ้า REPLY พัง (กันเหนียว)
+            console.log('⚠️ Reply failed, falling back to PUSH');
 
-                endpoint = 'https://api.line.me/v2/bot/message/push';
-                body = { to: lineUserId, messages: [{ type: 'text', text }] };
+            endpoint = 'https://api.line.me/v2/bot/message/push';
+            body = { to: lineUserId, messages: [{ type: 'text', text }] };
 
-                console.log(`🔄 Retry with PUSH: ${endpoint}`);
+            console.log(`🔄 Retry with PUSH: ${endpoint}`);
 
-                response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${lineToken}`
-                    },
-                    body: JSON.stringify(body)
-                });
+            response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(body)
+            });
 
-                responseText = await response.text();
-                console.log(`📬 PUSH Fallback Response:`, response.status, responseText.substring(0, 300));
-            }
+            responseText = await response.text();
+            console.log(`📬 PUSH Fallback Response:`, response.status, responseText.substring(0, 300));
         }
 
         if (!response.ok) {
