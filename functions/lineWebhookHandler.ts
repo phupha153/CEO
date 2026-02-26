@@ -245,44 +245,24 @@ Deno.serve(async (req) => {
         });
     }
 
-    if (!queryBranchId) {
-        return new Response(JSON.stringify({ 
-            success: false, 
-            error: 'branch_id required' 
-        }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
-
-    if (req.method !== 'POST') {
-        return new Response(JSON.stringify({ message: 'OK' }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
-
+    if (req.method !== 'POST') return new Response(JSON.stringify({ message: 'OK' }), { status: 200 });
     let body;
-    try {
-        body = await req.json();
-    } catch (parseError) {
-        return new Response(JSON.stringify({ success: true }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
+    try { body = await req.json(); } catch (e) { return new Response(JSON.stringify({ success: true }), { status: 200 }); }
 
     const base44 = createClientFromRequest(req);
 
-    // Process ใน background (non-blocking)
     (async () => {
         try {
             const events = body.events || [];
-            
             if (events.length === 0) return;
             
-            // ⭐ ใช้ branch_id จาก query parameter แทน destination
-            const destinationBranchId = queryBranchId;
+            let destinationBranchId = queryBranchId;
+            if (!destinationBranchId) {
+                try {
+                    const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
+                    if (def && def.length > 0) destinationBranchId = def[0].value;
+                } catch(e) {}
+            }
 
             for (const event of events) {
                 const lineUserId = event.source?.userId;
