@@ -132,28 +132,22 @@ export default function Announcements() {
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
       // ⚡ Fetch แบบขนาน (Parallel) เพื่อให้เร็วขึ้น และไม่ใช้ try-catch ครอบเพื่อซ่อน Error
-      // เพื่อให้ React Query รู้ว่าถ้าโหลดพัง ให้แสดง Error หรือใช้ข้อมูลเก่า แทนที่จะรีเทิร์น [] ไปเคลียร์หน้าจอ
       const promises = [
-          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500),
-          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100)
+          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500)
       ];
 
-      if (defaultBranchId && !isDefaultBranch) {
-          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300));
+      // ถ้าเป็นสาขาหลัก หรือ ไม่มีการตั้งสาขาหลักไว้ ให้แสดงข้อความที่ยังไม่มีสาขา (null) ด้วย
+      // สาขาที่ไม่ได้เลือกเป็นสาขาหลัก จะเห็นแค่ข้อมูลของสาขาตัวเองเท่านั้น
+      if (isDefaultBranch || !defaultBranchId || defaultBranchId === 'none') {
+          promises.push(base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100));
       }
 
       const results = await Promise.all(promises);
 
       const branchMessages = Array.isArray(results[0]) ? results[0] : (results[0] ? [results[0]] : []);
-      const nullMsgs = Array.isArray(results[1]) ? results[1] : (results[1] ? [results[1]] : []);
+      const nullMsgs = results[1] ? (Array.isArray(results[1]) ? results[1] : [results[1]]) : [];
       
-      let defaultBranchMsgs = [];
-      if (results[2]) {
-          const defMsgs = Array.isArray(results[2]) ? results[2] : [results[2]];
-          defaultBranchMsgs = defMsgs.filter(m => !m.tenant_id); // เอาเฉพาะคนที่ยังไม่ระบุห้อง
-      }
-      
-      const allMessages = [...branchMessages, ...nullMsgs, ...defaultBranchMsgs];
+      const allMessages = [...branchMessages, ...nullMsgs];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
