@@ -775,10 +775,19 @@ export default function Announcements() {
               )}
               
               <div className="flex h-full relative">
-                {/* Sidebar - แสดง/ซ่อนตาม state บน mobile */}
-                <div className={`w-full md:w-80 md:border-r md:flex-shrink-0 ${showChatWindow ? 'hidden md:block' : 'block'}`}>
-                  <ChatSidebar
-                      conversations={conversations}
+                {tenantsLoading || roomsLoading || bookingsLoading || messagesLoading ? (
+                  <div className="flex-1 flex items-center justify-center h-full bg-slate-50 w-full">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
+                      <p className="text-sm text-slate-600">กำลังโหลดข้อมูลแชท...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Sidebar - แสดง/ซ่อนตาม state บน mobile */}
+                    <div className={`w-full md:w-80 md:border-r md:flex-shrink-0 ${showChatWindow ? 'hidden md:block' : 'block'}`}>
+                      <ChatSidebar
+                          conversations={conversations}
                       selectedConversation={selectedConversation}
                       onSelectConversation={(conv) => {
                         setSelectedConversation(conv);
