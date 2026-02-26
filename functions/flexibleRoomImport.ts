@@ -85,6 +85,9 @@ Deno.serve(async (req) => {
       const hasData = Object.values(record).some(v => v && v !== '-' && String(v).trim() !== '');
       if (!hasData) continue;
 
+      // Skip instruction row
+      if (String(record['หมายเลขห้อง'] || record['เลขห้อง'] || '').includes('(คำแนะนำ)')) continue;
+
       rows.push(record);
     }
 
