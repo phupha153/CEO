@@ -725,13 +725,13 @@ export default function Layout({ children, currentPageName }) {
       // 🔒 Multi-Tenancy: Non-developers only see:
       // 1. Global configs (no branch_id)
       // 2. Configs from their accessible branches
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      const branchIds = currentUser?.accessible_branches || [];
       
       // Filter client-side with safe fallback
       const allConfigs = await base44.entities.Config.list('', 1000);
       return (allConfigs || []).filter(c => 
         !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
+        branchIds.includes(c.branch_id) // Only configs from accessible branches
       );
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
