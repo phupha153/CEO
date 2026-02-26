@@ -317,17 +317,13 @@ Deno.serve(async (req) => {
                     try {
                         // ⭐ CRITICAL: Filter by branch_id AND line_user_id
                         let tenant = null;
-                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
+                        let msgBranchId = destinationBranchId;
                         try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                line_user_id: lineUserId,
-                                branch_id: msgBranchId 
-                            });
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                        } catch (e) {
-                            console.log('⚠️ Could not find tenant:', e.message);
-                        }
-                        const finalBranchId = tenant?.branch_id || msgBranchId;
+                            if (tenant) msgBranchId = tenant.branch_id;
+                        } catch (e) {}
+                        const finalBranchId = msgBranchId;
 
                         // ดึง LINE Profile เสมอ
                         let displayName = null;
