@@ -335,37 +335,61 @@ async function handleMessage(base44, senderPsid, receivedMessage, branchId, tena
     console.log('ℹ️ Unknown message, not responding');
 }
 
-async function handleRegistration(base44, senderPsid, phoneNumber, branchCode) {
+async function handleRegistration(base44, senderPsid, phoneNumber, branchCode, destinationBranchId = null) {
     try {
-        const tenants = await base44.asServiceRole.entities.Tenant.list();
+        // หาเจ้าของสาขาจาก destinationBranchId
+        let ownerBranchIds = [];
+        let branches = await base44.asServiceRole.entities.Branch.list();
+        
+        if (destinationBranchId) {
+            const targetBranch = branches.find(b => b.id === destinationBranchId);
+            if (targetBranch) {
+                const ownerEmail = targetBranch.owner_id || targetBranch.created_by;
+                const ownerBranches = branches.filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail);
+                ownerBranchIds = ownerBranches.map(b => b.id);
+            }
+        }
+
+        let tenants = [];
+        if (ownerBranchIds.length > 0) {
+            for (const bId of ownerBranchIds) {
+                const res = await base44.asServiceRole.entities.Tenant.filter({ phone: phoneNumber, branch_id: bId });
+                if (res) tenants = tenants.concat(Array.isArray(res) ? res : [res]);
+            }
+        } else {
+            // Fallback (Not recommended due to data leak, but kept for extreme edge cases without branchId)
+            const allTenants = await base44.asServiceRole.entities.Tenant.list();
+            tenants = allTenants.filter(t => t.phone === phoneNumber);
+        }
         
         let match = null;
         if (branchCode) {
-            const branches = await base44.asServiceRole.entities.Branch.list();
             const branch = branches.find(b => b.branch_code?.toUpperCase() === branchCode);
             if (!branch) {
-                await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบรหัสสาขา "${branchCode}"`, null);
+                await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบรหัสสาขา "${branchCode}"`, destinationBranchId);
                 return;
             }
-            match = tenants.find(t => t.phone === phoneNumber && t.branch_id === branch.id);
+            match = tenants.find(t => t.branch_id === branch.id);
         } else {
-            const matches = tenants.filter(t => t.phone === phoneNumber);
-            if (matches.length > 1) {
-                await sendFacebookMessage(base44, senderPsid, '⚠️ พบเบอร์นี้ในหลายสาขา กรุณาระบุรหัสสาขาต่อท้ายเบอร์ (เช่น 0812345678 BR01)', null);
-                return;
+            if (tenants.length > 1) {
+                const uniqueBranchIds = new Set(tenants.map(t => t.branch_id));
+                if (uniqueBranchIds.size > 1) {
+                    await sendFacebookMessage(base44, senderPsid, '⚠️ พบเบอร์นี้ในหลายสาขา กรุณาระบุรหัสสาขาต่อท้ายเบอร์ (เช่น 0812345678 BR01)', destinationBranchId);
+                    return;
+                }
             }
-            match = matches[0];
+            match = tenants[0];
         }
 
         if (match) {
             await base44.asServiceRole.entities.Tenant.update(match.id, { facebook_user_id: senderPsid });
             await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${match.full_name}`, match.branch_id);
         } else {
-            await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบข้อมูลเบอร์ ${phoneNumber} ในระบบ`, null);
+            await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบข้อมูลเบอร์ ${phoneNumber} ในระบบ`, destinationBranchId);
         }
     } catch (e) {
         console.error(e);
-        await sendFacebookMessage(base44, senderPsid, '❌ เกิดข้อผิดพลาด', null);
+        await sendFacebookMessage(base44, senderPsid, '❌ เกิดข้อผิดพลาด', destinationBranchId);
     }
 }
 
