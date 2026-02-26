@@ -49,7 +49,7 @@ export default function PackagePaymentPage() {
   };
 
   const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
-  const accountNumber = getConfigValue('bank_account_number', 'xxx-x-xxxxx-x');
+  const accountNumber = getConfigValue('bank_account_number', '042-3-49594-4');
   const accountName = getConfigValue('bank_account_name', 'บริษัท...');
   const promptpay = getConfigValue('promptpay', '0812345678');
   const appMode = getConfigValue('app_mode', 'single_tenant');
