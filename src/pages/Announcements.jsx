@@ -116,45 +116,41 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
 
-      let isDefaultBranch = false;
       let defaultBranchId = null;
+      let isDefaultBranch = false;
       try {
           const configs = await base44.entities.Config.list('', 1000);
           const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
           const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
           if (defConfig) {
               defaultBranchId = defConfig.value;
-              if (defaultBranchId === selectedBranchId) {
-                  isDefaultBranch = true;
-              }
+              isDefaultBranch = defaultBranchId === selectedBranchId;
           }
-      } catch (e) { console.error('Error fetching config:', e); }
+      } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
-      let branchMessages = [];
-      try {
-          const res = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-          branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
-      } catch (e) { console.error('Error fetching branch messages:', e); }
+      // ⚡ Fetch แบบขนาน (Parallel) เพื่อให้เร็วขึ้น และไม่ใช้ try-catch ครอบเพื่อซ่อน Error
+      // เพื่อให้ React Query รู้ว่าถ้าโหลดพัง ให้แสดง Error หรือใช้ข้อมูลเก่า แทนที่จะรีเทิร์น [] ไปเคลียร์หน้าจอ
+      const promises = [
+          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500),
+          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100)
+      ];
+
+      if (defaultBranchId && !isDefaultBranch) {
+          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300));
+      }
+
+      const results = await Promise.all(promises);
+
+      const branchMessages = Array.isArray(results[0]) ? results[0] : (results[0] ? [results[0]] : []);
+      const nullMsgs = Array.isArray(results[1]) ? results[1] : (results[1] ? [results[1]] : []);
       
-      let unlinkedMessages = [];
-      try {
-          // ดึงข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขา เผื่อมีหลงเหลือ
-          const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
-          const nullMsgs = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
-          
-          let defaultBranchMsgs = [];
-          // ถ้ามีสาขาหลักที่รับลูกค้าใหม่ แต่สาขาปัจจุบันไม่ใช่สาขาหลัก ให้ไปดึงข้อความจากสาขาหลักมาโชว์ด้วย
-          if (defaultBranchId && !isDefaultBranch) {
-              const resDef = await base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300);
-              const defMsgs = Array.isArray(resDef) ? resDef : (resDef ? [resDef] : []);
-              // กรองเอาเฉพาะข้อความที่ยังไม่ผูกผู้เช่า (ลูกค้าใหม่) เท่านั้น ไม่เอาแชทของผู้เช่าสาขาหลัก
-              defaultBranchMsgs = defMsgs.filter(m => !m.tenant_id);
-          }
-          
-          unlinkedMessages = [...nullMsgs, ...defaultBranchMsgs];
-      } catch (e) { console.error('Error fetching unlinked messages:', e); }
+      let defaultBranchMsgs = [];
+      if (results[2]) {
+          const defMsgs = Array.isArray(results[2]) ? results[2] : [results[2]];
+          defaultBranchMsgs = defMsgs.filter(m => !m.tenant_id); // เอาเฉพาะคนที่ยังไม่ระบุห้อง
+      }
       
-      const allMessages = [...branchMessages, ...unlinkedMessages];
+      const allMessages = [...branchMessages, ...nullMsgs, ...defaultBranchMsgs];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
