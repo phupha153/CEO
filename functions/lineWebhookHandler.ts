@@ -1469,7 +1469,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ ตรวจสอบไม่ผ่าน: ห้อง ${roomNumber} - ${errorMsg}`
             });
 
             await sendMessage(base44, lineUserId, 
