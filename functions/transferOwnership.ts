@@ -38,10 +38,11 @@ Deno.serve(async (req) => {
       }, { status: 403 });
     }
 
-    // ✅ ดึงข้อมูล Users
-    const [oldOwnerData, newOwnerData] = await Promise.all([
+    // ✅ ดึงข้อมูล Users และ สาขาที่เจ้าของเดิมถืออยู่ (เพื่อป้องกันสิทธิ์หาย)
+    const [oldOwnerData, newOwnerData, oldOwnedBranches] = await Promise.all([
       base44.asServiceRole.entities.User.filter({ email: old_owner_email }),
-      base44.asServiceRole.entities.User.filter({ email: new_owner_email })
+      base44.asServiceRole.entities.User.filter({ email: new_owner_email }),
+      base44.asServiceRole.entities.Branch.filter({ owner_id: old_owner_email })
     ]);
 
     if (!oldOwnerData || oldOwnerData.length === 0) {
@@ -55,8 +56,9 @@ Deno.serve(async (req) => {
     const oldOwner = oldOwnerData[0];
     const newOwner = newOwnerData[0];
 
-    // 📦 STEP 1: Copy Package Data (plan_status, trial_ends_at, subscription_end_date, package_id, package_name)
-    const packageData = {
+    // ✅ Prepare accessible_branches for New Owner (only if they are in explicit mode)
+    // If null/undefined, they are in implicit mode (owner access), so no need to update as they will own the branch.
+    let newOwnerPackageData = {
       plan_status: oldOwner.plan_status || 'trial',
       trial_ends_at: oldOwner.trial_ends_at || null,
       subscription_end_date: oldOwner.subscription_end_date || null,
@@ -65,22 +67,48 @@ Deno.serve(async (req) => {
       custom_role: 'owner'
     };
 
+    if (newOwner.accessible_branches && Array.isArray(newOwner.accessible_branches)) {
+      const branches = [...newOwner.accessible_branches];
+      if (!branches.includes(branch_id)) {
+        branches.push(branch_id);
+      }
+      newOwnerPackageData.accessible_branches = branches;
+    }
+
     // ⚡ STEP 2: Update new owner with package data
-    await base44.asServiceRole.entities.User.update(newOwner.id, packageData);
+    await base44.asServiceRole.entities.User.update(newOwner.id, newOwnerPackageData);
 
     // 🏢 STEP 3: Update Branch owner_id
     await base44.asServiceRole.entities.Branch.update(branch_id, {
       owner_id: new_owner_email
     });
 
-    // 👔 STEP 4: Downgrade old owner to manager
+    // ✅ Prepare accessible_branches for Old Owner
+    // We must ensure they keep access to the transferred branch (as manager)
+    // AND keep access to other branches they owned (by making it explicit)
+    let oldOwnerBranches = [];
+    
+    if (oldOwner.accessible_branches && Array.isArray(oldOwner.accessible_branches)) {
+      oldOwnerBranches = [...oldOwner.accessible_branches];
+    } else {
+      // If null, they were relying on ownership. Convert all owned branches to explicit list.
+      // This list includes the current branch_id (since we queried before update)
+      oldOwnerBranches = (oldOwnedBranches || []).map(b => b.id);
+    }
+
+    if (!oldOwnerBranches.includes(branch_id)) {
+      oldOwnerBranches.push(branch_id);
+    }
+
+    // 👔 STEP 4: Downgrade old owner to manager but keep access
     await base44.asServiceRole.entities.User.update(oldOwner.id, {
       custom_role: 'manager',
       plan_status: null,
       trial_ends_at: null,
       subscription_end_date: null,
       package_id: null,
-      package_name: null
+      package_name: null,
+      accessible_branches: oldOwnerBranches
     });
 
     // 🔗 STEP 5: Sync roles to CRM
