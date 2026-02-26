@@ -549,17 +549,12 @@ Deno.serve(async (req) => {
                                             continue;
                                         }
                                         
-                                        // ⭐ ใช้ filter พร้อม branch_id
                                         let tenant = null;
                                         try {
-                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                                line_user_id: lineUserId,
-                                                branch_id: destinationBranchId
-                                            });
+                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
                                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                                        } catch (e) {
-                                            console.log('⚠️ Could not find tenant:', e.message);
-                                        }
+                                            if (tenant) destinationBranchId = tenant.branch_id;
+                                        } catch (e) {}
 
                                         // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
                                         if (!tenant) {
