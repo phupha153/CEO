@@ -335,11 +335,15 @@ Deno.serve(async (req) => {
 
                     // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
+                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
                         let tenant = null;
+                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
                         try {
-                            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-                            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-                            tenant = arr.find(t => t.status === 'active') || arr[0];
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: msgBranchId 
+                            });
+                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                         } catch (e) {
                             console.log('⚠️ Could not find tenant:', e.message);
                         }
@@ -513,12 +517,17 @@ Deno.serve(async (req) => {
                             continue;
                         }
                         
+                        // ⭐ หา branch_id ของผู้ใช้ก่อนทำอะไร (ใช้ filter พร้อม branch_id)
                         let tenant = null;
                         try {
-                            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-                            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-                            tenant = arr.find(t => t.status === 'active') || arr[0];
-                        } catch (e) {}
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: destinationBranchId
+                            });
+                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                        } catch (e) {
+                            console.log('⚠️ Could not find tenant:', e.message);
+                        }
                         const userBranchId = tenant?.branch_id || destinationBranchId;
 
                         console.log(`📍 User branch for text message: ${userBranchId ? userBranchId.substring(0, 12) + '...' : 'null (ไม่รู้สาขา)'}`);
@@ -564,11 +573,14 @@ Deno.serve(async (req) => {
                                             continue;
                                         }
                                         
+                                        // ⭐ ใช้ filter พร้อม branch_id
                                         let tenant = null;
                                         try {
-                                            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-                                            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-                                            tenant = arr.find(t => t.status === 'active') || arr[0];
+                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                                line_user_id: lineUserId,
+                                                branch_id: destinationBranchId
+                                            });
+                                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                                         } catch (e) {
                                             console.log('⚠️ Could not find tenant:', e.message);
                                         }
@@ -684,11 +696,14 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     try {
         console.log(`🔧 Processing maintenance report from ${lineUserId}: "${problemDescription}"`);
         
+        // ⭐ ใช้ filter พร้อม branch_id เพื่อความแม่นยำ
         let tenant = null;
         try {
-            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-            tenant = arr.find(t => t.status === 'active') || arr[0];
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                line_user_id: lineUserId,
+                branch_id: branchId
+            });
+            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant:', e.message);
         }
@@ -834,11 +849,14 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     } catch (error) {
         console.error('❌ Maintenance report error:', error);
         console.error('Error stack:', error.stack);
+        // ⭐ ใช้ filter พร้อม branch_id
         let errorTenant = null;
         try {
-            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-            errorTenant = arr.find(t => t.status === 'active') || arr[0];
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                line_user_id: lineUserId,
+                branch_id: branchId
+            });
+            errorTenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant for error handling:', e.message);
         }
@@ -885,32 +903,104 @@ async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, br
             return;
         }
 
-        const tRes = await base44.asServiceRole.entities.Tenant.filter({ phone: phoneNumber });
-        let tenants = Array.isArray(tRes) ? tRes : (tRes ? [tRes] : []);
+        // ⭐ ดึงเฉพาะสาขาที่ระบุ (ไม่โหลดทั้งหมด)
+        const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+            phone: phoneNumber,
+            branch_id: destinationBranchId 
+        });
+        let tenants = Array.isArray(tenantResult) ? tenantResult : (tenantResult ? [tenantResult] : []);
+        console.log(`🎯 Filtered tenants in branch ${destinationBranchId.substring(0, 8)}... → Found ${tenants.length}`);
+
+        // ⭐ Cache branches
         const now = Date.now();
-        let branches = (!branchesCache || (now - branchesCacheTime) > BRANCHES_CACHE_DURATION) ? await base44.asServiceRole.entities.Branch.list() : branchesCache;
-        branchesCache = branches; branchesCacheTime = now;
-        if (branchCode) {
-            const tB = branches.find(b => b.branch_code?.toUpperCase() === branchCode);
-            if (!tB) { await sendMessage(base44, lineUserId, `❌ ไม่พบสาขา "${branchCode}"`, destinationBranchId, replyToken); return; }
-            const tenant = tenants.find(t => t.branch_id === tB.id);
-            if (!tenant) { await sendMessage(base44, lineUserId, `❌ ไม่พบเบอร์ในสาขานี้`, tB.id, replyToken); return; }
-            await base44.asServiceRole.entities.Tenant.update(tenant.id, { line_user_id: lineUserId });
-            await sendConfirmationMessage(base44, lineUserId, tenant, tB, replyToken);
-            return;
+        let branches;
+        if (!branchesCache || (now - branchesCacheTime) > BRANCHES_CACHE_DURATION) {
+            branches = await base44.asServiceRole.entities.Branch.list();
+            branchesCache = branches;
+            branchesCacheTime = now;
+            console.log(`✅ Cached ${branches.length} branches`);
+        } else {
+            branches = branchesCache;
+            console.log(`✅ Using cached branches (${branches.length})`);
         }
-        if (tenants.length === 0) { await sendNotFoundMessage(base44, lineUserId, phoneNumber, destinationBranchId, replyToken); return; }
-        if (tenants.length > 1) {
-            const uB = [...new Set(tenants.map(t => t.branch_id))];
-            if (uB.length > 1) {
-                let list = tenants.map(t => { const b = branches.find(br => br.id === t.branch_id); return `- ${b?.branch_name||'ไม่ทราบ'} (พิมพ์: ${phoneNumber} ${b?.branch_code||'ไม่มี'})`; }).join('\n');
-                await sendMessage(base44, lineUserId, `⚠️ พบเบอร์โทรของคุณในหลายสาขา\n\nกรุณาพิมพ์เบอร์โทรเว้นวรรคตามด้วยรหัสสาขา\n\n${list}`, destinationBranchId, replyToken);
+
+        // ⭐ tenants ถูก filter ด้วย phone + branch_id มาแล้ว
+        const matchingTenants = tenants; // ไม่ต้อง filter ซ้ำ
+        
+        console.log(`📱 Registration: phone=${phoneNumber}, branchCode=${branchCode}, destinationBranchId=${destinationBranchId}`);
+        console.log(`📊 Matching tenants in branch: ${tenants.length}, Total branches in cache: ${branches.length}`);
+        
+        if (branchCode) {
+            const targetBranch = branches.find(b => b.branch_code?.toUpperCase() === branchCode);
+            
+            if (!targetBranch) {
+                await sendMessage(base44, lineUserId, 
+                    `❌ ไม่พบสาขา "${branchCode}"\n\nกรุณาตรวจสอบรหัสสาขาและลองใหม่อีกครั้งค่ะ`,
+                    destinationBranchId,
+                    replyToken
+                );
                 return;
             }
+            
+            // ⭐ tenants ถูก filter มาแล้วด้วย phone ดังนั้นแค่เช็ค branch_id
+            const tenant = tenants.find(t => t.branch_id === targetBranch.id);
+            
+            if (!tenant) {
+                await sendMessage(base44, lineUserId, 
+                    `❌ ไม่พบเบอร์ ${phoneNumber} ในสาขา "${targetBranch.branch_name}"\n\nกรุณาตรวจสอบข้อมูลและลองใหม่ค่ะ`,
+                    targetBranch.id,
+                    replyToken
+                );
+                return;
+            }
+            
+            await base44.asServiceRole.entities.Tenant.update(tenant.id, {
+                line_user_id: lineUserId
+            });
+            
+            await sendConfirmationMessage(base44, lineUserId, tenant, targetBranch, replyToken);
+            return;
         }
-        const tenant = tenants.find(t => t.status === 'active') || tenants[0];
-        await base44.asServiceRole.entities.Tenant.update(tenant.id, { line_user_id: lineUserId });
-        await sendConfirmationMessage(base44, lineUserId, tenant, branches.find(b => b.id === tenant.branch_id), replyToken);
+        
+        console.log(`🔍 Found ${matchingTenants.length} tenant(s) with phone ${phoneNumber}`);
+        matchingTenants.forEach((t, i) => {
+            const branch = branches.find(b => b.id === t.branch_id);
+            console.log(`   ${i + 1}. ${t.full_name} - Branch: ${branch?.branch_name || t.branch_id}`);
+        });
+        
+        // ⭐ ไม่ต้อง filter ซ้ำเพราะ query แรกกรองด้วย branch_id มาแล้ว
+        console.log(`✅ All ${matchingTenants.length} tenant(s) are already in correct branch: ${destinationBranchId.substring(0, 12)}...`);
+        
+        if (matchingTenants.length === 0) {
+            await sendNotFoundMessage(base44, lineUserId, phoneNumber, destinationBranchId, replyToken);
+            return;
+        }
+        
+        if (matchingTenants.length === 1) {
+            const tenant = matchingTenants[0];
+            
+            await base44.asServiceRole.entities.Tenant.update(tenant.id, {
+                line_user_id: lineUserId
+            });
+            
+            const branch = branches.find(b => b.id === tenant.branch_id);
+            
+            await sendConfirmationMessage(base44, lineUserId, tenant, branch, replyToken);
+            return;
+        }
+        
+        // ⭐ ถ้ามีหลาย record ในสาขาเดียวกัน → ลงทะเบียน record แรก
+        if (matchingTenants.length > 1) {
+            console.log(`⚠️ Found ${matchingTenants.length} duplicate records in same branch - registering first one`);
+        }
+        
+        const tenant = matchingTenants[0];
+        await base44.asServiceRole.entities.Tenant.update(tenant.id, {
+            line_user_id: lineUserId
+        });
+        
+        const branch = branches.find(b => b.id === tenant.branch_id);
+        await sendConfirmationMessage(base44, lineUserId, tenant, branch, replyToken);
         
     } catch (error) {
         console.error('Registration error:', error);
@@ -955,28 +1045,46 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
     try {
         
+        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
+        if (!branchId) {
+            console.error(`❌ CRITICAL: No branchId available for slip verification`);
+            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
+            return;
+        }
+
         let tenant = null;
         try {
-            let res = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-            let arr = Array.isArray(res) ? res : (res ? [res] : []);
-            tenant = arr.find(t => t.status === 'active') || arr[0];
-        } catch (e) {}
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                line_user_id: lineUserId,
+                branch_id: branchId
+            });
+            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+        } catch (e) {
+            console.log('⚠️ Could not find tenant:', e.message);
+        }
+
         if (!tenant) {
             await sendMessage(base44, lineUserId, 'กรุณาลงทะเบียนด้วยหมายเลขโทรศัพท์ก่อนใช้งาน\nพิมพ์: ลงทะเบียน 0812345678', branchId, replyToken);
             return;
         }
-        const tenantBranchId = tenant.branch_id || branchId;
-        branchId = tenantBranchId;
+
+        // ⭐ CRITICAL: Filter payments รวมทั้ง partial_paid (ชำระไม่ครบ)
         let pendingPayments = [];
         try {
             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
-                tenant_id: tenant.id, branch_id: tenantBranchId,
+                tenant_id: tenant.id,
+                branch_id: branchId,
                 status: { $in: ['pending', 'overdue', 'partial_paid'] }
             });
             pendingPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
         } catch (e) {
+            console.log('⚠️ Could not filter payments:', e.message);
             const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 500);
-            pendingPayments = allPayments.filter(p => p.tenant_id === tenant.id && p.branch_id === tenantBranchId && ['pending', 'overdue', 'partial_paid'].includes(p.status));
+            pendingPayments = allPayments.filter(p => 
+                p.tenant_id === tenant.id && 
+                p.branch_id === branchId &&
+                (p.status === 'pending' || p.status === 'overdue' || p.status === 'partial_paid')
+            );
         }
 
         if (pendingPayments.length === 0) {
