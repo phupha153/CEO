@@ -307,6 +307,29 @@ Deno.serve(async (req) => {
         for (const payment of pendingRecheckPayments) {
             try {
                 console.log(`\n🔍 Processing Payment: ${payment.id}`);
+
+                // ⭐ Re-fetch payment to prevent Race Condition
+                const freshPaymentResult = await entityService.Payment.filter({ id: payment.id });
+                const freshPayment = Array.isArray(freshPaymentResult) ? freshPaymentResult[0] : freshPaymentResult;
+
+                if (!freshPayment) {
+                    console.log(`   ❌ Payment not found (deleted?), skipping`);
+                    continue;
+                }
+
+                if (freshPayment.status !== 'pending') {
+                    console.log(`   ⏩ Payment no longer pending (Status: ${freshPayment.status}), skipping`);
+                    continue;
+                }
+
+                if (freshPayment.notes && freshPayment.notes.includes('ตรวจสอบไม่ผ่าน')) {
+                    console.log(`   ⏩ Payment already marked as failed check, skipping`);
+                    continue;
+                }
+
+                // Use fresh data
+                Object.assign(payment, freshPayment);
+
                 console.log(`   Slip URL: ${payment.payment_slip_url}`);
 
                 // เช็คว่าผ่านไป 30 วินาทีแล้วหรือยัง (หา timestamp จาก notes)
