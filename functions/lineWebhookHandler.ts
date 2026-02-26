@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
             if (!destinationBranchId) {
                 try {
                     const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
-                    if (def && def.length > 0) destinationBranchId = def[0].value;
+                    if (def && def.length > 0 && def[0].value !== 'none') destinationBranchId = def[0].value;
                 } catch(e) {}
             }
 
