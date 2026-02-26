@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
                         try {
                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                 line_user_id: lineUserId,
-                                branch_id: msgBranchId 
+                                ...(msgBranchId ? { branch_id: msgBranchId } : {})
                             });
                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                         } catch (e) {
@@ -437,7 +437,7 @@ Deno.serve(async (req) => {
                             try {
                                 const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                     line_user_id: lineUserId,
-                                    branch_id: destinationBranchId 
+                                    ...(destinationBranchId ? { branch_id: destinationBranchId } : {})
                                 });
                                 tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                             } catch (e) {
@@ -512,7 +512,7 @@ Deno.serve(async (req) => {
                         try {
                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                 line_user_id: lineUserId,
-                                branch_id: destinationBranchId
+                                ...(destinationBranchId ? { branch_id: destinationBranchId } : {})
                             });
                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                         } catch (e) {
@@ -568,7 +568,7 @@ Deno.serve(async (req) => {
                                         try {
                                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                                 line_user_id: lineUserId,
-                                                branch_id: destinationBranchId
+                                                ...(destinationBranchId ? { branch_id: destinationBranchId } : {})
                                             });
                                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                                         } catch (e) {
