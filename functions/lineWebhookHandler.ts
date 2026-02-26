@@ -1350,7 +1350,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         if (slipAmount === 0) {
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ ตรวจสอบไม่ผ่าน: ระบบอ่านยอดไม่ได้`
             });
             
             await sendMessage(base44, lineUserId, 
