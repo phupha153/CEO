@@ -918,13 +918,14 @@ export default function UserBranchAccess() {
                         const selectedBranches = userBranchAccess[selectedUser.id] || [];
                         const selectedRole = userRoles[selectedUser.id] || 'employee';
 
+                        // ถ้าเป็น developer เเละเลือกสาขาที่ตัวเองไม่ได้เป็นเจ้าของ เเต่ผู้ใช้นั้นเป็นเจ้าของ จะเข้ากรณีนี้ไม่ได้
                         if (selectedRole === 'owner') {
+                          // Developer สามารถสร้าง owner ให้สาขาใหม่ได้ หรือสาขาที่ยังไม่มี owner ได้ด้วย
+                          // ตอนนี้เพื่อความง่าย ให้เปิดหน้าโอนให้เลย เเล้วไปเลือกสาขาอีกที 
                           setTransferTarget(selectedUser);
-                          // ถ้ามีการเลือกสาขาเดียวใน dialog ให้ใช้สาขานั้นเป็น default target
                           if (selectedBranches.length === 1) {
                             setTargetTransferBranchId(selectedBranches[0]);
                           } else {
-                            // ถ้าเลือกหลายสาขา หรือไม่เลือกเลย ให้ reset เพื่อให้ user เลือกใน dialog ถัดไป
                             setTargetTransferBranchId(null);
                           }
                           setShowTransferDialog(true);
