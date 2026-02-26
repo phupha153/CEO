@@ -1963,10 +1963,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 
         let response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${lineToken}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
             body: JSON.stringify(body)
         });
 
