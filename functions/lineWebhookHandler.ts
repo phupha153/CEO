@@ -516,18 +516,17 @@ Deno.serve(async (req) => {
                             continue;
                         }
                         
-                        // ⭐ หา branch_id ของผู้ใช้ก่อนทำอะไร (ใช้ filter พร้อม branch_id)
-                        let tenant = null;
+                        let tenant = null, userBranchId = destinationBranchId;
                         try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                line_user_id: lineUserId,
-                                branch_id: destinationBranchId
-                            });
-                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                        } catch (e) {
-                            console.log('⚠️ Could not find tenant:', e.message);
-                        }
-                        const userBranchId = tenant?.branch_id || destinationBranchId;
+                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
+                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
+                            if (tenant) userBranchId = tenant.branch_id;
+                            else {
+                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
+                                const dbCfg = (Array.isArray(cRes) ? cRes : [cRes]).find(c => !c.branch_id);
+                                if (dbCfg?.value) userBranchId = dbCfg.value;
+                            }
+                        } catch (e) {}
 
                         console.log(`📍 User branch for text message: ${userBranchId ? userBranchId.substring(0, 12) + '...' : 'null (ไม่รู้สาขา)'}`);
 
