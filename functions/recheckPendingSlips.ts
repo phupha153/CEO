@@ -328,9 +328,25 @@ Deno.serve(async (req) => {
                 }
 
                 // ดาวน์โหลดรูปสลิปจาก URL
-                const imageResponse = await fetch(payment.payment_slip_url);
+                let imageResponse;
+                try {
+                    imageResponse = await fetch(payment.payment_slip_url);
+                } catch (err) {
+                    console.error(`   ❌ Network error downloading slip: ${err.message}`);
+                    // บันทึกว่าดาวน์โหลดไม่ได้ เพื่อไม่ให้วนลูป
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: โหลดรูปสลิปไม่ได้ (Network Error)`
+                    });
+                    failCount++;
+                    continue;
+                }
+
                 if (!imageResponse.ok) {
-                    console.error(`   ❌ Failed to download slip image`);
+                    console.error(`   ❌ Failed to download slip image: ${imageResponse.status}`);
+                    // บันทึกว่าดาวน์โหลดไม่ได้ เพื่อไม่ให้วนลูป
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: โหลดรูปสลิปไม่ได้ (Status ${imageResponse.status})`
+                    });
                     failCount++;
                     continue;
                 }
@@ -378,6 +394,10 @@ Deno.serve(async (req) => {
                     slip2goData = JSON.parse(responseText);
                 } catch (e) {
                     console.error(`   ❌ Failed to parse Slip2Go response`);
+                    // บันทึก Error เพื่อไม่ให้วนลูป
+                    await entityService.Payment.update(payment.id, {
+                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ระบบตรวจสอบขัดข้อง (Response Error)`
+                    });
                     failCount++;
                     continue;
                 }
@@ -456,13 +476,18 @@ Deno.serve(async (req) => {
                             console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
                             const shortfall = expectedAmount - totalPaid;
                             
-                            await entityService.Payment.update(payment.id, {
-                                status: 'partial_paid',
-                                paid_amount: totalPaid,
-                                late_fee_amount: lateFeeAmount,
-                                total_amount: expectedAmount,
-                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-                            });
+                            try {
+                                await entityService.Payment.update(payment.id, {
+                                    status: 'partial_paid',
+                                    paid_amount: totalPaid,
+                                    late_fee_amount: lateFeeAmount,
+                                    total_amount: expectedAmount,
+                                    notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                                });
+                                console.log('   ✅ Updated status to partial_paid');
+                            } catch (updateError) {
+                                console.error('   ❌ Failed to update partial_paid status:', updateError);
+                            }
                             
                             const tenant = tenants.find(t => t.id === payment.tenant_id);
                             if (tenant?.line_user_id) {
@@ -473,7 +498,8 @@ Deno.serve(async (req) => {
                                 );
                             }
                             
-                            failCount++;
+                            // ถือว่าเป็น Success ในแง่ของการ process (เพราะหยุด loop แล้ว)
+                            successCount++; 
                             continue;
                         }
 
