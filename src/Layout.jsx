@@ -660,40 +660,13 @@ export default function Layout({ children, currentPageName }) {
 
 
 
-  // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches
-  const userRole = (() => {
-    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
-    if (currentUser?.role === 'admin') return 'developer';
-    
-    let effectiveRole = currentUser?.custom_role;
-    
-    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
-    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
-      effectiveRole = crmAccess.role;
-    }
-    
-    return effectiveRole || 'employee';
-  })();
-  const userPermissions = currentUser?.permissions || [];
-  const userAccessibleBranches = currentUser?.accessible_branches;
-  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
-    queryKey: ['branches', currentUser?.email, userRole, userAccessibleBranches],
+    queryKey: ['branches', currentUser?.email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      
-      if (userRole === 'developer') {
-        return await base44.entities.Branch.list('', 100) || [];
-      }
-      
-      const allBranches = await base44.entities.Branch.list('', 1000) || [];
-      
-      return allBranches.filter(b => {
-        const isOwner = b.owner_id === currentUser.email || b.created_by === currentUser.email;
-        const isAccessible = userAccessibleBranches && Array.isArray(userAccessibleBranches) && userAccessibleBranches.includes(b.id);
-        return isOwner || isAccessible;
-      });
+      // 🔒 Multi-Tenancy: Filter branches by owner_id (เจ้าของสาขา)
+      const response = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 50);
+      return response || [];
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity,
@@ -725,13 +698,13 @@ export default function Layout({ children, currentPageName }) {
       // 🔒 Multi-Tenancy: Non-developers only see:
       // 1. Global configs (no branch_id)
       // 2. Configs from their accessible branches
-      const branchIds = currentUser?.accessible_branches || [];
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
       
       // Filter client-side with safe fallback
       const allConfigs = await base44.entities.Config.list('', 1000);
       return (allConfigs || []).filter(c => 
         !c.branch_id || // Global configs
-        branchIds.includes(c.branch_id) // Only configs from accessible branches
+        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
       );
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
@@ -783,19 +756,51 @@ export default function Layout({ children, currentPageName }) {
   const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
-  // Check if the user can access the current branch
-  const canAccessBranch = (() => {
-    if (!selectedBranch) return false;
-    if (userRole === 'developer') return true;
+  // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
+  const userRole = (() => {
+    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
+    if (currentUser?.role === 'admin') {
+      return 'developer';
+    }
+    
+    let effectiveRole = currentUser?.custom_role;
+    
+    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+    }
+    
+    const role = effectiveRole || 'employee';
+    return role;
+  })();
+  const userPermissions = currentUser?.permissions || [];
+  
+  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
+  const userAccessibleBranches = currentUser?.accessible_branches;
 
-    const branch = branches.find(b => b.id === selectedBranch.id);
-    if (branch) {
-      const isOwner = branch.owner_id === currentUser?.email || branch.created_by === currentUser?.email;
-      if (isOwner) return true;
+  // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
+  // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
+  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
+
+  // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
+  // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
+  const canAccessBranch = (() => {
+    // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
+    if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
+
+    // ถ้ามี accessible_branches set แล้ว ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
+    if (hasAccessibleBranchesSet) {
+      return selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id);
     }
 
-    if (userAccessibleBranches && Array.isArray(userAccessibleBranches)) {
-      if (userAccessibleBranches.includes(selectedBranch.id)) return true;
+    // ⭐ ถ้าไม่มี accessible_branches set และไม่ใช่ developer
+    // ให้เช็คว่าเป็น owner ของสาขาหรือไม่ (จาก owner_id หรือ created_by)
+    if (!hasAccessibleBranchesSet && selectedBranch) {
+      const branch = branches.find(b => b.id === selectedBranch.id);
+      if (branch) {
+        return branch.owner_id === currentUser?.email || 
+               branch.created_by === currentUser?.email;
+      }
     }
 
     return false;

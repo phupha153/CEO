@@ -47,9 +47,10 @@ export default function AllBranchesDashboard() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const userRole = currentUser?.role === 'admin' ? 'developer' : (currentUser?.custom_role || 'employee');
-  const userAccessibleBranches = currentUser?.accessible_branches;
-  const canViewAllBranches = userRole === 'developer';
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userAccessibleBranches = currentUser?.accessible_branches || [];
+  // Developer เห็นทุกสาขาเฉพาะเมื่อไม่มีการตั้งค่า accessible_branches
+  const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
 
   const retryConfig = {
     retry: 0,
@@ -68,15 +69,11 @@ export default function AllBranchesDashboard() {
     placeholderData: (previousData) => previousData,
   });
 
+  // Filter branches based on user access - must be right after allBranches query
   const branches = useMemo(() => {
-    if (userRole === 'developer') return allBranches;
-    
-    return allBranches.filter(b => {
-      const isOwner = b.owner_id === currentUser?.email || b.created_by === currentUser?.email;
-      const isAccessible = userAccessibleBranches && Array.isArray(userAccessibleBranches) && userAccessibleBranches.includes(b.id);
-      return isOwner || isAccessible;
-    });
-  }, [allBranches, userRole, userAccessibleBranches, currentUser?.email]);
+    if (canViewAllBranches) return allBranches;
+    return allBranches.filter(b => userAccessibleBranches.includes(b.id));
+  }, [allBranches, canViewAllBranches, userAccessibleBranches]);
 
   // สร้าง Set ของ branch IDs ที่เข้าถึงได้เพื่อกรองข้อมูล
   const accessibleBranchIds = useMemo(() => 
@@ -85,8 +82,16 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['allRooms'],
-    queryFn: () => base44.entities.Room.list('-room_number', 10000),
+    queryKey: ['allRooms', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: {},
+        sort: '-room_number',
+        limit: 10000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -100,8 +105,15 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings'],
-    queryFn: () => base44.entities.Booking.list('', 10000),
+    queryKey: ['allBookings', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -115,8 +127,15 @@ export default function AllBranchesDashboard() {
   }, [allBookings, accessibleBranchIds]);
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments'],
-    queryFn: () => base44.entities.Payment.list('', 10000),
+    queryKey: ['allPayments', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -130,8 +149,15 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants'],
-    queryFn: () => base44.entities.Tenant.list('', 10000),
+    queryKey: ['allTenants', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -145,8 +171,15 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allMaintenance = [] } = useQuery({
-    queryKey: ['allMaintenance'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('', 1000),
+    queryKey: ['allMaintenance', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'MaintenanceRequest',
+        filters: {},
+        limit: 1000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -160,8 +193,16 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allExpenses = [] } = useQuery({
-    queryKey: ['allExpenses'],
-    queryFn: () => base44.entities.Expense.list('-date', 10000),
+    queryKey: ['allExpenses', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Expense',
+        filters: {},
+        sort: '-date',
+        limit: 10000
+      });
+      return response.data.data;
+    },
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -352,7 +393,7 @@ export default function AllBranchesDashboard() {
       date: p.payment_date, 
       amount: p.total_amount 
     })),
-  }), [dateRangeType, dateRange, payments, branches, userRole, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
+  }), [dateRangeType, dateRange, payments, branches, userRole, canViewAllBranches, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
 
   const getMonthsForChart = () => {
     switch(dateRangeType) {
