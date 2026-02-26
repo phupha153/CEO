@@ -169,16 +169,13 @@ export default function Announcements() {
         const res = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
         branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
         
-        let unlinkedMessages = [];
+        let nullBranchMessages = [];
         if (isDefaultBranch) {
-            const resUnlinked = await base44.entities.FacebookMessage?.filter({ tenant_id: null }, '-created_date', 200);
-            unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
-        } else {
-            const resUnlinked = await base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
-            unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
+            const resNull = await base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100);
+            nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
         }
         
-        const allMessages = [...branchMessages, ...unlinkedMessages];
+        const allMessages = [...branchMessages, ...nullBranchMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
         return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
       } catch (e) {
@@ -874,14 +871,42 @@ export default function Announcements() {
                       return;
                     }
 
-                    // อัพเดท tenant ด้วย line_user_id
-                    await base44.entities.Tenant.update(targetTenant.id, {
-                      line_user_id: lineUserId
-                    });
+                    const isFacebook = selectedConversation.platform === 'facebook' || selectedConversation.facebook_user_id;
 
-                    toast.success(`เชื่อมต่อ LINE กับ ${targetTenant.full_name} สำเร็จ`);
+                    if (isFacebook) {
+                        await base44.entities.Tenant.update(targetTenant.id, {
+                          facebook_user_id: lineUserId
+                        });
+                        
+                        const oldMsgs = facebookMessages.filter(m => m.facebook_user_id === lineUserId);
+                        for (const msg of oldMsgs) {
+                            if (msg.tenant_id !== targetTenant.id || msg.branch_id !== targetTenant.branch_id) {
+                                await base44.entities.FacebookMessage.update(msg.id, {
+                                    tenant_id: targetTenant.id,
+                                    branch_id: targetTenant.branch_id
+                                }).catch(()=>{});
+                            }
+                        }
+                    } else {
+                        await base44.entities.Tenant.update(targetTenant.id, {
+                          line_user_id: lineUserId
+                        });
+                        
+                        const oldMsgs = lineMessages.filter(m => m.line_user_id === lineUserId);
+                        for (const msg of oldMsgs) {
+                            if (msg.tenant_id !== targetTenant.id || msg.branch_id !== targetTenant.branch_id) {
+                                await base44.entities.LineMessage.update(msg.id, {
+                                    tenant_id: targetTenant.id,
+                                    branch_id: targetTenant.branch_id
+                                }).catch(()=>{});
+                            }
+                        }
+                    }
+
+                    toast.success(`เชื่อมต่อบัญชีกับ ${targetTenant.full_name} สำเร็จ`);
                     await refetchTenants();
-                    queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+                    if (isFacebook) queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
+                    else queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
                   }}
                   onUnlinkTenant={async (tenantId) => {
                     try {
