@@ -572,25 +572,17 @@ Deno.serve(async (req) => {
                                             continue;
                                         }
                                         
-                                        // ⭐ ใช้ filter พร้อม branch_id
-                                        let tenant = null;
+                                        let tenant = null, branchId = destinationBranchId;
                                         try {
-                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                                line_user_id: lineUserId,
-                                                branch_id: destinationBranchId
-                                            });
-                                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                                        } catch (e) {
-                                            console.log('⚠️ Could not find tenant:', e.message);
-                                        }
-
-                                        // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
-                                        if (!tenant) {
-                                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
-                                            continue;
-                                        }
-
-                                        const branchId = tenant.branch_id || destinationBranchId;
+                                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
+                                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
+                                            if (tenant) branchId = tenant.branch_id;
+                                            else {
+                                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
+                                                const dbCfg = (Array.isArray(cRes) ? cRes : [cRes]).find(c => !c.branch_id);
+                                                if (dbCfg?.value) branchId = dbCfg.value;
+                                            }
+                                        } catch (e) {}
 
                                         // ⭐ เช็คว่ามี payment ที่รอชำระหรือชำระไม่ครบ (pending/overdue/partial_paid)
                                         let hasPendingPayment = false;
