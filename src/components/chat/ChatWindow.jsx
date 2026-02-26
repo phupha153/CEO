@@ -275,6 +275,17 @@ export default function ChatWindow({
         : { line_user_id: conversation.line_user_id };
       
       await base44.entities.Tenant.update(tenantId, platformId);
+
+      // ย้ายประวัติแชททั้งหมดมาที่สาขานี้
+      try {
+        const msgs = await base44.entities.LineMessage.filter(
+          conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
+        );
+        const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
+        for (const msg of msgsArr) {
+          await base44.entities.LineMessage.update(msg.id, { branch_id: branchId, tenant_id: tenantId });
+        }
+      } catch(e) { console.error('Failed to migrate messages:', e); }
       
       // ⭐ สร้าง Booking หลายห้อง (รองรับ array)
       if (bookings && bookings.length > 0) {
