@@ -52,7 +52,6 @@ import AIGuidelines from './pages/AIGuidelines';
 import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
-import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
 import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
@@ -91,7 +90,6 @@ import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
-import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
 import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
@@ -106,6 +104,8 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import Announcements from './pages/Announcements';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -115,7 +115,6 @@ export const PAGES = {
     "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
     "AllBranchesDashboard": AllBranchesDashboard,
-    "Announcements": Announcements,
     "BannerManagement": BannerManagement,
     "BookingReceipt": BookingReceipt,
     "Bookings": Bookings,
@@ -154,7 +153,6 @@ export const PAGES = {
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
     "Rooms": Rooms,
-    "Settings": Settings,
     "SupportTickets": SupportTickets,
     "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
@@ -169,6 +167,8 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "Announcements": Announcements,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
