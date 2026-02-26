@@ -116,24 +116,35 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
 
-      // ดึง config ว่ามีการอนุญาตให้ดึงแชทคนแปลกหน้าจากสาขาอื่นมารวมด้วยหรือไม่
-      const sharedConfig = await base44.entities.Config.filter({ key: 'shared_unlinked_branches', branch_id: selectedBranchId });
       let allowedUnlinkedBranches = [selectedBranchId];
-      if (sharedConfig && sharedConfig.length > 0 && sharedConfig[0].value) {
-          const sharedIds = sharedConfig[0].value.split(',').map(id => id.trim());
-          allowedUnlinkedBranches = [...allowedUnlinkedBranches, ...sharedIds];
-      }
+      try {
+          const configs = await base44.entities.Config.list('', 1000);
+          const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+          const sharedConfig = configList.find(c => c.key === 'shared_unlinked_branches' && c.branch_id === selectedBranchId) || 
+                               configList.find(c => c.key === 'shared_unlinked_branches' && !c.branch_id);
+          if (sharedConfig && sharedConfig.value) {
+              const sharedIds = sharedConfig.value.split(',').map(id => id.trim());
+              allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...sharedIds])];
+          }
+      } catch (e) { console.error('Error fetching config:', e); }
 
-      // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก
-      const branchMessages = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+      let branchMessages = [];
+      try {
+          const res = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+          branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
+      } catch (e) { console.error('Error fetching branch messages:', e); }
       
-      // ดึงเฉพาะข้อความที่ยังไม่ถูกเชื่อมโยง และอยู่ในสาขาที่ได้รับอนุญาตเท่านั้น
-      const unlinkedMessages = await base44.entities.LineMessage.filter({ 
-          tenant_id: null,
-          branch_id: { $in: allowedUnlinkedBranches }
-      }, '-created_date', 100);
+      let unlinkedMessages = [];
+      try {
+          // ดึงทีละสาขาเพื่อเลี่ยงปัญหา $in ใน SDK บางเวอร์ชัน
+          const unlinkedPromises = allowedUnlinkedBranches.map(id => 
+              base44.entities.LineMessage.filter({ tenant_id: null, branch_id: id }, '-created_date', 100)
+          );
+          const unlinkedResults = await Promise.all(unlinkedPromises);
+          unlinkedMessages = unlinkedResults.flatMap(res => Array.isArray(res) ? res : (res ? [res] : []));
+      } catch (e) { console.error('Error fetching unlinked messages:', e); }
       
-      const allMessages = [...(branchMessages || []), ...(unlinkedMessages || [])];
+      const allMessages = [...branchMessages, ...unlinkedMessages];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
@@ -149,27 +160,32 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        // ดึง config ว่ามีการอนุญาตให้ดึงแชทคนแปลกหน้าจากสาขาอื่นมารวมด้วยหรือไม่
-        const sharedConfig = await base44.entities.Config.filter({ key: 'shared_unlinked_branches', branch_id: selectedBranchId });
         let allowedUnlinkedBranches = [selectedBranchId];
-        if (sharedConfig && sharedConfig.length > 0 && sharedConfig[0].value) {
-            const sharedIds = sharedConfig[0].value.split(',').map(id => id.trim());
-            allowedUnlinkedBranches = [...allowedUnlinkedBranches, ...sharedIds];
+        const configs = await base44.entities.Config.list('', 1000);
+        const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+        const sharedConfig = configList.find(c => c.key === 'shared_unlinked_branches' && c.branch_id === selectedBranchId) || 
+                             configList.find(c => c.key === 'shared_unlinked_branches' && !c.branch_id);
+        if (sharedConfig && sharedConfig.value) {
+            const sharedIds = sharedConfig.value.split(',').map(id => id.trim());
+            allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...sharedIds])];
         }
 
-        // 🔒 Multi-Tenancy: ดึงข้อความของสาขาที่เลือก
-        const branchMessages = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
+        let branchMessages = [];
+        const res = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+        branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
         
-        // ดึงเฉพาะข้อความที่ยังไม่ถูกเชื่อมโยง และอยู่ในสาขาที่ได้รับอนุญาตเท่านั้น
-        const unlinkedMessages = await base44.entities.FacebookMessage?.filter({ 
-            tenant_id: null,
-            branch_id: { $in: allowedUnlinkedBranches }
-        }, '-created_date', 100) || [];
+        let unlinkedMessages = [];
+        const unlinkedPromises = allowedUnlinkedBranches.map(id => 
+            base44.entities.FacebookMessage?.filter({ tenant_id: null, branch_id: id }, '-created_date', 100)
+        );
+        const unlinkedResults = await Promise.all(unlinkedPromises);
+        unlinkedMessages = unlinkedResults.flatMap(res => Array.isArray(res) ? res : (res ? [res] : []));
         
         const allMessages = [...branchMessages, ...unlinkedMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
         return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
-      } catch {
+      } catch (e) {
+        console.error('Error fetching Facebook messages:', e);
         return [];
       }
     },
