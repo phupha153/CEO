@@ -1686,7 +1686,7 @@ export default function Settings() {
         }
 
         // Update Verify Token
-        const existingVerify = configs.find(c => c.key === 'facebook_verify_token' && c.branch_id === branchId);
+        const existingVerify = (await base44.entities.Config.filter({ key: 'facebook_verify_token', branch_id: branchId }, '', 1))[0];
         if (existingVerify) {
           await base44.entities.Config.update(existingVerify.id, { value: facebookSettings.facebook_verify_token.trim() });
         } else {
