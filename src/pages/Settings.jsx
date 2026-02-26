@@ -1792,31 +1792,16 @@ export default function Settings() {
           <Card className="bg-white/80 backdrop-blur-xl shadow-2xl border-white/60">
             <CardContent className="p-6">
               <div className="flex gap-2 mb-6 border-b overflow-x-auto">
-                {canAccessPackagePage && (
-                  <Button variant={activeTab === 'package' ? 'default' : 'ghost'} onClick={() => setActiveTab('package')} className={activeTab === 'package' ? 'bg-blue-600' : ''}>
-                    <Crown className="w-4 h-4 mr-2" />
-                    แพ็กเกจ
-                  </Button>
-                )}
-                <Button variant={activeTab === 'building' ? 'default' : 'ghost'} onClick={() => setActiveTab('building')} className={activeTab === 'building' ? 'bg-blue-600' : ''}>อาคาร</Button>
-                <Button variant={activeTab === 'billing' ? 'default' : 'ghost'} onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? 'bg-blue-600' : ''}>อัตรา</Button>
-                <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
-                {userRole === 'developer' && (
-                  <Button variant={activeTab === 'notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('notifications')} className={activeTab === 'notifications' ? 'bg-blue-600' : ''}>การแจ้งเตือน</Button>
-                )}
-                <Button variant={activeTab === 'bank' ? 'default' : 'ghost'} onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'bg-blue-600' : ''}>ธนาคาร</Button>
-                <Button variant={activeTab === 'messaging' ? 'default' : 'ghost'} onClick={() => setActiveTab('messaging')} className={activeTab === 'messaging' ? 'bg-blue-600' : ''}>
-                  <MessageSquare className="w-4 h-4 mr-1" />
-                  ช่องทางสื่อสาร
-                </Button>
-                <Button variant={activeTab === 'signature' ? 'default' : 'ghost'} onClick={() => setActiveTab('signature')} className={activeTab === 'signature' ? 'bg-blue-600' : ''}>ลายเซ็น</Button>
-                {canManagePermissions && (
-                  <Button variant={activeTab === 'permissions' ? 'default' : 'ghost'} onClick={() => setActiveTab('permissions')} className={activeTab === 'permissions' ? 'bg-blue-600' : ''}>สิทธิ์</Button>
-                )}
+                {canAccessPackagePage && (<Button variant={activeTab==='package'?'default':'ghost'} onClick={()=>setActiveTab('package')} className={activeTab==='package'?'bg-blue-600':''}><Crown className="w-4 h-4 mr-2"/>แพ็กเกจ</Button>)}
+                <Button variant={activeTab==='building'?'default':'ghost'} onClick={()=>setActiveTab('building')} className={activeTab==='building'?'bg-blue-600':''}>อาคาร</Button>
+                <Button variant={activeTab==='billing'?'default':'ghost'} onClick={()=>setActiveTab('billing')} className={activeTab==='billing'?'bg-blue-600':''}>อัตรา</Button>
+                <Button variant={activeTab==='bill_notifications'?'default':'ghost'} onClick={()=>setActiveTab('bill_notifications')} className={activeTab==='bill_notifications'?'bg-blue-600':''}>บิล</Button>
+                {userRole==='developer' && (<Button variant={activeTab==='notifications'?'default':'ghost'} onClick={()=>setActiveTab('notifications')} className={activeTab==='notifications'?'bg-blue-600':''}>การแจ้งเตือน</Button>)}
+                <Button variant={activeTab==='bank'?'default':'ghost'} onClick={()=>setActiveTab('bank')} className={activeTab==='bank'?'bg-blue-600':''}>ธนาคาร</Button>
+                <Button variant={activeTab==='messaging'?'default':'ghost'} onClick={()=>setActiveTab('messaging')} className={activeTab==='messaging'?'bg-blue-600':''}><MessageSquare className="w-4 h-4 mr-1"/>ช่องทางสื่อสาร</Button>
+                <Button variant={activeTab==='signature'?'default':'ghost'} onClick={()=>setActiveTab('signature')} className={activeTab==='signature'?'bg-blue-600':''}>ลายเซ็น</Button>
+                {canManagePermissions && (<Button variant={activeTab==='permissions'?'default':'ghost'} onClick={()=>setActiveTab('permissions')} className={activeTab==='permissions'?'bg-blue-600':''}>สิทธิ์</Button>)}
               </div>
-
-
-
               {canAccessPackagePage && activeTab === 'package' && (
                 <div className="space-y-6">
                   {activeSubscription ? (
