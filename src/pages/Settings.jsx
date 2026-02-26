@@ -1672,7 +1672,7 @@ export default function Settings() {
     try {
       for (const branchId of targetBranchIds) {
         // Update Page Access Token
-        const existingToken = configs.find(c => c.key === 'facebook_page_access_token' && c.branch_id === branchId);
+        const existingToken = (await base44.entities.Config.filter({ key: 'facebook_page_access_token', branch_id: branchId }, '', 1))[0];
         if (existingToken) {
           await base44.entities.Config.update(existingToken.id, { value: facebookSettings.facebook_page_access_token.trim() });
         } else {
