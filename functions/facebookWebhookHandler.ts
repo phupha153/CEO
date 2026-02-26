@@ -261,14 +261,14 @@ async function handleMessage(base44, senderPsid, receivedMessage, branchId, tena
         // ยังไม่ลงทะเบียน
         if (phoneWithBranchPattern.test(text)) {
             const match = text.match(phoneWithBranchPattern);
-            await handleRegistration(base44, senderPsid, match[1], match[2].toUpperCase());
+            await handleRegistration(base44, senderPsid, match[1], match[2].toUpperCase(), branchId);
             return;
         } else if (phonePattern.test(text)) {
-            await handleRegistration(base44, senderPsid, text, null);
+            await handleRegistration(base44, senderPsid, text, null, branchId);
             return;
         } else if (text.length >= 3) {
             // ลองค้นหาด้วยชื่อ
-            await handleNameRegistration(base44, senderPsid, text);
+            await handleNameRegistration(base44, senderPsid, text, branchId);
             return;
         }
     }
