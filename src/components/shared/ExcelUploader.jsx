@@ -32,27 +32,35 @@ export default function ExcelUploader({
 
   const downloadTemplate = () => {
     try {
-      // ตรวจสอบว่ามี templateData และไม่ใช่ array ว่าง
       if (!templateData || !Array.isArray(templateData) || templateData.length === 0) {
         toast.error('ไม่มี Template สำหรับดาวน์โหลด');
         return;
       }
       
-      const headers = Object.keys(templateData[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...templateData.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
-      ].join('\n');
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(templateData);
 
-      // Use explicit BOM bytes for better Excel compatibility
-      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', templateFilename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Adjust column widths to be longer/wider
+      const headers = Object.keys(templateData[0]);
+      const colWidths = headers.map(key => {
+        let maxLength = key.length;
+        templateData.forEach(row => {
+          const val = String(row[key] || '');
+          if (val.length > maxLength) maxLength = val.length;
+        });
+        // Min 15 chars, add 10 for padding to make it comfortably wide
+        return { wch: Math.max(maxLength + 10, 20) };
+      });
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, "Template");
+      
+      // Ensure extension is .xlsx
+      const filename = templateFilename.endsWith('.csv') 
+        ? templateFilename.replace('.csv', '.xlsx') 
+        : (templateFilename.endsWith('.xlsx') ? templateFilename : `${templateFilename}.xlsx`);
+
+      XLSX.writeFile(wb, filename);
       
       toast.success('ดาวน์โหลด Template สำเร็จ');
     } catch (error) {
