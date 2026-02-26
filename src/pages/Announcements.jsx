@@ -120,11 +120,11 @@ export default function Announcements() {
       try {
           const configs = await base44.entities.Config.list('', 1000);
           const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-          const defaultBranchConfig = configList.find(c => c.key === 'default_communication_branch');
-          if (defaultBranchConfig && defaultBranchConfig.value === selectedBranchId) {
-              const branches = await base44.entities.Branch.list('', 100);
-              const branchList = Array.isArray(branches) ? branches : (branches ? [branches] : []);
-              allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...branchList.map(b => b.id)])];
+          const sharedConfig = configList.find(c => c.key === 'shared_unlinked_branches' && c.branch_id === selectedBranchId) || 
+                               configList.find(c => c.key === 'shared_unlinked_branches' && !c.branch_id);
+          if (sharedConfig && sharedConfig.value) {
+              const sharedIds = sharedConfig.value.split(',').map(id => id.trim());
+              allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...sharedIds])];
           }
       } catch (e) { console.error('Error fetching config:', e); }
 
@@ -136,6 +136,7 @@ export default function Announcements() {
       
       let unlinkedMessages = [];
       try {
+          // ดึงทีละสาขาเพื่อเลี่ยงปัญหา $in ใน SDK บางเวอร์ชัน
           const unlinkedPromises = allowedUnlinkedBranches.map(id => 
               base44.entities.LineMessage.filter({ tenant_id: null, branch_id: id }, '-created_date', 100)
           );
@@ -160,16 +161,14 @@ export default function Announcements() {
       if (!selectedBranchId) return [];
       try {
         let allowedUnlinkedBranches = [selectedBranchId];
-        try {
-            const configs = await base44.entities.Config.list('', 1000);
-            const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-            const defaultBranchConfig = configList.find(c => c.key === 'default_communication_branch');
-            if (defaultBranchConfig && defaultBranchConfig.value === selectedBranchId) {
-                const branches = await base44.entities.Branch.list('', 100);
-                const branchList = Array.isArray(branches) ? branches : (branches ? [branches] : []);
-                allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...branchList.map(b => b.id)])];
-            }
-        } catch (e) { console.error('Error fetching config:', e); }
+        const configs = await base44.entities.Config.list('', 1000);
+        const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+        const sharedConfig = configList.find(c => c.key === 'shared_unlinked_branches' && c.branch_id === selectedBranchId) || 
+                             configList.find(c => c.key === 'shared_unlinked_branches' && !c.branch_id);
+        if (sharedConfig && sharedConfig.value) {
+            const sharedIds = sharedConfig.value.split(',').map(id => id.trim());
+            allowedUnlinkedBranches = [...new Set([...allowedUnlinkedBranches, ...sharedIds])];
+        }
 
         let branchMessages = [];
         const res = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
