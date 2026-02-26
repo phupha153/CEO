@@ -281,7 +281,7 @@ export default function MeterReadings() {
     const activeRooms = rooms;
     
     // สร้างข้อมูล CSV พร้อมข้อมูลห้อง
-    const headers = ['หมายเลขห้อง', 'ชั้น', 'ผู้เช่า', 'มิเตอร์น้ำครั้งก่อน', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟครั้งก่อน', 'มิเตอร์ไฟปัจจุบัน'];
+    const headers = ['หมายเลขห้อง', 'มิเตอร์น้ำครั้งก่อน', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟครั้งก่อน', 'มิเตอร์ไฟปัจจุบัน'];
     
     const rows = activeRooms
       .sort((a, b) => {
@@ -293,16 +293,12 @@ export default function MeterReadings() {
         return numA - numB;
       })
       .map(room => {
-        const booking = getActiveBooking(room.id);
-        const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
         const latest = getLatestReading(room.id);
         const waterPrev = latest?.water_current || 0;
         const elecPrev = latest?.electricity_current || 0;
         
         return [
           room.room_number,
-          room.floor || '',
-          tenant?.full_name || '',
           waterPrev,
           '', // มิเตอร์น้ำปัจจุบัน - ให้กรอก
           elecPrev,
