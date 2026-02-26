@@ -281,7 +281,7 @@ export default function MeterReadings() {
     const activeRooms = rooms;
     
     // สร้างข้อมูล CSV พร้อมข้อมูลห้อง
-    const headers = ['หมายเลขห้อง', 'มิเตอร์น้ำครั้งก่อน', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟครั้งก่อน', 'มิเตอร์ไฟปัจจุบัน'];
+    const headers = ['หมายเลขห้อง', 'ชั้น', 'ผู้เช่า', 'มิเตอร์น้ำครั้งก่อน', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟครั้งก่อน', 'มิเตอร์ไฟปัจจุบัน'];
     
     const rows = activeRooms
       .sort((a, b) => {
@@ -293,12 +293,16 @@ export default function MeterReadings() {
         return numA - numB;
       })
       .map(room => {
+        const booking = getActiveBooking(room.id);
+        const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
         const latest = getLatestReading(room.id);
         const waterPrev = latest?.water_current || 0;
         const elecPrev = latest?.electricity_current || 0;
         
         return [
           room.room_number,
+          room.floor || '',
+          tenant?.full_name || '',
           waterPrev,
           '', // มิเตอร์น้ำปัจจุบัน - ให้กรอก
           elecPrev,
@@ -306,17 +310,20 @@ export default function MeterReadings() {
         ];
       });
 
-    // สร้างไฟล์ Excel แท้ (.xlsx)
-    const dataForExcel = [headers, ...rows];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(dataForExcel);
+    // สร้าง CSV content พร้อม BOM สำหรับ Excel
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     
-    // ปรับความกว้างคอลัมน์ให้อ่านง่าย
-    const colWidths = headers.map(() => ({ wch: 20 }));
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, "บันทึกมิเตอร์");
-    XLSX.writeFile(wb, `บันทึกมิเตอร์_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    // ดาวน์โหลด
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `บันทึกมิเตอร์_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     
     toast.success('ดาวน์โหลดไฟล์สำเร็จ');
   };
