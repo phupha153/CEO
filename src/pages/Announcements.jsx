@@ -115,19 +115,9 @@ export default function Announcements() {
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      
-      const defaultBranchConfig = await base44.entities.Config.filter({ key: 'default_communication_branch' });
-      const defaultBranchId = Array.isArray(defaultBranchConfig) ? defaultBranchConfig[0]?.value : defaultBranchConfig?.value;
-
-      if (defaultBranchId && defaultBranchId !== selectedBranchId) {
-        return await base44.entities.LineMessage.filter({
-          $or: [
-            { branch_id: selectedBranchId },
-            { branch_id: defaultBranchId, tenant_id: null }
-          ]
-        }, '-created_date', 500);
-      }
-      
+      // 🔒 Multi-Tenancy: ดึงเฉพาะข้อความของสาขาที่เลือกเท่านั้น 
+      // (ข้อความจากลูกค้าใหม่ที่ยังไม่มีสาขา จะถูกระบบส่งไปที่ Default Branch ตามที่ตั้งค่าไว้ 
+      // ดังนั้นหากต้องการดูข้อความใหม่ ต้องสลับไปที่ Default Branch)
       return await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     staleTime: 30 * 1000,
@@ -142,18 +132,7 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        const defaultBranchConfig = await base44.entities.Config.filter({ key: 'default_communication_branch' });
-        const defaultBranchId = Array.isArray(defaultBranchConfig) ? defaultBranchConfig[0]?.value : defaultBranchConfig?.value;
-
-        if (defaultBranchId && defaultBranchId !== selectedBranchId) {
-          return await base44.entities.FacebookMessage?.filter({
-            $or: [
-              { branch_id: selectedBranchId },
-              { branch_id: defaultBranchId, tenant_id: null }
-            ]
-          }, '-created_date', 500) || [];
-        }
-
+        // 🔒 Multi-Tenancy: ดึงเฉพาะข้อความของสาขาที่เลือกเท่านั้น
         return await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
       } catch {
         return [];
