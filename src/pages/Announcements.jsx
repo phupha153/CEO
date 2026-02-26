@@ -134,9 +134,11 @@ export default function Announcements() {
       
       let nullBranchMessages = [];
       try {
-          // ดึงข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขาตามที่คุณต้องการ
-          const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
-          nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+          if (isDefaultBranch) {
+              // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ที่สาขาหลัก
+              const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
+              nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+          }
       } catch (e) { console.error('Error fetching null branch messages:', e); }
       
       const allMessages = [...branchMessages, ...nullBranchMessages];
