@@ -145,23 +145,14 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
       try {
-        let isDefaultBranch = false;
-        const configs = await base44.entities.Config.list('', 1000);
-        const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-        const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
-        if (defConfig && defConfig.value === selectedBranchId) {
-            isDefaultBranch = true;
-        }
-
         let branchMessages = [];
         const res = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
         branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
         
         let nullBranchMessages = [];
-        if (isDefaultBranch) {
-            const resNull = await base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100);
-            nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
-        }
+        // ดึงข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขา
+        const resNull = await base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100);
+        nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
         
         const allMessages = [...branchMessages, ...nullBranchMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
