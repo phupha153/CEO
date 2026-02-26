@@ -1057,8 +1057,8 @@ export default function Layout({ children, currentPageName }) {
         return accessibleBranches.length > 1;
       }
 
-      // ถ้าไม่ set accessible_branches และเป็น developer = ให้ดูจำนวนสาขาทั้งหมด
-      if (userRole === 'developer') {
+      // ถ้าไม่ set accessible_branches และเป็น developer หรือ owner = ให้ดูจำนวนสาขาทั้งหมด
+      if (userRole === 'developer' || userRole === 'owner') {
         return branches.length > 1;
       }
 

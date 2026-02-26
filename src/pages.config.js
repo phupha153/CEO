@@ -56,6 +56,7 @@ import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
 import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
+import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
 import ContractEditor from './pages/ContractEditor';
 import ContractTemplate from './pages/ContractTemplate';
@@ -76,6 +77,7 @@ import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
+import MeterReadings from './pages/MeterReadings';
 import NoPackagePage from './pages/NoPackagePage';
 import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
@@ -104,8 +106,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import BranchManagement from './pages/BranchManagement';
-import MeterReadings from './pages/MeterReadings';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +119,7 @@ export const PAGES = {
     "BannerManagement": BannerManagement,
     "BookingReceipt": BookingReceipt,
     "Bookings": Bookings,
+    "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
     "ContractEditor": ContractEditor,
     "ContractTemplate": ContractTemplate,
@@ -139,6 +140,7 @@ export const PAGES = {
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
+    "MeterReadings": MeterReadings,
     "NoPackagePage": NoPackagePage,
     "NotificationSettings": NotificationSettings,
     "OwnerAI": OwnerAI,
@@ -167,8 +169,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "BranchManagement": BranchManagement,
-    "MeterReadings": MeterReadings,
 }
 
 export const pagesConfig = {

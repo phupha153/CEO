@@ -47,10 +47,12 @@ export default function AllBranchesDashboard() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-  const userAccessibleBranches = currentUser?.accessible_branches || [];
-  // Developer เห็นทุกสาขาเฉพาะเมื่อไม่มีการตั้งค่า accessible_branches
-  const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+  const userAccessibleBranches = currentUser?.accessible_branches;
+  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
+
+  // Developer เห็นทุกสาขาเมื่อไม่ได้ set accessible_branches
+  const canViewAllBranches = userRole === 'developer' && !hasAccessibleBranchesSet;
 
   const retryConfig = {
     retry: 0,
@@ -72,8 +74,19 @@ export default function AllBranchesDashboard() {
   // Filter branches based on user access - must be right after allBranches query
   const branches = useMemo(() => {
     if (canViewAllBranches) return allBranches;
-    return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-  }, [allBranches, canViewAllBranches, userAccessibleBranches]);
+    
+    // ถ้ามี accessible_branches ให้กรองตามนั้น
+    if (hasAccessibleBranchesSet) {
+      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
+    }
+    
+    // ถ้าไม่มี accessible_branches และเป็น owner ให้ดูสาขาตัวเอง
+    if (userRole === 'owner') {
+      return allBranches.filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email);
+    }
+    
+    return [];
+  }, [allBranches, canViewAllBranches, hasAccessibleBranchesSet, userAccessibleBranches, userRole, currentUser]);
 
   // สร้าง Set ของ branch IDs ที่เข้าถึงได้เพื่อกรองข้อมูล
   const accessibleBranchIds = useMemo(() => 
