@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             if (events.length === 0) return;
             
             let destinationBranchId = queryBranchId;
-            if (!destinationBranchId || destinationBranchId === 'global') {
+            if (!destinationBranchId) {
                 try {
                     const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
                     if (def && def.length > 0) destinationBranchId = def[0].value;
@@ -1963,7 +1963,10 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 
         let response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
             body: JSON.stringify(body)
         });
 
@@ -1971,19 +1974,30 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
         const usedReplyFirst = replyToken && endpoint.includes('reply');
         console.log(`📬 LINE API Response (${usedReplyFirst ? 'REPLY' : 'PUSH'}):`, response.status, responseText.substring(0, 300));
 
+        // ⭐ ถ้า reply ไม่สำเร็จ (error 400 = Invalid reply token) ให้ลอง push แทน
         if (!response.ok && replyToken) {
             console.error(`❌ Reply failed: ${response.status} - ${responseText}`);
-            console.log('⚠️ Reply failed, falling back to PUSH');
-            endpoint = 'https://api.line.me/v2/bot/message/push';
-            body = { to: lineUserId, messages: [{ type: 'text', text }] };
-            console.log(`🔄 Retry with PUSH: ${endpoint}`);
-            response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
-                body: JSON.stringify(body)
-            });
-            responseText = await response.text();
-            console.log(`📬 PUSH Fallback Response:`, response.status, responseText.substring(0, 300));
+
+            if (response.status === 400 && responseText.includes('Invalid reply token')) {
+                console.log('⚠️ Reply token expired, falling back to PUSH');
+
+                endpoint = 'https://api.line.me/v2/bot/message/push';
+                body = { to: lineUserId, messages: [{ type: 'text', text }] };
+
+                console.log(`🔄 Retry with PUSH: ${endpoint}`);
+
+                response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lineToken}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                responseText = await response.text();
+                console.log(`📬 PUSH Fallback Response:`, response.status, responseText.substring(0, 300));
+            }
         }
 
         if (!response.ok) {
