@@ -591,7 +591,7 @@ export default function Settings() {
     const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token', false);
     const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing', false);
 
-    const defBranchConf = configs.find(c => c.key === 'default_communication_branch' && !c.branch_id);
+    const defBranchConf = configs.find(c => c.key === 'default_communication_branch' && c.branch_id === selectedBranch?.id);
     setDefaultCommunicationBranch(defBranchConf?.value || 'none');
     setBuildingLogo(buildingLogoConfig?.value || ''); setSignatureImage(signatureConfig?.value || ''); setStampImage(stampConfig?.value || '');
     
