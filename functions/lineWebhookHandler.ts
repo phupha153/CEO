@@ -418,13 +418,9 @@ Deno.serve(async (req) => {
 
                         if (messageText.includes('แจ้งซ่อม') || messageText.includes('เเจ้งซ่อม')) {
                             console.log('🔧 Detected maintenance request keyword');
-                            // ⭐ ใช้ filter แทน list + find + branch_id
                             let tenant = null;
                             try {
-                                const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                                    line_user_id: lineUserId,
-                                    branch_id: destinationBranchId 
-                                });
+                                const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
                                 tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                             } catch (e) {
                                 console.log('⚠️ Could not find tenant:', e.message);
