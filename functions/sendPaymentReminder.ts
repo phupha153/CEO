@@ -620,6 +620,9 @@ Deno.serve(async (req) => {
 
                 const result = batchResult.data;
                 console.log('✅ Batch result:', { success: result.success, failed: result.failed, total: lineRecipients.length });
+                if (result.errors && result.errors.length > 0) {
+                    console.error('❌ LINE Send Errors:', JSON.stringify(result.errors, null, 2));
+                }
 
                 successCount += result.success || 0;
                 failCount += result.failed || 0;
