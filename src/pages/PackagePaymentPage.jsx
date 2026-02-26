@@ -45,7 +45,7 @@ export default function PackagePaymentPage() {
 
   const getConfigValue = (key, defaultValue = '') => {
     const config = configs.find(c => c.key === key && !c.branch_id);
-    return config?.value || defaultValue;
+    return (config && config.value && config.value.trim() !== '') ? config.value : defaultValue;
   };
 
   const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
