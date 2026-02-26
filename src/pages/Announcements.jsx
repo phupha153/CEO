@@ -132,18 +132,16 @@ export default function Announcements() {
           branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
       } catch (e) { console.error('Error fetching branch messages:', e); }
       
-      let unlinkedMessages = [];
+      let nullBranchMessages = [];
       try {
           if (isDefaultBranch) {
-              const resUnlinked = await base44.entities.LineMessage.filter({ tenant_id: null }, '-created_date', 200);
-              unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
-          } else {
-              const resUnlinked = await base44.entities.LineMessage.filter({ tenant_id: null, branch_id: selectedBranchId }, '-created_date', 100);
-              unlinkedMessages = Array.isArray(resUnlinked) ? resUnlinked : (resUnlinked ? [resUnlinked] : []);
+              // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ที่สาขาหลัก
+              const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
+              nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
           }
-      } catch (e) { console.error('Error fetching unlinked messages:', e); }
+      } catch (e) { console.error('Error fetching null branch messages:', e); }
       
-      const allMessages = [...branchMessages, ...unlinkedMessages];
+      const allMessages = [...branchMessages, ...nullBranchMessages];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
