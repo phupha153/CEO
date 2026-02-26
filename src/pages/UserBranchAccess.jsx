@@ -38,6 +38,13 @@ export default function UserBranchAccess() {
     pricePerMonth: 0
   });
   const [deletingPackage, setDeletingPackage] = useState(false);
+  const [showBankDialog, setShowBankDialog] = useState(false);
+  const [bankForm, setBankForm] = useState({
+    bank_name: '',
+    bank_account_number: '',
+    bank_account_name: '',
+    promptpay: ''
+  });
 
 
   const queryClient = useQueryClient();
@@ -111,6 +118,11 @@ export default function UserBranchAccess() {
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 500),
     retry: 2,
     staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: globalConfigs = [] } = useQuery({
+    queryKey: ['globalConfigs'],
+    queryFn: () => base44.entities.Config.filter({ branch_id: null }, '', 100),
   });
 
   // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์
@@ -336,6 +348,46 @@ export default function UserBranchAccess() {
     });
   };
 
+  const handleOpenBankDialog = () => {
+    const getConfig = (key) => globalConfigs.find(c => c.key === key)?.value || '';
+    setBankForm({
+      bank_name: getConfig('bank_name') || 'ธนาคารกสิกรไทย',
+      bank_account_number: getConfig('bank_account_number') || '',
+      bank_account_name: getConfig('bank_account_name') || '',
+      promptpay: getConfig('promptpay') || ''
+    });
+    setShowBankDialog(true);
+  };
+
+  const saveBankConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const updates = Object.entries(data).map(async ([key, value]) => {
+        const existing = globalConfigs.find(c => c.key === key);
+        if (existing) {
+          return base44.entities.Config.update(existing.id, { value });
+        } else {
+          return base44.entities.Config.create({
+            key,
+            value,
+            branch_id: null,
+            description: `Bank Config: ${key}`,
+            value_type: 'string',
+            category: 'billing'
+          });
+        }
+      });
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['globalConfigs']);
+      toast.success('บันทึกข้อมูลธนาคารสำเร็จ');
+      setShowBankDialog(false);
+    },
+    onError: (error) => {
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  });
+
 
 
   const getUserPaymentHistory = (userEmail) => {
@@ -398,14 +450,24 @@ export default function UserBranchAccess() {
         showBackButton={true}
         actions={
           isDeveloper && (
-            <Button
-              onClick={cleanupAllUsers}
-              variant="outline"
-              className="text-red-600 hover:bg-red-50 border-red-200"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              ลบสาขาที่ไม่มีแล้ว (ทุกคน)
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleOpenBankDialog}
+                variant="outline"
+                className="text-blue-600 hover:bg-blue-50 border-blue-200"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                ตั้งค่าบัญชีธนาคาร
+              </Button>
+              <Button
+                onClick={cleanupAllUsers}
+                variant="outline"
+                className="text-red-600 hover:bg-red-50 border-red-200"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                ลบสาขาที่ไม่มีแล้ว (ทุกคน)
+              </Button>
+            </div>
           )
         }
       />
@@ -945,6 +1007,62 @@ export default function UserBranchAccess() {
                   </div>
                 </div>
               )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Bank Config Dialog */}
+          <Dialog open={showBankDialog} onOpenChange={setShowBankDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                  ตั้งค่าบัญชีธนาคาร (สำหรับรับชำระเงิน)
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>ชื่อธนาคาร</Label>
+                  <Input
+                    value={bankForm.bank_name}
+                    onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
+                    placeholder="เช่น ธนาคารกสิกรไทย"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ชื่อบัญชี</Label>
+                  <Input
+                    value={bankForm.bank_account_name}
+                    onChange={(e) => setBankForm({ ...bankForm, bank_account_name: e.target.value })}
+                    placeholder="ชื่อบัญชีเจ้าของ"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>เลขที่บัญชี</Label>
+                  <Input
+                    value={bankForm.bank_account_number}
+                    onChange={(e) => setBankForm({ ...bankForm, bank_account_number: e.target.value })}
+                    placeholder="XXX-X-XXXXX-X"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>พร้อมเพย์ (ถ้ามี)</Label>
+                  <Input
+                    value={bankForm.promptpay}
+                    onChange={(e) => setBankForm({ ...bankForm, promptpay: e.target.value })}
+                    placeholder="เบอร์โทร หรือ เลขบัตรประชาชน"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowBankDialog(false)}>ยกเลิก</Button>
+                  <Button 
+                    onClick={() => saveBankConfigMutation.mutate(bankForm)}
+                    disabled={saveBankConfigMutation.isPending}
+                    className="bg-blue-600 text-white"
+                  >
+                    {saveBankConfigMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
 

@@ -49,8 +49,8 @@ export default function PackagePaymentPage() {
   };
 
   const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
-  const accountNumber = '042-3-49594-4'; // บังคับใช้เลขบัญชีนี้สำหรับซื้อแพ็กเกจ
-  const accountName = 'บจก.ธนานนท์ พรมพักตร์'; // บังคับใช้ชื่อบัญชีนี้สำหรับซื้อแพ็กเกจ
+  const accountNumber = getConfigValue('bank_account_number', '042-3-49594-4');
+  const accountName = getConfigValue('bank_account_name', 'บจก.ธนานนท์ พรมพักตร์');
   const promptpay = getConfigValue('promptpay', '0812345678');
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
@@ -138,10 +138,10 @@ export default function PackagePaymentPage() {
     const discountAmount = appliedDiscount ? appliedDiscount.discount_amount : (packageData.discountAmount || 0);
     const isFree = finalAmount === 0;
 
-    if (!isFree && !slipUrl) {
-      toast.error('กรุณาอัปโหลดสลิปก่อน');
-      return;
-    }
+    // if (!isFree && !slipUrl) {
+    //   toast.error('กรุณาอัปโหลดสลิปก่อน');
+    //   return;
+    // }
 
     setProcessingPayment(true);
     setErrorDetails(null);
@@ -448,33 +448,36 @@ export default function PackagePaymentPage() {
               )}
 
               {!slipUrl && !packageData.isFree && (appliedDiscount ? appliedDiscount.final_amount : packageData.finalTotal) > 0 && (
-                <label className="block cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSlipUpload}
-                    disabled={uploadingSlip}
-                    className="hidden"
-                  />
-                  <div className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl transition-all ${
-                    uploadingSlip 
-                      ? 'border-slate-300 bg-slate-50 cursor-not-allowed' 
-                      : 'border-blue-400 bg-blue-50 hover:bg-blue-100 hover:border-blue-500'
-                  }`}>
-                    {uploadingSlip ? (
-                      <div className="text-center">
-                        <Loader2 className="w-8 h-8 text-blue-600 mx-auto mb-2 animate-spin" />
-                        <p className="text-sm font-semibold text-slate-700">กำลังอัปโหลด...</p>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                        <p className="text-sm font-semibold text-slate-800">คลิกเพื่อเลือกสลิป</p>
-                        <p className="text-xs text-slate-500 mt-1">PNG, JPG (ไม่เกิน 10MB)</p>
-                      </div>
-                    )}
-                  </div>
-                </label>
+                <>
+                  <label className="block cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSlipUpload}
+                      disabled={uploadingSlip}
+                      className="hidden"
+                    />
+                    <div className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl transition-all ${
+                      uploadingSlip 
+                        ? 'border-slate-300 bg-slate-50 cursor-not-allowed' 
+                        : 'border-blue-400 bg-blue-50 hover:bg-blue-100 hover:border-blue-500'
+                    }`}>
+                      {uploadingSlip ? (
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 text-blue-600 mx-auto mb-2 animate-spin" />
+                          <p className="text-sm font-semibold text-slate-700">กำลังอัปโหลด...</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                          <p className="text-sm font-semibold text-slate-800">คลิกเพื่อเลือกสลิป (ไม่บังคับ)</p>
+                          <p className="text-xs text-slate-500 mt-1">PNG, JPG (ไม่เกิน 10MB)</p>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                  <p className="text-xs text-center text-slate-500 mt-2">* สามารถกด "ยืนยันการชำระเงิน" ได้เลยโดยไม่ต้องแนบสลิป</p>
+                </>
               )}
 
               {(packageData.isFree || (appliedDiscount && appliedDiscount.final_amount === 0)) && (
@@ -501,7 +504,7 @@ export default function PackagePaymentPage() {
               ) : (
                 <Button
                   onClick={handleConfirmPayment}
-                  disabled={processingPayment || (!slipUrl && !packageData.isFree && (!appliedDiscount || appliedDiscount.final_amount > 0))}
+                  disabled={processingPayment}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6 mt-6"
                 >
                   {processingPayment ? (
