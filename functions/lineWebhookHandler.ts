@@ -558,8 +558,7 @@ Deno.serve(async (req) => {
                                         let hasPendingPayment = false;
                                         try {
                                             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
-                                                tenant_id: tenant.id,
-                                                branch_id: branchId
+                                                tenant_id: tenant.id
                                             });
                                             const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
                                             hasPendingPayment = allPayments.some(p => 
