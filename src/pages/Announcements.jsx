@@ -115,9 +115,20 @@ export default function Announcements() {
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // ดึงเฉพาะข้อความของสาขานี้
-      const branchMessages = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-      return branchMessages;
+      
+      const defaultBranchConfig = await base44.entities.Config.filter({ key: 'default_communication_branch' });
+      const defaultBranchId = Array.isArray(defaultBranchConfig) ? defaultBranchConfig[0]?.value : defaultBranchConfig?.value;
+
+      if (defaultBranchId && defaultBranchId !== selectedBranchId) {
+        return await base44.entities.LineMessage.filter({
+          $or: [
+            { branch_id: selectedBranchId },
+            { branch_id: defaultBranchId, tenant_id: null }
+          ]
+        }, '-created_date', 500);
+      }
+      
+      return await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     staleTime: 30 * 1000,
     refetchInterval: false,
@@ -130,11 +141,20 @@ export default function Announcements() {
     queryKey: ['facebookMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // สมมติว่า Facebook messages จะถูกเก็บใน entity ชื่อ FacebookMessage
-      // ถ้าไม่มีให้ส่ง [] กลับไป
       try {
-        const fbMessages = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
-        return fbMessages || [];
+        const defaultBranchConfig = await base44.entities.Config.filter({ key: 'default_communication_branch' });
+        const defaultBranchId = Array.isArray(defaultBranchConfig) ? defaultBranchConfig[0]?.value : defaultBranchConfig?.value;
+
+        if (defaultBranchId && defaultBranchId !== selectedBranchId) {
+          return await base44.entities.FacebookMessage?.filter({
+            $or: [
+              { branch_id: selectedBranchId },
+              { branch_id: defaultBranchId, tenant_id: null }
+            ]
+          }, '-created_date', 500) || [];
+        }
+
+        return await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500) || [];
       } catch {
         return [];
       }
