@@ -3421,40 +3421,27 @@ export default function Settings() {
                             </div>
                           </div>
 
+                          {(userRole === 'developer' || userRole === 'owner') && (
+                            <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
+                              <h4 className="font-semibold text-amber-900 mb-2">สาขาหลักรับข้อความแชทใหม่ (Default Branch)</h4>
+                              <Select value={configs.find(c => c.key === 'default_communication_branch' && !c.branch_id)?.value || ''} onValueChange={async (val) => {
+                                try {
+                                  const ex = configs.find(c => c.key === 'default_communication_branch' && !c.branch_id);
+                                  ex ? await base44.entities.Config.update(ex.id, {value: val}) : await base44.entities.Config.create({key: 'default_communication_branch', value: val, category: 'general'});
+                                  toast.success('บันทึกสาขาหลักสำเร็จ'); queryClient.invalidateQueries(['configs']);
+                                } catch(e) { toast.error('บันทึกไม่ได้: '+e.message); }
+                              }}>
+                                <SelectTrigger className="w-full bg-white"><SelectValue placeholder="เลือกสาขาหลัก (คนแปลกหน้าจะเข้าสาขานี้)" /></SelectTrigger>
+                                <SelectContent>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                          )}
                           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                              <Zap className="w-5 h-5" />
-                              Webhook URL สำหรับสาขานี้
-                            </h4>
-                            <div className="space-y-3">
-                              <div className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-2">
-                                <code className="flex-1 text-sm text-slate-700 font-mono break-all">
-                                  {showWebhookUrl 
-                                    ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`
-                                    : '••••••••••••••••••••••••••••••••••••••••••••••'}
-                                </code>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setShowWebhookUrl(!showWebhookUrl)}
-                                  className="flex-shrink-0"
-                                >
-                                  {showWebhookUrl ? 'ซ่อน' : 'ดู'}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`);
-                                    toast.success('คัดลอก Webhook URL แล้ว');
-                                  }}
-                                  className="flex-shrink-0"
-                                >
-                                  คัดลอก
-                                </Button>
-                              </div>
+                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2"><Zap className="w-5 h-5" /> Webhook URL สำหรับสาขานี้</h4>
+                            <div className="flex items-center gap-2 bg-white rounded-lg p-3 border border-slate-200">
+                              <code className="flex-1 text-sm text-slate-700 font-mono break-all">{showWebhookUrl ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}` : '••••••••••••••••••••••••••••••••••••••••••••••'}</code>
+                              <Button type="button" size="sm" variant="outline" onClick={() => setShowWebhookUrl(!showWebhookUrl)}>{showWebhookUrl ? 'ซ่อน' : 'ดู'}</Button>
+                              <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`); toast.success('คัดลอก Webhook URL แล้ว'); }}>คัดลอก</Button>
                             </div>
                           </div>
 
