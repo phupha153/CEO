@@ -564,13 +564,13 @@ export default function PublicInvoice() {
                       {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
                       {invoiceData.recipient?.company_address && <p>{invoiceData.recipient.company_address}</p>}
                     </>
-                  ) : invoiceData.recipient?.lessor_name ? (
+                  ) : (
                     <>
-                      <p className="font-medium text-slate-800">{invoiceData.recipient.lessor_name}</p>
+                      <p className="font-medium text-slate-800">{invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
                       {invoiceData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
-                      {invoiceData.recipient?.lessor_address && <p>{invoiceData.recipient.lessor_address}</p>}
+                      <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
                     </>
-                  ) : null}
+                  )}
                 </div>
               </div>
 
