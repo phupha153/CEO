@@ -335,10 +335,20 @@ export default function UserBranchAccess() {
            results.push({ new_owner: newOwnerEmail });
         } else {
           const currentOwner = branch.owner_id;
+          if (currentOwner === newOwnerEmail) {
+            results.push({ success: true, message: 'ผู้ใช้นี้เป็นเจ้าของสาขาอยู่แล้ว' });
+            continue;
+          }
+          
+          const oldOwnerEmail = isDeveloper ? currentOwner : currentUser?.email;
+          if (!oldOwnerEmail) {
+             throw new Error(`ไม่พบข้อมูลเจ้าของเดิมสำหรับสาขา ${branch.branch_name}`);
+          }
+
           const response = await base44.functions.invoke('transferOwnership', {
             branch_id: b_id,
             new_owner_email: newOwnerEmail,
-            old_owner_email: isDeveloper ? currentOwner : currentUser?.email
+            old_owner_email: oldOwnerEmail
           });
           results.push(response.data);
         }
