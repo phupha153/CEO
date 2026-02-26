@@ -134,9 +134,11 @@ export default function Announcements() {
       
       let nullBranchMessages = [];
       try {
-          // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขาที่เปิดดู เพื่อให้แอดมินเห็นลูกค้าใหม่
-          const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
-          nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+          if (isDefaultBranch) {
+              // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ที่สาขาหลัก
+              const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
+              nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+          }
       } catch (e) { console.error('Error fetching null branch messages:', e); }
       
       const allMessages = [...branchMessages, ...nullBranchMessages];
@@ -168,9 +170,10 @@ export default function Announcements() {
         branchMessages = Array.isArray(res) ? res : (res ? [res] : []);
         
         let nullBranchMessages = [];
-        // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขาที่เปิดดู
-        const resNull = await base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100);
-        nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+        if (isDefaultBranch) {
+            const resNull = await base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100);
+            nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
+        }
         
         const allMessages = [...branchMessages, ...nullBranchMessages];
         const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
