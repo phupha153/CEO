@@ -691,6 +691,22 @@ export default function ChatWindow({
                         
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         
+                        // ปลดแชทกลับไปที่ Default Branch
+                        try {
+                          const configs = await base44.entities.Config.filter({ key: 'default_communication_branch' });
+                          const globalConfigs = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+                          const defaultBranchConfig = globalConfigs.find(c => !c.branch_id);
+                          if (defaultBranchConfig && defaultBranchConfig.value) {
+                            const msgs = await base44.entities.LineMessage.filter(
+                              conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
+                            );
+                            const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
+                            for (const msg of msgsArr) {
+                              await base44.entities.LineMessage.update(msg.id, { branch_id: defaultBranchConfig.value, tenant_id: null });
+                            }
+                          }
+                        } catch(e) { console.error('Failed to unlink messages:', e); }
+                        
                         console.log('✅ Update successful');
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
                         
