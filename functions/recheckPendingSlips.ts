@@ -241,13 +241,11 @@ Deno.serve(async (req) => {
             
             if (Array.isArray(batch) && batch.length > 0) {
                 // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ (รองรับทั้ง "รอตรวจสอบ" และ "รอตรวจสอบซ้ำ")
-                // แต่ต้องไม่มีคำว่า "ตรวจสอบไม่ผ่าน" (เพื่อไม่ให้ตรวจซ้ำกรณีผิดบัญชี)
                 const filtered = batch.filter(p => 
                     p.payment_slip_url && 
                     p.branch_id &&
                     p.notes && 
-                    p.notes.includes('รอตรวจสอบ') &&
-                    !p.notes.includes('ตรวจสอบไม่ผ่าน')
+                    p.notes.includes('รอตรวจสอบ')
                 );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
@@ -287,7 +285,7 @@ Deno.serve(async (req) => {
         }
 
         // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configs = await base44.asServiceRole.entities.Config.list('', 5000);
+        const configs = await base44.asServiceRole.entities.Config.list();
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -307,29 +305,6 @@ Deno.serve(async (req) => {
         for (const payment of pendingRecheckPayments) {
             try {
                 console.log(`\n🔍 Processing Payment: ${payment.id}`);
-
-                // ⭐ Re-fetch payment to prevent Race Condition
-                const freshPaymentResult = await entityService.Payment.filter({ id: payment.id });
-                const freshPayment = Array.isArray(freshPaymentResult) ? freshPaymentResult[0] : freshPaymentResult;
-
-                if (!freshPayment) {
-                    console.log(`   ❌ Payment not found (deleted?), skipping`);
-                    continue;
-                }
-
-                if (freshPayment.status !== 'pending') {
-                    console.log(`   ⏩ Payment no longer pending (Status: ${freshPayment.status}), skipping`);
-                    continue;
-                }
-
-                if (freshPayment.notes && freshPayment.notes.includes('ตรวจสอบไม่ผ่าน')) {
-                    console.log(`   ⏩ Payment already marked as failed check, skipping`);
-                    continue;
-                }
-
-                // Use fresh data
-                Object.assign(payment, freshPayment);
-
                 console.log(`   Slip URL: ${payment.payment_slip_url}`);
 
                 // เช็คว่าผ่านไป 30 วินาทีแล้วหรือยัง (หา timestamp จาก notes)
@@ -468,18 +443,36 @@ Deno.serve(async (req) => {
                         console.log(`   💰 Late Fee: ${lateFeeAmount} บาท (${daysLate} days)`);
                         console.log(`   💰 Total Paid: ${totalPaid} บาท`);
 
+                        // เช็คยอดเงิน (รองรับ partial payment)
+                        if (totalPaid < expectedAmount * 0.95) {
+                            console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
+                            const shortfall = expectedAmount - totalPaid;
+                            
+                            await entityService.Payment.update(payment.id, {
+                                status: 'partial_paid',
+                                paid_amount: totalPaid,
+                                late_fee_amount: lateFeeAmount,
+                                total_amount: expectedAmount,
+                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                            });
+                            
+                            const tenant = tenants.find(t => t.id === payment.tenant_id);
+                            if (tenant?.line_user_id) {
+                                await sendLineMessage(base44, tenant.line_user_id, 
+                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
+                                    payment.branch_id,
+                                    configs
+                                );
+                            }
+                            
+                            failCount++;
+                            continue;
+                        }
+
                 // ⭐ เช็คบัญชีปลายทาง (เช็คเฉพาะเลขบัญชี ไม่เช็คชื่อ)
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
                 
-                // ⭐ ถ้าไม่มี config บัญชีเลย = ข้ามไปก่อน (ไม่ส่งผิดบัญชี)
-                if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
-                    (!expectedPromptPay || expectedPromptPay.trim() === '')) {
-                    console.log('⚠️ NO CONFIG FOUND - Skipping account check');
-                    skippedCount++;
-                    continue;
-                }
-
                 const receiverAccount = slipData.receiver?.account?.bank?.account || '';
                 const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
 
@@ -535,9 +528,8 @@ Deno.serve(async (req) => {
                     
                     const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
                     
-                    // เพิ่มสถานะไว้ใน notes เพื่อไม่ให้ตรวจซ้ำ
                     await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ${errorMsg}\n⚠️ กรุณาตรวจสอบด้วยตนเอง`
+                        notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
                     });
                     
                     // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
@@ -553,32 +545,6 @@ Deno.serve(async (req) => {
                     failCount++;
                     continue;
                 }
-
-                        // เช็คยอดเงิน (รองรับ partial payment)
-                        if (totalPaid < expectedAmount * 0.95) {
-                            console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
-                            const shortfall = expectedAmount - totalPaid;
-                            
-                            await entityService.Payment.update(payment.id, {
-                                status: 'partial_paid',
-                                paid_amount: totalPaid,
-                                late_fee_amount: lateFeeAmount,
-                                total_amount: expectedAmount,
-                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-                            });
-                            
-                            const tenant = tenants.find(t => t.id === payment.tenant_id);
-                            if (tenant?.line_user_id) {
-                                await sendLineMessage(base44, tenant.line_user_id, 
-                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
-                                    payment.branch_id,
-                                    configs
-                                );
-                            }
-                            
-                            failCount++;
-                            continue;
-                        }
 
                 // ✅ ทุกอย่างถูกต้อง - อัปเดตเป็น paid
                 await entityService.Payment.update(payment.id, {

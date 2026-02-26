@@ -158,7 +158,7 @@ async function getLineToken(base44, branchId = null) {
             return cached.token;
         }
 
-        const configs = await base44.asServiceRole.entities.Config.list('', 5000);
+        const configs = await base44.asServiceRole.entities.Config.list();
 
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
@@ -1350,7 +1350,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         if (slipAmount === 0) {
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ ตรวจสอบไม่ผ่าน: ระบบอ่านยอดไม่ได้`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
             });
             
             await sendMessage(base44, lineUserId, 
@@ -1409,7 +1409,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ ตรวจสอบไม่ผ่าน: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
             });
 
             await sendMessage(base44, lineUserId, 
@@ -1469,7 +1469,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ ตรวจสอบไม่ผ่าน: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
 
             await sendMessage(base44, lineUserId, 
