@@ -528,8 +528,9 @@ Deno.serve(async (req) => {
                     
                     const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
                     
+                    // เพิ่มสถานะไว้ใน notes เพื่อไม่ให้ตรวจซ้ำ
                     await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
+                        notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่ผ่าน: ${errorMsg}\n⚠️ กรุณาตรวจสอบด้วยตนเอง`
                     });
                     
                     // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
