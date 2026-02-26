@@ -131,23 +131,30 @@ export default function Announcements() {
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
-      // ⚡ Fetch แบบขนาน (Parallel) เพื่อให้เร็วขึ้น และไม่ใช้ try-catch ครอบเพื่อซ่อน Error
+      // ⚡ Fetch แบบขนาน (Parallel)
       const promises = [
-          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500)
+          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500),
+          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100) // Always fetch unlinked
       ];
 
-      // ถ้าเป็นสาขาหลัก หรือ ไม่มีการตั้งสาขาหลักไว้ ให้แสดงข้อความที่ยังไม่มีสาขา (null) ด้วย
-      // สาขาที่ไม่ได้เลือกเป็นสาขาหลัก จะเห็นแค่ข้อมูลของสาขาตัวเองเท่านั้น
-      if (isDefaultBranch || !defaultBranchId || defaultBranchId === 'none') {
-          promises.push(base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100));
+      // ถ้ามีสาขาหลัก และเราไม่ได้อยู่ที่สาขาหลัก -> ให้ดึงข้อความจากสาขาหลักมาด้วย (เฉพาะที่ยังไม่ผูกผู้เช่า)
+      if (defaultBranchId && defaultBranchId !== 'none' && !isDefaultBranch) {
+          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300));
       }
 
       const results = await Promise.all(promises);
 
       const branchMessages = Array.isArray(results[0]) ? results[0] : (results[0] ? [results[0]] : []);
-      const nullMsgs = results[1] ? (Array.isArray(results[1]) ? results[1] : [results[1]]) : [];
+      const nullMsgs = Array.isArray(results[1]) ? results[1] : (results[1] ? [results[1]] : []);
       
-      const allMessages = [...branchMessages, ...nullMsgs];
+      // กรองข้อความจากสาขาหลัก เอาเฉพาะที่ยังไม่มี tenant_id (ลูกค้าใหม่) เพื่อป้องกันข้อมูลผู้เช่ารั่วไหล
+      let defaultBranchMsgs = [];
+      if (results[2]) {
+          const rawDefMsgs = Array.isArray(results[2]) ? results[2] : [results[2]];
+          defaultBranchMsgs = rawDefMsgs.filter(m => !m.tenant_id);
+      }
+      
+      const allMessages = [...branchMessages, ...nullMsgs, ...defaultBranchMsgs];
       const uniqueMessages = Array.from(new Map(allMessages.map(m => [m.id, m])).values());
       return uniqueMessages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 500);
     },
