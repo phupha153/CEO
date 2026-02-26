@@ -804,13 +804,9 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     } catch (error) {
         console.error('❌ Maintenance report error:', error);
         console.error('Error stack:', error.stack);
-        // ⭐ ใช้ filter พร้อม branch_id
         let errorTenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                line_user_id: lineUserId,
-                branch_id: branchId
-            });
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
             errorTenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant for error handling:', e.message);
