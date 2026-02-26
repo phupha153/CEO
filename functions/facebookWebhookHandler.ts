@@ -150,14 +150,7 @@ Deno.serve(async (req) => {
                                 let branchId = tenant?.branch_id || null;
                                 
                                 // ⭐ ถ้ายังไม่มีสาขา (ลูกค้าใหม่) ให้วิ่งเข้าสาขาหลัก (ถ้าตั้งไว้)
-                                if (!branchId) {
-                                    try {
-                                        const def = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1);
-                                        if (def && def.length > 0 && def[0].value !== 'none') {
-                                            branchId = def[0].value;
-                                        }
-                                    } catch(e) {}
-                                }
+                                try { if (!branchId) { const d = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') branchId = v; } } catch(e) {}
 
                                 if (webhookEvent.message) {
                                                 console.log('📝 Message content:', webhookEvent.message);
