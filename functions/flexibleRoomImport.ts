@@ -96,9 +96,7 @@ Deno.serve(async (req) => {
         branch_id: branch_id,
         room_number: String(row['หมายเลขห้อง'] || row['เลขห้อง'] || '').trim(),
         floor: parseInt(row['ชั้น']) || 1,
-        status: String(row['สถานะ'] || 'available').toLowerCase() === 'ว่าง' ? 'available' : 
-                String(row['สถานะ'] || 'available').toLowerCase() === 'มีผู้เช่า' ? 'occupied' : 
-                String(row['สถานะ'] || 'available').toLowerCase()
+        status: 'available'
       };
 
       // Room type mapping
