@@ -442,19 +442,9 @@ Deno.serve(async (req) => {
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
                 
-                // ⭐ ดึงข้อมูลจาก Slip2Go Response อย่างปลอดภัย (ป้องกันปัญหา [object Object])
-                let receiverAccount = '';
-                if (typeof slipData.receiver?.account === 'string') receiverAccount = slipData.receiver.account;
-                else if (typeof slipData.receiver?.account?.account === 'string') receiverAccount = slipData.receiver.account.account;
-                else if (typeof slipData.receiver?.account?.bank?.account === 'string') receiverAccount = slipData.receiver.account.bank.account;
-                
-                let receiverPromptPay = '';
-                if (typeof slipData.receiver?.proxy?.account === 'string') receiverPromptPay = slipData.receiver.proxy.account;
-                else if (typeof slipData.receiver?.proxy?.value === 'string') receiverPromptPay = slipData.receiver.proxy.value;
-                else if (typeof slipData.receiver?.account?.proxy?.account === 'string') receiverPromptPay = slipData.receiver.account.proxy.account;
-                else if (typeof slipData.receiver?.account?.proxy?.value === 'string') receiverPromptPay = slipData.receiver.account.proxy.value;
-                
-                const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name || slipData.receiver?.name || '';
+                const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
+                const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
+                const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
 
                 console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
                 console.log('📋 Expected Configuration:');
