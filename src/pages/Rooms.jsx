@@ -2338,29 +2338,14 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           </Card>
 
           {filteredRooms.length === 0 && rooms.length > 0 && (
-            <Card className="bg-yellow-50 border-yellow-200">
-              <CardContent className="p-6 text-center">
-                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-800 mb-2">ไม่พบห้องที่ตรงกับเงื่อนไข</h3>
-                <p className="text-slate-600 mb-4">
-                  ลองเปลี่ยนเงื่อนไขการค้นหาหรือกรองข้อมูล
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedFloor('all');
-                    setSelectedStatuses([]);
-                    setDisplayLimit(50);
-                  }}
-                >
-                  ล้างการกรอง
-                </Button>
-              </CardContent>
-            </Card>
+            <Card className="bg-yellow-50 border-yellow-200"><CardContent className="p-6 text-center"><AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-3" /><h3 className="text-lg font-bold text-slate-800 mb-2">ไม่พบห้องที่ตรงกับเงื่อนไข</h3><p className="text-slate-600 mb-4">ลองเปลี่ยนเงื่อนไขการค้นหาหรือกรองข้อมูล</p><Button variant="outline" onClick={() => { setSearchQuery(''); setSelectedFloor('all'); setSelectedStatuses([]); setDisplayLimit(50); }}>ล้างการกรอง</Button></CardContent></Card>
           )}
 
-          {rooms.length === 0 && !roomsLoading && (
+          {roomsError && (
+            <Card className="bg-red-50 border-red-200 border-dashed border-2"><CardContent className="p-12 text-center"><AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-4" /><h3 className="text-xl font-bold text-red-800 mb-2">เกิดข้อผิดพลาดในการโหลดข้อมูล</h3><p className="text-red-600 mb-4">ไม่สามารถโหลดข้อมูลห้องพักได้ กรุณาลองใหม่อีกครั้ง</p><Button onClick={() => queryClient.invalidateQueries({queryKey: ['rooms', selectedBranchId, 'v2']})} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">โหลดใหม่</Button></CardContent></Card>
+          )}
+
+          {rooms.length === 0 && !roomsLoading && !roomsFetching && !roomsError && (
             <Card className="bg-blue-50 border-blue-200 border-dashed border-2">
               <CardContent className="p-12 text-center">
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
