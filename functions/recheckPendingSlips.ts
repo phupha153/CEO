@@ -12,35 +12,41 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
         return false;
     }
     
-    const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
-    const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
+    let slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
+    let myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
+    
+    if (slipAcc.startsWith('66') && slipAcc.length === 11) slipAcc = '0' + slipAcc.substring(2);
+    if (myAcc.startsWith('66') && myAcc.length === 11) myAcc = '0' + myAcc.substring(2);
     
     console.log('  Cleaned slip account:', slipAcc);
     console.log('  Cleaned my account:', myAcc);
     
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
-        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
-        return false;
-    }
-    
     let matchedCount = 0;
-    const minRequired = slipAcc.length <= 4 ? 2 : 3;
+    let slipIdx = slipAcc.length - 1;
+    let myIdx = myAcc.length - 1;
     
-    console.log(`  Min required matches: ${minRequired}`);
+    console.log('  Matching from RIGHT to LEFT:');
     
-    for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
-            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
+    while (slipIdx >= 0 && myIdx >= 0) {
+        if (slipAcc[slipIdx] === 'x' || slipAcc[slipIdx] === '*') {
+            console.log(`  Position [${slipIdx} vs ${myIdx}]: MASKED (${slipAcc[slipIdx]}) - SKIP`);
+            slipIdx--;
+            myIdx--;
             continue;
         }
-        if (slipAcc[i] === myAcc[i]) {
+        if (slipAcc[slipIdx] === myAcc[myIdx]) {
             matchedCount++;
-            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
+            console.log(`  Position [${slipIdx} vs ${myIdx}]: MATCH (${slipAcc[slipIdx]} === ${myAcc[myIdx]})`);
+            slipIdx--;
+            myIdx--;
         } else {
-            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
+            console.log(`  Position [${slipIdx} vs ${myIdx}]: MISMATCH (${slipAcc[slipIdx]} !== ${myAcc[myIdx]}) - FAIL`);
             return false;
         }
     }
+    
+    const minRequired = slipAcc.replace(/[x*]/g, '').length <= 3 ? 2 : 3;
+    console.log(`  Min required matches: ${minRequired}`);
     
     const isMatch = matchedCount >= minRequired;
     console.log(`  Matched count: ${matchedCount}/${minRequired}`);
