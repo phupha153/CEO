@@ -661,12 +661,21 @@ export default function Layout({ children, currentPageName }) {
 
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
-    queryKey: ['branches', currentUser?.email],
+    queryKey: ['branches', currentUser?.email, userRole, userAccessibleBranches],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      // 🔒 Multi-Tenancy: Filter branches by owner_id (เจ้าของสาขา)
-      const response = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 50);
-      return response || [];
+      
+      if (userRole === 'developer') {
+        return await base44.entities.Branch.list('', 100) || [];
+      }
+      
+      const allBranches = await base44.entities.Branch.list('', 1000) || [];
+      
+      return allBranches.filter(b => {
+        const isOwner = b.owner_id === currentUser.email || b.created_by === currentUser.email;
+        const isAccessible = userAccessibleBranches && Array.isArray(userAccessibleBranches) && userAccessibleBranches.includes(b.id);
+        return isOwner || isAccessible;
+      });
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity,
@@ -782,25 +791,18 @@ export default function Layout({ children, currentPageName }) {
   // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
 
-  // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
-  // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
   const canAccessBranch = (() => {
-    // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
-    if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
+    if (!selectedBranch) return false;
+    if (userRole === 'developer') return true;
 
-    // ถ้ามี accessible_branches set แล้ว ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
-    if (hasAccessibleBranchesSet) {
-      return selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id);
+    const branch = branches.find(b => b.id === selectedBranch.id);
+    if (branch) {
+      const isOwner = branch.owner_id === currentUser?.email || branch.created_by === currentUser?.email;
+      if (isOwner) return true;
     }
 
-    // ⭐ ถ้าไม่มี accessible_branches set และไม่ใช่ developer
-    // ให้เช็คว่าเป็น owner ของสาขาหรือไม่ (จาก owner_id หรือ created_by)
-    if (!hasAccessibleBranchesSet && selectedBranch) {
-      const branch = branches.find(b => b.id === selectedBranch.id);
-      if (branch) {
-        return branch.owner_id === currentUser?.email || 
-               branch.created_by === currentUser?.email;
-      }
+    if (userAccessibleBranches && Array.isArray(userAccessibleBranches)) {
+      if (userAccessibleBranches.includes(selectedBranch.id)) return true;
     }
 
     return false;

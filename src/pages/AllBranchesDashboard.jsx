@@ -71,19 +71,11 @@ export default function AllBranchesDashboard() {
   const branches = useMemo(() => {
     if (userRole === 'developer') return allBranches;
     
-    const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-    if (hasAccessibleBranchesSet) {
-      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-    }
-    
-    if (userRole === 'owner') {
-      return allBranches.filter(b => 
-        b.owner_id === currentUser?.email || 
-        b.created_by === currentUser?.email
-      );
-    }
-    
-    return [];
+    return allBranches.filter(b => {
+      const isOwner = b.owner_id === currentUser?.email || b.created_by === currentUser?.email;
+      const isAccessible = userAccessibleBranches && Array.isArray(userAccessibleBranches) && userAccessibleBranches.includes(b.id);
+      return isOwner || isAccessible;
+    });
   }, [allBranches, userRole, userAccessibleBranches, currentUser?.email]);
 
   // สร้าง Set ของ branch IDs ที่เข้าถึงได้เพื่อกรองข้อมูล
