@@ -869,9 +869,35 @@ export default function ChatWindow({
                             : { line_user_id: conversation.line_user_id };
                           
                           await base44.entities.Tenant.update(selectedRoomId, updateData);
+
+                          // 🔄 Migrate Chat History (ดึงประวัติแชทย้อนหลังมาที่สาขานี้)
+                          try {
+                            const targetTenant = tenants.find(t => t.id === selectedRoomId);
+                            if (targetTenant) {
+                              if (conversation.facebook_user_id) {
+                                const pastMessages = await base44.entities.FacebookMessage.filter({ facebook_user_id: conversation.facebook_user_id }, '', 1000);
+                                const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+                                for (const msg of msgs) {
+                                  if (msg.branch_id !== targetTenant.branch_id || msg.tenant_id !== targetTenant.id) {
+                                    await base44.entities.FacebookMessage.update(msg.id, { branch_id: targetTenant.branch_id, tenant_id: targetTenant.id });
+                                  }
+                                }
+                              } else if (conversation.line_user_id) {
+                                const pastMessages = await base44.entities.LineMessage.filter({ line_user_id: conversation.line_user_id }, '', 1000);
+                                const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+                                for (const msg of msgs) {
+                                  if (msg.branch_id !== targetTenant.branch_id || msg.tenant_id !== targetTenant.id) {
+                                    await base44.entities.LineMessage.update(msg.id, { branch_id: targetTenant.branch_id, tenant_id: targetTenant.id });
+                                  }
+                                }
+                              }
+                            }
+                          } catch (e) {
+                            console.error('Failed to migrate history:', e);
+                          }
                           
                           const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
-                          toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
+                          toast.success(`เชื่อมต่อ ${platform} สำเร็จ และดึงประวัติแชทมาแล้ว`);
                           setSelectedRoomId('');
                           setShowProfile(false);
                           
