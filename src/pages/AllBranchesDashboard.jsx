@@ -82,16 +82,8 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['allRooms', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: {},
-        sort: '-room_number',
-        limit: 10000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allRooms'],
+    queryFn: () => base44.entities.Room.list('-room_number', 10000),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -105,15 +97,8 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allBookings'],
+    queryFn: () => base44.entities.Booking.list('', 10000),
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -127,15 +112,8 @@ export default function AllBranchesDashboard() {
   }, [allBookings, accessibleBranchIds]);
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Payment',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allPayments'],
+    queryFn: () => base44.entities.Payment.list('', 10000),
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -149,15 +127,8 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: {},
-        limit: 10000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allTenants'],
+    queryFn: () => base44.entities.Tenant.list('', 10000),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -171,15 +142,8 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allMaintenance = [] } = useQuery({
-    queryKey: ['allMaintenance', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'MaintenanceRequest',
-        filters: {},
-        limit: 1000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allMaintenance'],
+    queryFn: () => base44.entities.MaintenanceRequest.list('', 1000),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -193,16 +157,8 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allExpenses = [] } = useQuery({
-    queryKey: ['allExpenses', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Expense',
-        filters: {},
-        sort: '-date',
-        limit: 10000
-      });
-      return response.data.data;
-    },
+    queryKey: ['allExpenses'],
+    queryFn: () => base44.entities.Expense.list('-date', 10000),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
