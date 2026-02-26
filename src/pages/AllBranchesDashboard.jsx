@@ -49,6 +49,7 @@ export default function AllBranchesDashboard() {
 
   const userRole = currentUser?.role === 'admin' ? 'developer' : (currentUser?.custom_role || 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
+  const canViewAllBranches = userRole === 'developer';
 
   const retryConfig = {
     retry: 0,
