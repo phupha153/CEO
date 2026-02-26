@@ -90,6 +90,9 @@ export default function ChatWindow({
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
+  const queryClient = useQueryClient();
+  const selectedBranchId = localStorage.getItem('selected_branch_id');
+
   // ⭐ ปิด Auto-refresh เพื่อป้องกัน Rate Limit (รอให้ user refresh ด้วยตัวเอง)
   // useEffect(() => {
   //   if (!conversation || !onRefresh || showAddTenantDialog || sending) return;
