@@ -118,23 +118,13 @@ export default function Settings() {
   const [buildingLogo, setBuildingLogo] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // แยก state สำหรับแต่ละหมวด
   const [applyToAllBranches_building, setApplyToAllBranches_building] = useState(false);
   const [applyToAllBranches_billing, setApplyToAllBranches_billing] = useState(false);
   const [applyToAllBranches_billNotif, setApplyToAllBranches_billNotif] = useState(false);
   const [applyToAllBranches_bank, setApplyToAllBranches_bank] = useState(false);
   const [applyToAllBranches_signature, setApplyToAllBranches_signature] = useState(false);
   const [applyToAllBranches_meter, setApplyToAllBranches_meter] = useState(false);
-
-  // ✅ เพิ่ม state สำหรับการแจ้งเตือน (Updated structure)
-  const [notificationSettings, setNotificationSettings] = useState({
-    enabled: true,
-    overdue_payment_days: 1,
-    vacant_room_days: 7,
-    urgent_maintenance_enabled: true,
-    unclaimed_delivery_days: 5,
-    low_daily_revenue_percent: 20
-  });
+  const [notificationSettings, setNotificationSettings] = useState({ enabled: true, overdue_payment_days: 1, vacant_room_days: 7, urgent_maintenance_enabled: true, unclaimed_delivery_days: 5, low_daily_revenue_percent: 20 });
 
   // เพิ่ม state สำหรับ Branch Access Dialog
   const [showBranchAccessDialog, setShowBranchAccessDialog] = useState(false);
