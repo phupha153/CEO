@@ -10,7 +10,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AddTenantDialog from "./AddTenantDialog";
 
