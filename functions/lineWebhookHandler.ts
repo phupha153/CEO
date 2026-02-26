@@ -668,7 +668,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
             await sendMessage(base44, lineUserId, 
                 '❌ ไม่พบข้อมูลของคุณในระบบ\n\n' +
                 'กรุณาส่งเบอร์โทรศัพท์เพื่อลงทะเบียนก่อนค่ะ',
-                null,
+                branchId,
                 replyToken
             );
             return;
