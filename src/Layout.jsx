@@ -783,6 +783,7 @@ export default function Layout({ children, currentPageName }) {
   const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
+  // Check if the user can access the current branch
   const canAccessBranch = (() => {
     if (!selectedBranch) return false;
     if (userRole === 'developer') return true;
