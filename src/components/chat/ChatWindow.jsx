@@ -275,6 +275,29 @@ export default function ChatWindow({
         : { line_user_id: conversation.line_user_id };
       
       await base44.entities.Tenant.update(tenantId, platformId);
+
+      // 🔄 Migrate Chat History (ดึงประวัติแชทย้อนหลังมาที่สาขานี้)
+      try {
+        if (conversation.facebook_user_id) {
+          const pastMessages = await base44.entities.FacebookMessage.filter({ facebook_user_id: conversation.facebook_user_id }, '', 1000);
+          const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+          for (const msg of msgs) {
+            if (msg.branch_id !== branchId || msg.tenant_id !== tenantId) {
+              await base44.entities.FacebookMessage.update(msg.id, { branch_id: branchId, tenant_id: tenantId });
+            }
+          }
+        } else if (conversation.line_user_id) {
+          const pastMessages = await base44.entities.LineMessage.filter({ line_user_id: conversation.line_user_id }, '', 1000);
+          const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+          for (const msg of msgs) {
+            if (msg.branch_id !== branchId || msg.tenant_id !== tenantId) {
+              await base44.entities.LineMessage.update(msg.id, { branch_id: branchId, tenant_id: tenantId });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to migrate history:', e);
+      }
       
       // ⭐ สร้าง Booking หลายห้อง (รองรับ array)
       if (bookings && bookings.length > 0) {
