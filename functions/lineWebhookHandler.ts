@@ -1400,30 +1400,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
         }
 
-        console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
-        console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
-        console.log(`  Method: ${matchMethod || 'None'}`);
-        console.log('====================================================\n');
-
-        if (!accountMatch) {
-            console.log('❌ Account mismatch - saving for manual review');
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
-            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-            const roomNumber = room?.room_number || 'ไม่ทราบ';
-
-            const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
-
+        if (!accountMatch && (receiverAccount || receiverPromptPay)) {
+            const err = `โอนเงินผิดบัญชี\nเข้า: ${receiverAccount || receiverPromptPay}\nควรเข้า: ${expectedAccountNumber || expectedPromptPay}`;
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ${err}`
             });
-
-            await sendMessage(base44, lineUserId, 
-                `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`,
-                branchId,
-                replyToken
-            );
-            console.log('✅ Sent account mismatch message');
+            await sendMessage(base44, lineUserId, `❌ ${err}\n\nกรุณารอตรวจสอบค่ะ 🙏`, branchId, replyToken);
             return;
         }
 
