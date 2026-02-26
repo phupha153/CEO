@@ -968,9 +968,10 @@ export default function Announcements() {
                   }}
                     loading={messagesLoading}
                     />
-                    )}
                     </div>
-                    </div>
+                  </>
+                )}
+              </div>
                     </Card>
                     </TabsContent>
 
