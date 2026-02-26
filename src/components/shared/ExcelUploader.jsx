@@ -40,7 +40,7 @@ export default function ExcelUploader({
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(templateData);
 
-      // Adjust column widths to be longer/wider
+      // Adjust column widths
       const headers = Object.keys(templateData[0]);
       const colWidths = headers.map(key => {
         let maxLength = key.length;
@@ -48,8 +48,8 @@ export default function ExcelUploader({
           const val = String(row[key] || '');
           if (val.length > maxLength) maxLength = val.length;
         });
-        // Min 15 chars, add 10 for padding to make it comfortably wide
-        return { wch: Math.max(maxLength + 10, 20) };
+        // ปรับความกว้างให้พอดี ไม่กว้างจนเกินไป
+        return { wch: Math.min(Math.max(maxLength + 3, 12), 40) };
       });
       ws['!cols'] = colWidths;
 

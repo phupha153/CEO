@@ -113,11 +113,8 @@ Deno.serve(async (req) => {
       }
 
       // Price - รองรับทั้ง "ราคา" และ "ราคาห้อง"
-      if (row['ราคา']) {
-        room.price = parseFloat(row['ราคา']);
-      } else if (row['ราคาห้อง']) {
-        room.price = parseFloat(row['ราคาห้อง']);
-      }
+      let priceStr = row['ราคา'] || row['ราคาห้อง'] || '0';
+      room.price = parseFloat(priceStr) || 0;
 
       // Water rate - flat or per unit
       const isFlatRateWater = String(row['ค่าน้ำเหมา'] || 'ไม่ใช่').toLowerCase();
@@ -171,11 +168,11 @@ Deno.serve(async (req) => {
       const rowNum = i + 2;
 
       // Required fields validation
-      if (!room.room_number || !room.floor || !room.room_type || !room.price) {
+      if (!room.room_number || !room.floor || !room.room_type || room.price === undefined || isNaN(room.price)) {
         errors.push({
           row: rowNum,
           room_number: room.room_number || '(ไม่ระบุ)',
-          error: 'ข้อมูลไม่ครบ: ต้องมี หมายเลขห้อง, ชั้น, ประเภทห้อง, และราคา'
+          error: 'ข้อมูลไม่ครบ: ต้องมี หมายเลขห้อง, ชั้น, และประเภทห้อง'
         });
         console.warn(`❌ Row ${rowNum} validation failed:`, room);
         continue;
