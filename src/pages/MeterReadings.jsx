@@ -116,13 +116,7 @@ export default function MeterReadings() {
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: 'room_number',
-        limit: 1000
-      });
-      return response.data.data;
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -186,12 +180,7 @@ export default function MeterReadings() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: { branch_id: selectedBranchId, status: 'active' },
-        limit: 1000
-      });
-      return response.data.data;
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,

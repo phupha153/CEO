@@ -71,16 +71,11 @@ export default function BranchManagement() {
 
 
 
-  // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ Backend
+  // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ SDK
   const { data: allRooms = [] } = useQuery({
     queryKey: ['rooms', 'all', 'secure'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: {},
-        limit: 5000
-      });
-      return response.data.data;
+      return await base44.entities.Room.filter({}, '', 5000);
     },
     retry: 2,
     staleTime: 2 * 60 * 1000,
