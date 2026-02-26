@@ -799,8 +799,6 @@ export default function Announcements() {
 
                       // ⭐ Force invalidate และรอให้ reload จริงๆ
                       await queryClient.invalidateQueries(['tenants', selectedBranchId]);
-                      await queryClient.invalidateQueries(['lineMessages']);
-                      await queryClient.invalidateQueries(['facebookMessages']);
 
                       // ⭐ รอให้ cache อัปเดต
                       await new Promise(r => setTimeout(r, 300));

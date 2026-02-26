@@ -359,18 +359,6 @@ async function handleRegistration(base44, senderPsid, phoneNumber, branchCode) {
 
         if (match) {
             await base44.asServiceRole.entities.Tenant.update(match.id, { facebook_user_id: senderPsid });
-            
-            // 🔄 Migrate old messages
-            try {
-                const pastMsgs = await base44.asServiceRole.entities.FacebookMessage.filter({ facebook_user_id: senderPsid }, '', 100);
-                const msgs = Array.isArray(pastMsgs) ? pastMsgs : (pastMsgs ? [pastMsgs] : []);
-                for (const msg of msgs) {
-                    if (msg.branch_id !== match.branch_id || msg.tenant_id !== match.id) {
-                        await base44.asServiceRole.entities.FacebookMessage.update(msg.id, { branch_id: match.branch_id, tenant_id: match.id });
-                    }
-                }
-            } catch (e) { console.error('Migrate history error:', e); }
-
             await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${match.full_name}`, match.branch_id);
         } else {
             await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบข้อมูลเบอร์ ${phoneNumber} ในระบบ`, null);
@@ -499,18 +487,6 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
             }
             
             await base44.asServiceRole.entities.Tenant.update(tenant.id, { facebook_user_id: senderPsid });
-            
-            // 🔄 Migrate old messages
-            try {
-                const pastMsgs = await base44.asServiceRole.entities.FacebookMessage.filter({ facebook_user_id: senderPsid }, '', 100);
-                const msgs = Array.isArray(pastMsgs) ? pastMsgs : (pastMsgs ? [pastMsgs] : []);
-                for (const msg of msgs) {
-                    if (msg.branch_id !== tenant.branch_id || msg.tenant_id !== tenant.id) {
-                        await base44.asServiceRole.entities.FacebookMessage.update(msg.id, { branch_id: tenant.branch_id, tenant_id: tenant.id });
-                    }
-                }
-            } catch (e) { console.error('Migrate history error:', e); }
-
             await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${tenant.full_name}`, tenant.branch_id);
             return;
         }
