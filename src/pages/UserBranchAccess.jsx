@@ -311,6 +311,8 @@ export default function UserBranchAccess() {
     setUserBranchAccess({ [user.id]: user.accessible_branches || [] });
     const currentRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     setUserRoles({ [user.id]: currentRole });
+    // รีเซ็ตค่าสาขาที่จะโอนเมื่อเปิด dialog ใหม่
+    setTargetTransferBranchId(null);
     setShowBranchDialog(true);
   };
 
@@ -915,6 +917,20 @@ export default function UserBranchAccess() {
                       onClick={() => {
                         const selectedBranches = userBranchAccess[selectedUser.id] || [];
                         const selectedRole = userRoles[selectedUser.id] || 'employee';
+
+                        if (selectedRole === 'owner') {
+                          setTransferTarget(selectedUser);
+                          // ถ้ามีการเลือกสาขาเดียวใน dialog ให้ใช้สาขานั้นเป็น default target
+                          if (selectedBranches.length === 1) {
+                            setTargetTransferBranchId(selectedBranches[0]);
+                          } else {
+                            // ถ้าเลือกหลายสาขา หรือไม่เลือกเลย ให้ reset เพื่อให้ user เลือกใน dialog ถัดไป
+                            setTargetTransferBranchId(null);
+                          }
+                          setShowTransferDialog(true);
+                          return;
+                        }
+
                         console.log('💾 Saving:', { 
                           userId: selectedUser.id, 
                           email: selectedUser.email,
@@ -1060,6 +1076,76 @@ export default function UserBranchAccess() {
                     className="bg-blue-600 text-white"
                   >
                     {saveBankConfigMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Transfer Ownership Dialog */}
+          <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="w-6 h-6" />
+                  ยืนยันการโอนกรรมสิทธิ์
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Alert className="bg-red-50 border-red-200">
+                  <AlertDescription className="text-red-800 text-sm">
+                    คุณกำลังจะโอนสิทธิ์การเป็น <strong>"เจ้าของสาขา"</strong> ให้กับ <strong>{transferTarget?.full_name}</strong>
+                    <br/><br/>
+                    ⚠️ <strong>คำเตือน:</strong> หลังจากโอนสิทธิ์แล้ว คุณจะเสียสิทธิ์การเป็นเจ้าของสาขานี้ และจะถูกปรับสถานะเป็น "ผู้จัดการ" โดยอัตโนมัติ
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label>เลือกสาขาที่ต้องการโอน *</Label>
+                  <Select
+                    value={targetTransferBranchId}
+                    onValueChange={setTargetTransferBranchId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="-- เลือกสาขา --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map(branch => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.branch_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    เลือกสาขาที่คุณต้องการโอนกรรมสิทธิ์ให้ผู้ใช้นี้
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowTransferDialog(false)}>
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (!targetTransferBranchId) {
+                        toast.error('กรุณาเลือกสาขาที่ต้องการโอน');
+                        return;
+                      }
+                      
+                      transferOwnershipMutation.mutate({
+                        newOwnerUserId: transferTarget.id,
+                        newOwnerEmail: transferTarget.email,
+                        // Override branch_id ใน mutation ด้วย branch ที่เลือก
+                        branch_id: targetTransferBranchId 
+                      });
+                      setShowTransferDialog(false);
+                      setShowBranchDialog(false);
+                    }}
+                    disabled={transferOwnershipMutation.isPending}
+                  >
+                    {transferOwnershipMutation.isPending ? 'กำลังดำเนินการ...' : 'ยืนยันโอนสิทธิ์'}
                   </Button>
                 </div>
               </div>
