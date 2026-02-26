@@ -217,109 +217,57 @@ export default function RoomsPage() {
     retryDelay: 0,
   };
 
-  const { data: rooms = [], isLoading: roomsLoading, isFetching: roomsFetching } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
-    },
+  const qOpts = { staleTime: 60000, gcTime: 300000 };
+  const { data: rooms = [], isLoading: roomsLoading, isFetching: roomsFetching, isError: roomsError } = useQuery({
+    queryKey: ['rooms', selectedBranchId, 'v2'],
+    queryFn: () => selectedBranchId ? base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000) : [],
     enabled: canView && !!selectedBranchId,
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    ...qOpts
   });
 
   const { data: allRooms = [] } = useQuery({
     queryKey: ['allRooms', 'v2', currentUser?.email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      // 🔒 SECURITY FIX: ดึงเฉพาะห้องในสาขาที่เป็นเจ้าของ
-      const ownerEmail = currentUser.email;
-      const ownedBranches = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 100);
+      const ownedBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 100);
       const ownedBranchIds = ownedBranches.map(b => b.id);
-      
       if (ownedBranchIds.length === 0) return [];
-      
-      // ดึงห้องทั้งหมดในสาขาที่เป็นเจ้าของ
       const allRooms = [];
       for (const branchId of ownedBranchIds) {
-        const rooms = await base44.entities.Room.filter({ branch_id: branchId }, '-created_date', 1000);
-        allRooms.push(...rooms);
+        allRooms.push(...await base44.entities.Room.filter({ branch_id: branchId }, '-created_date', 1000));
       }
       return allRooms;
     },
     enabled: canView && (userRole === 'developer' || userRole === 'owner') && !!currentUser,
-    ...retryConfig,
-    staleTime: 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    placeholderData: undefined,
+    ...qOpts
   });
 
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
-    },
+    queryFn: () => selectedBranchId ? base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000) : [],
     enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    ...qOpts
   });
 
   const { data: temporaryBookings = [] } = useQuery({
     queryKey: ['temporaryBookings', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
-    },
+    queryFn: () => selectedBranchId ? base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 1000) : [],
     enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    ...qOpts
   });
 
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
-    },
+    queryFn: () => selectedBranchId ? base44.entities.Tenant.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000) : [],
     enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 60 * 60 * 1000,
-    gcTime: 120 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    ...qOpts
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-due_date', 1000);
-    },
+    queryFn: () => selectedBranchId ? base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-due_date', 1000) : [],
     enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    ...qOpts
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
