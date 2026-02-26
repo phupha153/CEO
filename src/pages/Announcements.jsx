@@ -373,7 +373,7 @@ export default function Announcements() {
 
         // บันทึกข้อความขาออก
         await base44.entities.FacebookMessage.create({
-          branch_id: selectedBranchId,
+          branch_id: selectedConversation.tenant_id ? selectedBranchId : null, // ถ้ายังไม่ผูกผู้เช่า ให้เก็บเป็น null เพื่อให้เห็นทุกสาขา
           tenant_id: selectedConversation.tenant_id,
           facebook_user_id: selectedConversation.facebook_user_id,
           facebook_display_name: selectedConversation.facebook_display_name,
