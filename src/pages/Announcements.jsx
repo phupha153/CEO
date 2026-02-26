@@ -311,46 +311,7 @@ export default function Announcements() {
     return [];
   }, [lineMessages, facebookMessages, selectedConversation]);
 
-  // ⭐ เมื่อเปิด conversation ให้ mark unread messages เป็น read (ทีละ batch เพื่อป้องกัน rate limit)
-  React.useEffect(() => {
-    if (!selectedConversation) return;
-    
-    const unreadMessages = selectedMessages.filter(m => 
-      m.direction === 'incoming' && !m.is_read
-    );
-    
-    if (unreadMessages.length > 0) {
-      const entityName = selectedConversation.platform === 'facebook' ? 'FacebookMessage' : 'LineMessage';
-      
-      // ⚡ แบ่ง batch เพื่อป้องกัน rate limit (ครั้งละ 10 messages, หน่วง 500ms)
-      const batchSize = 10;
-      const batches = [];
-      for (let i = 0; i < unreadMessages.length; i += batchSize) {
-        batches.push(unreadMessages.slice(i, i + batchSize));
-      }
-      
-      (async () => {
-        for (const batch of batches) {
-          await Promise.all(
-            batch.map(msg => 
-              base44.entities[entityName]?.update(msg.id, { is_read: true })
-                .catch(err => console.warn('Failed to mark as read:', err))
-            )
-          );
-          if (batches.indexOf(batch) < batches.length - 1) {
-            await new Promise(r => setTimeout(r, 500)); // หน่วง 500ms ระหว่าง batch
-          }
-        }
-        
-        // Refresh messages หลังจาก mark เป็น read
-        if (selectedConversation.platform === 'facebook') {
-          queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
-        } else {
-          queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-        }
-      })();
-    }
-  }, [selectedConversation?.line_user_id, selectedConversation?.facebook_user_id, selectedMessages]);
+  // ⭐ ย้ายการอัปเดต unread messages ไปทำใน ChatWindow แทนเพื่อไม่ให้ trigger รีโหลดรัวๆ
 
   // นับผู้เช่าที่มี LINE/Facebook User ID
   const tenantsWithLine = tenants.filter(t => t.line_user_id);
