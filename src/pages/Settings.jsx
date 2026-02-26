@@ -99,23 +99,15 @@ export default function Settings() {
   });
   const [translatingName, setTranslatingName] = useState(false);
 
-  const [lineSettings, setLineSettings] = useState({
-    line_channel_access_token: '',
-    line_channel_secret: ''
-  });
-  const [facebookSettings, setFacebookSettings] = useState({
-    facebook_page_access_token: '',
-    facebook_verify_token: ''
-  });
-
+  const [lineSettings, setLineSettings] = useState({ line_channel_access_token: '', line_channel_secret: '' });
+  const [facebookSettings, setFacebookSettings] = useState({ facebook_page_access_token: '', facebook_verify_token: '' });
+  const [defaultCommunicationBranch, setDefaultCommunicationBranch] = useState('none');
   const [applyToAllBranches_line, setApplyToAllBranches_line] = useState(false);
   const [applyToAllBranches_facebook, setApplyToAllBranches_facebook] = useState(false);
-
   const [expandedCategories, setExpandedCategories] = useState({});
   const [userPermissions, setUserPermissions] = useState({});
   const [selectedUserForPermissions, setSelectedUserForPermissions] = useState(null);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
-
   const [signatureImage, setSignatureImage] = useState('');
   const [stampImage, setStampImage] = useState('');
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
