@@ -1013,14 +1013,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         let tenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                line_user_id: lineUserId,
-                branch_id: branchId
-            });
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-        } catch (e) {
-            console.log('⚠️ Could not find tenant:', e.message);
-        }
+            if (tenant) branchId = tenant.branch_id;
+        } catch (e) {}
 
         if (!tenant) {
             await sendMessage(base44, lineUserId, 'กรุณาลงทะเบียนด้วยหมายเลขโทรศัพท์ก่อนใช้งาน\nพิมพ์: ลงทะเบียน 0812345678', branchId, replyToken);
