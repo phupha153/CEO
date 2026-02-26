@@ -708,41 +708,17 @@ export default function Settings() {
   // Auto-translate Thai name to English
   useEffect(() => {
     if (!bankInfo.account_name || bankInfo.account_name.length < 3) return;
-    
     const timer = setTimeout(async () => {
-      // ตรวจว่าเป็นภาษาไทยหรือไม่
-      const hasThaiChars = /[\u0E00-\u0E7F]/.test(bankInfo.account_name);
-      if (!hasThaiChars) return;
-      
+      if (!/[\u0E00-\u0E7F]/.test(bankInfo.account_name)) return;
       setTranslatingName(true);
       try {
         const result = await base44.integrations.Core.InvokeLLM({
-          prompt: `แปลชื่อคนไทยนี้เป็นภาษาอังกฤษ (ตัวพิมพ์ใหญ่ทั้งหมด เฉพาะชื่อ-นามสกุล ไม่ต้องใส่คำนำหน้า MR./MRS.): "${bankInfo.account_name}"
-          
-ตัวอย่าง:
-- "นายสมชาย ใจดี" → "SOMCHAI JAIDEE"
-- "นางสาวมะลิ สวยงาม" → "MALI SUAYNGAM"  
-- "ไพทูลย์ มีของ" → "PHAITOON MEEKONG"
-
-ให้เฉพาะชื่ออังกฤษเท่านั้น ไม่ต้องอธิบาย ไม่ต้องใส่ MR./MRS./MISS`,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              english_name: { type: "string" }
-            }
-          }
+          prompt: `แปลชื่อคนไทยนี้เป็นภาษาอังกฤษ (ตัวพิมพ์ใหญ่ทั้งหมด เฉพาะชื่อ-นามสกุล ไม่ต้องใส่คำนำหน้า MR./MRS.): "${bankInfo.account_name}"\nตัวอย่าง:\n- "นายสมชาย ใจดี" → "SOMCHAI JAIDEE"\n- "นางสาวมะลิ สวยงาม" → "MALI SUAYNGAM"\n- "ไพทูลย์ มีของ" → "PHAITOON MEEKONG"\nให้เฉพาะชื่ออังกฤษเท่านั้น ไม่ต้องอธิบาย ไม่ต้องใส่ MR./MRS./MISS`,
+          response_json_schema: { type: "object", properties: { english_name: { type: "string" } } }
         });
-        
-        if (result.english_name) {
-          setBankInfo(prev => ({ ...prev, account_name_en: result.english_name }));
-        }
-      } catch (error) {
-        console.error('Translation error:', error);
-      } finally {
-        setTranslatingName(false);
-      }
+        if (result.english_name) setBankInfo(prev => ({ ...prev, account_name_en: result.english_name }));
+      } catch (error) { console.error('Translation error:', error); } finally { setTranslatingName(false); }
     }, 1000);
-    
     return () => clearTimeout(timer);
   }, [bankInfo.account_name]);
 
