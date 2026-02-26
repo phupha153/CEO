@@ -1019,7 +1019,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         try {
             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
                 tenant_id: tenant.id,
-                branch_id: branchId,
                 status: { $in: ['pending', 'overdue', 'partial_paid'] }
             });
             pendingPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
@@ -1027,8 +1026,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             console.log('⚠️ Could not filter payments:', e.message);
             const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 500);
             pendingPayments = allPayments.filter(p => 
-                p.tenant_id === tenant.id && 
-                p.branch_id === branchId &&
+                p.tenant_id === tenant.id &&
                 (p.status === 'pending' || p.status === 'overdue' || p.status === 'partial_paid')
             );
         }
