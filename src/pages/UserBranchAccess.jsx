@@ -926,13 +926,12 @@ export default function UserBranchAccess() {
                           <SelectValue placeholder="เลือกบทบาท" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
                           <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
                           <SelectItem value="employee">👤 พนักงาน</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-slate-500 mt-1">
-                        💡 เจ้าของ = มีสิทธิ์ทุกอย่าง, พนักงาน/ผู้จัดการ = มีสิทธิ์ตามที่กำหนด (หากต้องการเปลี่ยนชื่อเจ้าของสาขาด้วย ให้ใช้ปุ่มโอนกรรมสิทธิ์ด้านล่าง)
+                        💡 พนักงาน/ผู้จัดการ = มีสิทธิ์ตามที่กำหนด (ไม่สามารถเปลี่ยนให้เป็นเจ้าของด้วยวิธีนี้ได้ หากต้องการโอนความเป็นเจ้าของ ให้ใช้ปุ่ม "โอนกรรมสิทธิ์" ด้านล่าง)
                       </p>
                     </div>
                   </div>
