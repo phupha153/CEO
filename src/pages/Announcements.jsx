@@ -116,16 +116,6 @@ export default function Announcements() {
     queryFn: async () => {
       if (!selectedBranchId) return [];
 
-      let isDefaultBranch = false;
-      try {
-          const configs = await base44.entities.Config.list('', 1000);
-          const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-          const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
-          if (defConfig && defConfig.value === selectedBranchId) {
-              isDefaultBranch = true;
-          }
-      } catch (e) { console.error('Error fetching config:', e); }
-
       let branchMessages = [];
       try {
           const res = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
@@ -134,11 +124,9 @@ export default function Announcements() {
       
       let nullBranchMessages = [];
       try {
-          if (isDefaultBranch) {
-              // ดึงเฉพาะข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ที่สาขาหลัก
-              const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
-              nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
-          }
+          // ดึงข้อความที่ไม่มีสาขา (orphan messages) มาโชว์ในทุกสาขา
+          const resNull = await base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100);
+          nullBranchMessages = Array.isArray(resNull) ? resNull : (resNull ? [resNull] : []);
       } catch (e) { console.error('Error fetching null branch messages:', e); }
       
       const allMessages = [...branchMessages, ...nullBranchMessages];
