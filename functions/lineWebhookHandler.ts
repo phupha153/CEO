@@ -995,19 +995,19 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
     try {
         
-        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
-        if (!branchId) {
-            console.error(`❌ CRITICAL: No branchId available for slip verification`);
-            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
-            return;
-        }
-
         let tenant = null;
         try {
             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
             if (tenant) branchId = tenant.branch_id;
         } catch (e) {}
+
+        // ⭐ CRITICAL: Must have branchId after finding tenant
+        if (!branchId) {
+            console.error(`❌ CRITICAL: No branchId available for slip verification`);
+            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
+            return;
+        }
 
         if (!tenant) {
             await sendMessage(base44, lineUserId, 'กรุณาลงทะเบียนด้วยหมายเลขโทรศัพท์ก่อนใช้งาน\nพิมพ์: ลงทะเบียน 0812345678', branchId, replyToken);
