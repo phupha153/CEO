@@ -335,18 +335,19 @@ Deno.serve(async (req) => {
 
                     // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
-                        let tenant = null, finalBranchId = destinationBranchId;
+                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
+                        let tenant = null;
+                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
                         try {
-                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
-                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
-                            if (tenant) finalBranchId = tenant.branch_id;
-                            else {
-                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
-                                const cArr = Array.isArray(cRes) ? cRes : (cRes ? [cRes] : []);
-                                const dbCfg = cArr.find(c => !c.branch_id);
-                                if (dbCfg?.value) finalBranchId = dbCfg.value;
-                            }
-                        } catch (e) {}
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: msgBranchId 
+                            });
+                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                        } catch (e) {
+                            console.log('⚠️ Could not find tenant:', e.message);
+                        }
+                        const finalBranchId = tenant?.branch_id || msgBranchId;
 
                         // ดึง LINE Profile เสมอ
                         let displayName = null;
@@ -516,17 +517,18 @@ Deno.serve(async (req) => {
                             continue;
                         }
                         
-                        let tenant = null, userBranchId = destinationBranchId;
+                        // ⭐ หา branch_id ของผู้ใช้ก่อนทำอะไร (ใช้ filter พร้อม branch_id)
+                        let tenant = null;
                         try {
-                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
-                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
-                            if (tenant) userBranchId = tenant.branch_id;
-                            else {
-                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
-                                const dbCfg = (Array.isArray(cRes) ? cRes : [cRes]).find(c => !c.branch_id);
-                                if (dbCfg?.value) userBranchId = dbCfg.value;
-                            }
-                        } catch (e) {}
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: destinationBranchId
+                            });
+                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                        } catch (e) {
+                            console.log('⚠️ Could not find tenant:', e.message);
+                        }
+                        const userBranchId = tenant?.branch_id || destinationBranchId;
 
                         console.log(`📍 User branch for text message: ${userBranchId ? userBranchId.substring(0, 12) + '...' : 'null (ไม่รู้สาขา)'}`);
 
@@ -571,17 +573,25 @@ Deno.serve(async (req) => {
                                             continue;
                                         }
                                         
-                                        let tenant = null, branchId = destinationBranchId;
+                                        // ⭐ ใช้ filter พร้อม branch_id
+                                        let tenant = null;
                                         try {
-                                            const tRes = await base44.asServiceRole.entities.Tenant.filter({line_user_id: lineUserId});
-                                            tenant = Array.isArray(tRes) ? tRes[0] : tRes;
-                                            if (tenant) branchId = tenant.branch_id;
-                                            else {
-                                                const cRes = await base44.asServiceRole.entities.Config.filter({key: 'default_communication_branch'});
-                                                const dbCfg = (Array.isArray(cRes) ? cRes : [cRes]).find(c => !c.branch_id);
-                                                if (dbCfg?.value) branchId = dbCfg.value;
-                                            }
-                                        } catch (e) {}
+                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                                line_user_id: lineUserId,
+                                                branch_id: destinationBranchId
+                                            });
+                                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                                        } catch (e) {
+                                            console.log('⚠️ Could not find tenant:', e.message);
+                                        }
+
+                                        // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
+                                        if (!tenant) {
+                                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
+                                            continue;
+                                        }
+
+                                        const branchId = tenant.branch_id || destinationBranchId;
 
                                         // ⭐ เช็คว่ามี payment ที่รอชำระหรือชำระไม่ครบ (pending/overdue/partial_paid)
                                         let hasPendingPayment = false;

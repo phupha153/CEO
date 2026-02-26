@@ -275,17 +275,6 @@ export default function ChatWindow({
         : { line_user_id: conversation.line_user_id };
       
       await base44.entities.Tenant.update(tenantId, platformId);
-
-      // ย้ายประวัติแชททั้งหมดมาที่สาขานี้
-      try {
-        const msgs = await base44.entities.LineMessage.filter(
-          conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
-        );
-        const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
-        for (const msg of msgsArr) {
-          await base44.entities.LineMessage.update(msg.id, { branch_id: branchId, tenant_id: tenantId });
-        }
-      } catch(e) { console.error('Failed to migrate messages:', e); }
       
       // ⭐ สร้าง Booking หลายห้อง (รองรับ array)
       if (bookings && bookings.length > 0) {
@@ -702,22 +691,6 @@ export default function ChatWindow({
                         
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         
-                        // ปลดแชทกลับไปที่ Default Branch
-                        try {
-                          const configs = await base44.entities.Config.filter({ key: 'default_communication_branch' });
-                          const globalConfigs = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-                          const defaultBranchConfig = globalConfigs.find(c => !c.branch_id);
-                          if (defaultBranchConfig && defaultBranchConfig.value) {
-                            const msgs = await base44.entities.LineMessage.filter(
-                              conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
-                            );
-                            const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
-                            for (const msg of msgsArr) {
-                              await base44.entities.LineMessage.update(msg.id, { branch_id: defaultBranchConfig.value, tenant_id: null });
-                            }
-                          }
-                        } catch(e) { console.error('Failed to unlink messages:', e); }
-                        
                         console.log('✅ Update successful');
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
                         
@@ -873,18 +846,6 @@ export default function ChatWindow({
                             : { line_user_id: conversation.line_user_id };
                           
                           await base44.entities.Tenant.update(selectedRoomId, updateData);
-
-                          // ย้ายประวัติแชททั้งหมดมาที่สาขานี้
-                          try {
-                            const branchId = localStorage.getItem('selected_branch_id');
-                            const msgs = await base44.entities.LineMessage.filter(
-                              conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id }
-                            );
-                            const msgsArr = Array.isArray(msgs) ? msgs : (msgs ? [msgs] : []);
-                            for (const msg of msgsArr) {
-                              await base44.entities.LineMessage.update(msg.id, { branch_id: branchId, tenant_id: selectedRoomId });
-                            }
-                          } catch(e) { console.error('Failed to migrate messages:', e); }
                           
                           const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
                           toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
