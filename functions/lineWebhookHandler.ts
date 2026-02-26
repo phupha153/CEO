@@ -2052,8 +2052,7 @@ async function sendConfirmationMessage(base44, lineUserId, tenant, branch, reply
 }
 
 function sendNotFoundMessage(base44, lineUserId, phoneNumber, branchId = null, replyToken = null) {
-    // ไม่ตอบกลับอะไรเลยถ้าไม่พบข้อมูลในระบบ
-    console.log(`ℹ️ No data found for "${phoneNumber}" - not sending any response`);
+    console.log(`ℹ️ No data found for "${phoneNumber}" - not sending response`);
     return;
 }
 
