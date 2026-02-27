@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
                     <span class="payment-icon">💳</span>
                     <div class="payment-info">
                         <span>ช่องทางการชำระเงิน</span>
-                        <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
+                        <span>ธนาคาร: <strong>${escapeHtml(bank.name || '-')}</strong></span>
                         <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
                         <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
                     </div>
