@@ -142,7 +142,7 @@ export default function BookingReceiptPage() {
     return globalConfig ? globalConfig.value : defaultValue;
   };
 
-  const buildingName = getConfigValue('building_name', 'W RESIDENTS');
+  const buildingName = getConfigValue('building_name', 'ที่พัก');
   const buildingAddress = getConfigValue('building_address', '');
   const buildingPhone = getConfigValue('building_phone', '');
   const buildingLogo = getConfigValue('building_logo', '');
