@@ -607,6 +607,23 @@ Deno.serve(async (req) => {
                 failCount += result.failed || 0;
                 if (result.errors) errors.push(...result.errors);
 
+                // ดึงเฉพาะ Payment ID ที่ส่งสำเร็จ (เพื่อนำไปอัปเดต)
+                // ถ้า sendBatchLineMessages คืนค่า successful_recipients มาให้ ก็ใช้จากนั้น ถ้าไม่มี ก็หักลบจากตัว error
+                if (result.successful_recipients && Array.isArray(result.successful_recipients)) {
+                     // สมมติว่า response กลับมาเป็น array ของ lineUserId
+                     const successIds = cleanedRecipients
+                        .filter(r => result.successful_recipients.includes(r.lineUserId))
+                        .map(r => r.metadata.paymentId);
+                     successfulPaymentIds.push(...successIds);
+                } else {
+                     // ถ้าไม่ส่งรายการคนสำเร็จมาให้ ต้องหาเอาเองโดยเอาทั้งหมด ลบด้วยคนที่ error
+                     const failedUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
+                     const successIds = cleanedRecipients
+                        .filter(r => !failedUserIds.includes(r.lineUserId))
+                        .map(r => r.metadata.paymentId);
+                     successfulPaymentIds.push(...successIds);
+                }
+
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
 
                 // 🚨 Alert if critical failure
