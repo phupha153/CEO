@@ -745,6 +745,31 @@ Deno.serve(async (req) => {
             }
         }
 
+        // ⭐ อัปเดต bill_sent_date และ overdue_reminder_sent_date เฉพาะบิลที่ส่งสำเร็จจริงๆ
+        if (successfulPaymentIds.length > 0) {
+            console.log(`📝 Updating sent dates for ${successfulPaymentIds.length} successful payments...`);
+            const now = new Date().toISOString();
+            const updateBatchSize = 100;
+            
+            const updatePayload = { bill_sent_date: now };
+            if (template === 'overdue') {
+                updatePayload.overdue_reminder_sent_date = now;
+            }
+
+            for (let i = 0; i < successfulPaymentIds.length; i += updateBatchSize) {
+                const batch = successfulPaymentIds.slice(i, i + updateBatchSize);
+                await Promise.all(
+                    batch.map(id =>
+                        base44.asServiceRole.entities.Payment.update(id, updatePayload)
+                            .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                    )
+                );
+                console.log(`✅ Updated payment dates: ${Math.min(i + updateBatchSize, successfulPaymentIds.length)}/${successfulPaymentIds.length}`);
+            }
+        } else {
+            console.log('⚠️ No successful payments to update dates.');
+        }
+
         const result = { success: successCount, failed: failCount, total: recipients.length, errors };
 
         return Response.json({
