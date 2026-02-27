@@ -165,7 +165,7 @@ export default function Announcements() {
   });
 
   // ดึงข้อความ Facebook เฉพาะสาขานี้
-  const { data: facebookMessages = [] } = useQuery({
+  const { data: facebookMessages = [], isLoading: fbMessagesLoading, isFetching: fbFetching, error: fbMessagesError, refetch: refetchFacebookMessages } = useQuery({
     queryKey: ['facebookMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
@@ -769,16 +769,32 @@ export default function Announcements() {
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="mt-0 h-[calc(100vh-140px)]">
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl overflow-hidden h-full">
-              {/* Debug info */}
-              {messagesError && (
-                <div className="p-4 bg-red-50 text-red-700 text-sm">
-                  Error: {messagesError.message}
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl overflow-hidden h-full flex flex-col">
+              {/* Error info */}
+              {(messagesError || fbMessagesError) && (
+                <div className="p-3 bg-red-50 text-red-700 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-red-100 gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <span>โหลดข้อมูลแชทไม่สำเร็จ (อาจเกิดจากการเชื่อมต่อล่าช้า)</span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="bg-white hover:bg-red-50 text-red-700 border-red-200 whitespace-nowrap"
+                    onClick={() => {
+                      refetchLineMessages();
+                      refetchFacebookMessages();
+                    }}
+                    disabled={lineFetching || fbFetching}
+                  >
+                    {(lineFetching || fbFetching) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    โหลดข้อมูลใหม่
+                  </Button>
                 </div>
               )}
               
-              <div className="flex h-full relative">
-                {tenantsLoading || roomsLoading || bookingsLoading || messagesLoading ? (
+              <div className="flex flex-1 relative min-h-0">
+                {tenantsLoading || roomsLoading || bookingsLoading || messagesLoading || fbMessagesLoading || ((lineFetching || fbFetching) && conversations.length === 0) ? (
                   <div className="flex-1 flex items-center justify-center h-full bg-slate-50 w-full">
                     <div className="text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
