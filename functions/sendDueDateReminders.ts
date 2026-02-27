@@ -208,10 +208,10 @@ Deno.serve(async (req) => {
 
                 // ดึง config เฉพาะสาขาของบิลนี้
                 const paymentBranchId = payment.branch_id;
-                const branchBankName = getConfigValue('bank_name', 'กสิกร', paymentBranchId);
-                const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', paymentBranchId);
-                const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
-                const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
+                const branchBankName = getConfigValue('bank_name', '-', paymentBranchId);
+                const branchBankAccountNumber = getConfigValue('bank_account_number', '-', paymentBranchId);
+                const branchBankAccountName = getConfigValue('bank_account_name', '-', paymentBranchId);
+                const branchBuildingName = getConfigValue('building_name', 'ที่พัก', paymentBranchId);
                 const branchLateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', paymentBranchId));
 
                 // ⭐ สร้าง Text Message แบบเดียวกับ sendPaymentReminder (ไม่ใช้ Flex Message)

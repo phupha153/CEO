@@ -63,10 +63,10 @@ async function getFacebookConfig(base44, branchId = null) {
 
         return {
             pageAccessToken: findConfig('facebook_page_access_token'),
-            bankAccountNumber: findConfig('bank_account_number') || '0722835522',
-            bankAccountName: findConfig('bank_account_name') || 'ธนานนท์ พรมพักตร์',
-            bankName: findConfig('bank_name') || 'กสิกร',
-            buildingName: findConfig('building_name') || 'W RESIDENTS'
+            bankAccountNumber: findConfig('bank_account_number') || '-',
+            bankAccountName: findConfig('bank_account_name') || '-',
+            bankName: findConfig('bank_name') || '-',
+            buildingName: findConfig('building_name') || 'ที่พัก'
         };
     } catch (error) {
         console.error('❌ Error fetching FB config:', error);

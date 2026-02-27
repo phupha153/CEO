@@ -555,10 +555,10 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             // ดึง config เฉพาะสาขา
             const paymentBranchId = latestPayment.branch_id;
-            const branchBankName = getConfigValue('bank_name', 'กสิกร', paymentBranchId);
-            const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', paymentBranchId);
-            const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
-            const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
+            const branchBankName = getConfigValue('bank_name', '-', paymentBranchId);
+            const branchBankAccountNumber = getConfigValue('bank_account_number', '-', paymentBranchId);
+            const branchBankAccountName = getConfigValue('bank_account_name', '-', paymentBranchId);
+            const branchBuildingName = getConfigValue('building_name', 'ที่พัก', paymentBranchId);
 
             // ⭐⭐⭐ ใช้ latestPayment (ที่ refresh แล้ว) สำหรับค่าปรับและ invoice URL
             const lateFee = latestPayment.late_fee_amount || 0;
