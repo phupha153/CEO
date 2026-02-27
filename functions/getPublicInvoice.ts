@@ -191,17 +191,17 @@ Deno.serve(async (req) => {
                 building_logo: configData.building_logo || '',
                 building_address: branch.address || '',
                 building_phone: configData.contact_phone || branch.phone || '',
-                lessor_name: getConfigValue('lessor_name') || '',
-                lessor_id: getConfigValue('lessor_id') || '',
-                lessor_phone: getConfigValue('lessor_phone') || '',
-                lessor_address: getConfigValue('lessor_address') || '',
-                company_name: getConfigValue('company_name') || '',
-                tax_id: getConfigValue('company_tax_id') || '',
-                company_registration_number: getConfigValue('company_registration_number') || '',
-                company_phone: getConfigValue('company_phone') || '',
-                company_address: getConfigValue('company_address') || '',
+                lessor_name: getConfigValue('lessor_name', false) || '',
+                lessor_id: getConfigValue('lessor_id', false) || '',
+                lessor_phone: getConfigValue('lessor_phone', false) || '',
+                lessor_address: getConfigValue('lessor_address', false) || '',
+                company_name: getConfigValue('company_name', false) || '',
+                tax_id: getConfigValue('company_tax_id', false) || '',
+                company_registration_number: getConfigValue('company_registration_number', false) || '',
+                company_phone: getConfigValue('company_phone', false) || '',
+                company_address: getConfigValue('company_address', false) || '',
                 account_name: configData.bank_account_name || '',
-                receiver_signature: getConfigValue('receipt_signature')
+                receiver_signature: getConfigValue('receipt_signature', false)
             },
             configs: relevantConfigs  // ⭐ ส่ง configs กลับไปด้วย
         };
