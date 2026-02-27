@@ -261,18 +261,10 @@ export default function Settings() {
   const { data: configs = [] } = useQuery({
     queryKey: ['configs', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranch?.id) {
-        // 🔒 SECURITY FIX: ไม่มีสาขา = ดึง global configs เท่านั้น
-        return await base44.entities.Config.filter({ branch_id: null }, '', 1000);
-      }
-      
-      // 🔒 SECURITY FIX: ดึงเฉพาะ configs ของสาขานี้ + global
-      const [branchConfigs, globalConfigs] = await Promise.all([
-        base44.entities.Config.filter({ branch_id: selectedBranch.id }, '', 1000),
-        base44.entities.Config.filter({ branch_id: null }, '', 1000)
-      ]);
-      
-      return [...branchConfigs, ...globalConfigs];
+      const toArr = (d) => Array.isArray(d) ? d : (d ? [d] : []);
+      if (!selectedBranch?.id) return toArr(await base44.entities.Config.filter({ branch_id: null }, '', 1000));
+      const [bc, gc] = await Promise.all([base44.entities.Config.filter({ branch_id: selectedBranch.id }, '', 1000), base44.entities.Config.filter({ branch_id: null }, '', 1000)]);
+      return [...toArr(bc), ...toArr(gc)];
     },
     enabled: !!currentUser,
     staleTime: 30 * 60 * 1000, // ⚡ เพิ่มจาก 5 นาที → 30 นาที (configs ไม่เปลี่ยนบ่อย)
