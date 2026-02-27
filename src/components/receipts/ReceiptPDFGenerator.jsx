@@ -67,7 +67,7 @@ export const ReceiptContent = ({ receiptData }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <img
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg"
-              alt="W Residents Logo"
+              alt="Logo"
               style={{ width: '60px', height: '60px', objectFit: 'contain' }}
             />
             <div>
