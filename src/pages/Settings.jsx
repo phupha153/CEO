@@ -1355,26 +1355,17 @@ export default function Settings() {
       const savePromises = targetBranchIds.map(async (branchId) => {
         const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
         
-        // Token
-        const existingTokenConfig = (await base44.entities.Config.filter({ key: 'line_channel_access_token', branch_id: branchId }, '', 1))[0];
-        
+        const toArr = (d) => Array.isArray(d) ? d : (d ? [d] : []);
+        const t = await base44.entities.Config.filter({ key: 'line_channel_access_token', branch_id: branchId }, '', 1);
+        const existingTokenConfig = toArr(t)[0];
         const tokenPromise = existingTokenConfig
-          ? base44.entities.Config.update(existingTokenConfig.id, {
-              value: lineSettings.line_channel_access_token.trim()
-            })
-          : base44.entities.Config.create({
-              key: 'line_channel_access_token',
-              value: lineSettings.line_channel_access_token.trim(),
-              branch_id: branchId,
-              category: 'notification',
-              description: `LINE Token สำหรับสาขา ${branchName}`
-            });
+          ? base44.entities.Config.update(existingTokenConfig.id, { value: lineSettings.line_channel_access_token.trim() })
+          : base44.entities.Config.create({ key: 'line_channel_access_token', value: lineSettings.line_channel_access_token.trim(), branch_id: branchId, category: 'notification', description: `LINE Token สำหรับสาขา ${branchName}` });
 
-        // Secret
         let secretPromise = Promise.resolve();
         if (lineSettings.line_channel_secret?.trim()) {
-          const existingSecretConfig = (await base44.entities.Config.filter({ key: 'line_channel_secret', branch_id: branchId }, '', 1))[0];
-          
+          const s = await base44.entities.Config.filter({ key: 'line_channel_secret', branch_id: branchId }, '', 1);
+          const existingSecretConfig = toArr(s)[0];
           secretPromise = existingSecretConfig
             ? base44.entities.Config.update(existingSecretConfig.id, {
                 value: lineSettings.line_channel_secret.trim()
@@ -1446,34 +1437,17 @@ export default function Settings() {
     }
 
     try {
+      const toArr = (d) => Array.isArray(d) ? d : (d ? [d] : []);
       for (const branchId of targetBranchIds) {
-        // Update Page Access Token
-        const existingToken = (await base44.entities.Config.filter({ key: 'facebook_page_access_token', branch_id: branchId }, '', 1))[0];
-        if (existingToken) {
-          await base44.entities.Config.update(existingToken.id, { value: facebookSettings.facebook_page_access_token.trim() });
-        } else {
-          await base44.entities.Config.create({
-            key: 'facebook_page_access_token',
-            value: facebookSettings.facebook_page_access_token.trim(),
-            branch_id: branchId,
-            category: 'notification',
-            description: 'Facebook Page Access Token'
-          });
-        }
+        const t = await base44.entities.Config.filter({ key: 'facebook_page_access_token', branch_id: branchId }, '', 1);
+        const existingToken = toArr(t)[0];
+        if (existingToken) await base44.entities.Config.update(existingToken.id, { value: facebookSettings.facebook_page_access_token.trim() });
+        else await base44.entities.Config.create({ key: 'facebook_page_access_token', value: facebookSettings.facebook_page_access_token.trim(), branch_id: branchId, category: 'notification', description: 'Facebook Page Access Token' });
 
-        // Update Verify Token
-        const existingVerify = (await base44.entities.Config.filter({ key: 'facebook_verify_token', branch_id: branchId }, '', 1))[0];
-        if (existingVerify) {
-          await base44.entities.Config.update(existingVerify.id, { value: facebookSettings.facebook_verify_token.trim() });
-        } else {
-          await base44.entities.Config.create({
-            key: 'facebook_verify_token',
-            value: facebookSettings.facebook_verify_token.trim(),
-            branch_id: branchId,
-            category: 'notification',
-            description: 'Facebook Webhook Verify Token'
-          });
-        }
+        const v = await base44.entities.Config.filter({ key: 'facebook_verify_token', branch_id: branchId }, '', 1);
+        const existingVerify = toArr(v)[0];
+        if (existingVerify) await base44.entities.Config.update(existingVerify.id, { value: facebookSettings.facebook_verify_token.trim() });
+        else await base44.entities.Config.create({ key: 'facebook_verify_token', value: facebookSettings.facebook_verify_token.trim(), branch_id: branchId, category: 'notification', description: 'Facebook Webhook Verify Token' });
       }
       
       await queryClient.invalidateQueries(['configs']);
