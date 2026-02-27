@@ -2022,11 +2022,11 @@ async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToke
         const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
         if (branchConfig?.value) return branchConfig.value;
         const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-        return globalConfig?.value || 'W RESIDENTS';
+        return globalConfig?.value || 'ที่พัก';
     };
     
     const buildingName = getConfigValue('building_name');
-    const welcomeText = `🏡 ยินดีต้อนรับสู่หอพัก ${buildingName}`;
+    const welcomeText = `🏡 ยินดีต้อนรับสู่ ${buildingName}`;
 
     await sendMessage(base44, lineUserId, welcomeText, branchId, replyToken);
 }
