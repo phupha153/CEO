@@ -629,12 +629,8 @@ Deno.serve(async (req) => {
                      // เราจะถือว่าไม่ได้ส่งสำเร็จเลย
                      if (result.failed > 0 && failedUserIds.length === 0) {
                          console.warn('⚠️ Could not map errors to specific users, assuming all failed in this batch to be safe');
-                         // ถ้ามี success > 0 แต่ failed ก็ > 0 และไม่มี userId ของคน fail ให้สันนิษฐานว่าไม่ได้ส่ง
-                         if (result.success === 0) {
-                             // ไม่เพิ่มใครเลย
-                         } else {
-                             // เป็นกรณีที่ระบุไม่ได้ชัดเจน เพื่อความปลอดภัยไม่ mark ว่าส่งแล้วจะดีกว่า
-                         }
+                         // ถ้ามี success > 0 ให้ถือว่าสำเร็จทั้งหมดที่มีลบด้วยที่ failed แต่เดาไม่ได้ว่าใคร
+                         // เพื่อความปลอดภัย ไม่ push ใครเลย (ป้องกันการ mark บิลว่าส่งแล้วทั้งๆที่ล้มเหลว)
                      } else {
                          const successIds = cleanedRecipients
                             .filter(r => !failedUserIds.includes(r.lineUserId))
