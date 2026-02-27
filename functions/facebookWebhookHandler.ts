@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
                                 let branchId = tenant?.branch_id || null;
                                 
                                 // ⭐ ถ้ายังไม่มีสาขา (ลูกค้าใหม่) ให้วิ่งเข้าสาขาหลัก (ถ้าตั้งไว้)
-                                try { if (!branchId) { const d = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') branchId = v; } } catch(e) {}
+                                try { if (!branchId && entry.id) { const pageConfigRes = await base44.asServiceRole.entities.Config.filter({ key: 'facebook_page_id', value: entry.id }, '', 1); const pageConfig = Array.isArray(pageConfigRes) ? pageConfigRes[0] : pageConfigRes; if (pageConfig && pageConfig.branch_id) { branchId = pageConfig.branch_id; const bRes = await base44.asServiceRole.entities.Branch.filter({ id: branchId }); const branch = Array.isArray(bRes) ? bRes[0] : bRes; if (branch) { const ownerEmail = branch.owner_id || branch.created_by; const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch'; const d = await base44.asServiceRole.entities.Config.filter({ key: defKey, branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') branchId = v; } } } } catch(e) { console.error(e); }
 
                                 if (webhookEvent.message) {
                                                 console.log('📝 Message content:', webhookEvent.message);

@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             if (events.length === 0) return;
             
             let destinationBranchId = queryBranchId;
-            try { if (!destinationBranchId) { const d = await base44.asServiceRole.entities.Config.filter({ key: 'default_communication_branch', branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') destinationBranchId = v; } } catch(e) {}
+            try { if (queryBranchId) { const bRes = await base44.asServiceRole.entities.Branch.filter({ id: queryBranchId }); const branch = Array.isArray(bRes) ? bRes[0] : bRes; if (branch) { const ownerEmail = branch.owner_id || branch.created_by; const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch'; const d = await base44.asServiceRole.entities.Config.filter({ key: defKey, branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') destinationBranchId = v; } } } catch(e) {}
 
             for (const event of events) {
                 const lineUserId = event.source?.userId;
