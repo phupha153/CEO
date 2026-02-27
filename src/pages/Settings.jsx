@@ -292,10 +292,8 @@ export default function Settings() {
     queryKey: ['lineMessages', selectedBranch?.id],
     queryFn: async () => {
       if (!selectedBranch?.id) return [];
-      return await base44.entities.LineMessage.filter({ 
-        branch_id: selectedBranch.id,
-        direction: 'incoming'
-      }, '-created_date', 500);
+      const res = await base44.entities.LineMessage.filter({ branch_id: selectedBranch.id, direction: 'incoming' }, '-created_date', 500);
+      return Array.isArray(res) ? res : (res ? [res] : []);
     },
     enabled: !!currentUser && !!selectedBranch?.id,
     staleTime: 2 * 60 * 1000,
@@ -307,13 +305,9 @@ export default function Settings() {
     queryKey: ['branches', currentUser?.email, branchOwnerStatus?.owner_email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      
-      // 🔒 SECURITY FIX: ดึงเฉพาะสาขาที่เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
-      
-      const result = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
-      
-      return result;
+      const res = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
+      return Array.isArray(res) ? res : (res ? [res] : []);
     },
     enabled: !!currentUser && branchOwnerStatus !== undefined,
     staleTime: 5 * 60 * 1000,
@@ -341,8 +335,8 @@ export default function Settings() {
     queryKey: ['appSubscriptions', currentUser?.email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      // 🔒 SECURITY FIX: ดึงเฉพาะ subscriptions ของตัวเอง
-      return await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 100);
+      const res = await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 100);
+      return Array.isArray(res) ? res : (res ? [res] : []);
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
