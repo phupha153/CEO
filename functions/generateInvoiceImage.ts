@@ -124,8 +124,8 @@ Deno.serve(async (req) => {
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
-        const buildingName = recipient.building_name || 'Double Residence';
-        const displayLessorName = recipient.company_name || recipient.lessor_name || 'ธนานนท์ พรมพักตร์';
+        const buildingName = recipient.building_name || 'ไม่ระบุชื่ออาคาร';
+        const displayLessorName = recipient.company_name || recipient.lessor_name || 'ผู้ให้เช่า';
         const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
