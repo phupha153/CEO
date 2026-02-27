@@ -206,18 +206,18 @@ Deno.serve(async (req) => {
             allTenants = data[0] || [];
             allRooms = data[1] || [];
 
-            // 🛡️ Safety Check: Validate Bank Config
-            const bankName = getConfigValue('bank_name', branch_id, null);
-            const accNum = getConfigValue('bank_account_number', branch_id, null);
-            const accName = getConfigValue('bank_account_name', branch_id, null);
+            // 🛡️ Safety Check: Validate Bank Config (STRICT - NO FALLBACK)
+            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branch_id);
+            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branch_id);
+            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branch_id);
 
-            if (!bankName || !accNum || !accName) {
-                console.error(`❌ Missing bank config for branch ${branch_id} - ABORT`);
+            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
+                console.error(`❌ Missing strict bank config for branch ${branch_id} - ABORT`);
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
-                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
