@@ -394,10 +394,25 @@ Deno.serve(async (req) => {
                 });
             }
 
-            const bankAccountNumber = getConfigValue('bank_account_number', branchId, '0722835522');
-            const bankAccountName = getConfigValue('bank_account_name', branchId, 'ธนานนท์ พรมพักตร์');
-            const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
-            const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
+            // ⭐ STRICT BANK CONFIG CHECK (NO FALLBACKS)
+            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branchId);
+            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branchId);
+            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branchId);
+
+            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
+                return Response.json({
+                    success: false,
+                    error: 'MISSING_BANK_CONFIG',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
+                    action: 'กรุณาตั้งค่าก่อนส่ง reminder'
+                }, { status: 400 });
+            }
+
+            const bankAccountNumber = accNumConf.value;
+            const bankAccountName = accNameConf.value;
+            const bankName = bankNameConf.value;
+            const buildingName = getConfigValue('building_name', branchId, 'ที่พัก');
 
             // --- ส่วนสร้างข้อความ ---
             let message = '';
