@@ -70,7 +70,7 @@ export default function ContractEditor() {
     lessee_address: '',
     tenant_id: '',
     room_id: '',
-    building: 'W RESIDENTS',
+    building: 'ที่พัก',
     room_no: '',
     floor: '',
     full_address: '',
@@ -209,7 +209,7 @@ export default function ContractEditor() {
     setFormData(prev => ({
       ...prev,
       // Only set default if current value is empty to prevent overwriting user input
-      building: prev.building || buildingName || 'W RESIDENTS',
+      building: prev.building || buildingName || 'ที่พัก',
       full_address: prev.full_address || buildingAddress || '',
       lessor_name: prev.lessor_name || lessorName || managerName || '', 
       lessor_id: prev.lessor_id || lessorId || '', 

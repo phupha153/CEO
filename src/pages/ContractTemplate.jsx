@@ -32,7 +32,7 @@ export default function ContractTemplate() {
     lessee_address: '',
     tenant_id: '',
     room_id: '',
-    building: 'W RESIDENTS',
+    building: 'ที่พัก',
     room_no: '',
     floor: '',
     full_address: '',
@@ -104,7 +104,7 @@ export default function ContractTemplate() {
 
     setFormData(prev => ({
       ...prev,
-      building: buildingName || 'W RESIDENTS',
+      building: buildingName || 'ที่พัก',
       full_address: buildingAddress || '',
       lessor_name: managerName || '',
       water_rate: parseFloat(waterRate) || 18,
