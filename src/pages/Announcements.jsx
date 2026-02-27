@@ -810,7 +810,7 @@ export default function Announcements() {
               )}
               
               <div className="flex flex-1 relative min-h-0">
-                {tenantsLoading || roomsLoading || bookingsLoading || messagesLoading || fbMessagesLoading || ((lineFetching || fbFetching) && conversations.length === 0) ? (
+                {(tenantsLoading || roomsLoading || bookingsLoading) || ((messagesLoading || fbMessagesLoading) && conversations.length === 0) ? (
                   <div className="flex-1 flex items-center justify-center h-full bg-slate-50 w-full">
                     <div className="text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
@@ -859,7 +859,7 @@ export default function Announcements() {
                     {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
                     <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
                         <ChatWindow
-                          key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}-${rooms.length}-${bookings.length}`}
+                          key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}`}
                           conversation={selectedConversation}
                           messages={selectedMessages}
                           onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
@@ -898,12 +898,9 @@ export default function Announcements() {
                         onRefresh={async () => {
                           console.log('🔄 Announcements: Starting refresh...');
 
-                          // ⭐ Refetch tenants และรอให้เสร็จ
-                          await refetchTenants();
-
-                          // ⭐ Force invalidate และรอให้ reload จริงๆ
+                          // ⭐ Invalidate เพื่อโหลดข้อมูลใหม่ (ไม่ต้องเรียก refetch ซ้ำซ้อน)
                           await queryClient.invalidateQueries(['tenants', selectedBranchId]);
-
+                          
                           // ⭐ รอให้ cache อัปเดต
                           await new Promise(r => setTimeout(r, 300));
 
@@ -964,8 +961,24 @@ export default function Announcements() {
 
                         toast.success(`เชื่อมต่อบัญชีกับ ${targetTenant.full_name} สำเร็จ`);
                         await refetchTenants();
-                        if (isFacebook) queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
-                        else queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+                        
+                        // ⭐ Optimistic Update for Link Tenant (Update cache without refetching)
+                        const updateCache = (key) => {
+                            queryClient.setQueryData(key, (oldData) => {
+                                if (!oldData) return oldData;
+                                return oldData.map(msg => 
+                                    (isFacebook ? msg.facebook_user_id : msg.line_user_id) === lineUserId 
+                                    ? { ...msg, tenant_id: targetTenant.id, branch_id: targetTenant.branch_id } 
+                                    : msg
+                                );
+                            });
+                        };
+
+                        if (isFacebook) {
+                            updateCache(['facebookMessages', selectedBranchId]);
+                        } else {
+                            updateCache(['lineMessages', selectedBranchId]);
+                        }
                       }}
                       onUnlinkTenant={async (tenantId) => {
                         try {
