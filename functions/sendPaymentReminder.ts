@@ -701,11 +701,19 @@ Deno.serve(async (req) => {
                 if (result.errors) errors.push(...result.errors);
 
                 // หาบิลที่ส่งสำเร็จ
-                const failedFBUserIds = (result.errors || []).map(err => err.recipientId).filter(Boolean);
-                const successFBIds = facebookRecipients
-                    .filter(r => !failedFBUserIds.includes(r.facebookUserId))
-                    .map(r => r.metadata.paymentId);
-                successfulPaymentIds.push(...successFBIds);
+                const failedFBUserIds = (result.errors || []).map(err => {
+                    if (typeof err === 'object' && err.recipientId) return err.recipientId;
+                    return null;
+                }).filter(Boolean);
+                
+                if (result.failCount > 0 && failedFBUserIds.length === 0) {
+                     console.warn('⚠️ FB: Could not map errors to specific users, assuming all failed in this batch to be safe');
+                } else {
+                     const successFBIds = facebookRecipients
+                        .filter(r => !failedFBUserIds.includes(r.facebookUserId))
+                        .map(r => r.metadata.paymentId);
+                     successfulPaymentIds.push(...successFBIds);
+                }
 
                 console.log(`✅ Facebook: ${result.successCount || 0}/${facebookRecipients.length} sent`);
                 if (result.errors && result.errors.length > 0) {
