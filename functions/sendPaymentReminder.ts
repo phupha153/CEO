@@ -617,11 +617,30 @@ Deno.serve(async (req) => {
                      successfulPaymentIds.push(...successIds);
                 } else {
                      // ถ้าไม่ส่งรายการคนสำเร็จมาให้ ต้องหาเอาเองโดยเอาทั้งหมด ลบด้วยคนที่ error
-                     const failedUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
-                     const successIds = cleanedRecipients
-                        .filter(r => !failedUserIds.includes(r.lineUserId))
-                        .map(r => r.metadata.paymentId);
-                     successfulPaymentIds.push(...successIds);
+                     // แก้ไขให้รองรับกรณี rate limit (error เป็น string)
+                     const failedUserIds = (result.errors || []).map(err => {
+                         if (typeof err === 'object' && err.lineUserId) return err.lineUserId;
+                         // ถ้า error ไม่มี lineUserId ระบุชัดเจน (เช่น 429 Too Many Requests)
+                         // ถือว่า fail ทั้ง batch เพื่อความปลอดภัย (ไม่ mark ว่าส่งแล้ว)
+                         return null;
+                     }).filter(Boolean);
+                     
+                     // ถ้าระบบบอกว่า failed เยอะ (เช่นติด rate limit) แต่ไม่ได้ระบุ userId 
+                     // เราจะถือว่าไม่ได้ส่งสำเร็จเลย
+                     if (result.failed > 0 && failedUserIds.length === 0) {
+                         console.warn('⚠️ Could not map errors to specific users, assuming all failed in this batch to be safe');
+                         // ถ้ามี success > 0 แต่ failed ก็ > 0 และไม่มี userId ของคน fail ให้สันนิษฐานว่าไม่ได้ส่ง
+                         if (result.success === 0) {
+                             // ไม่เพิ่มใครเลย
+                         } else {
+                             // เป็นกรณีที่ระบุไม่ได้ชัดเจน เพื่อความปลอดภัยไม่ mark ว่าส่งแล้วจะดีกว่า
+                         }
+                     } else {
+                         const successIds = cleanedRecipients
+                            .filter(r => !failedUserIds.includes(r.lineUserId))
+                            .map(r => r.metadata.paymentId);
+                         successfulPaymentIds.push(...successIds);
+                     }
                 }
 
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
