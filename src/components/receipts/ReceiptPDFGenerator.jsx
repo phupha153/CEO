@@ -71,7 +71,7 @@ export const ReceiptContent = ({ receiptData }) => {
               style={{ width: '60px', height: '60px', objectFit: 'contain' }}
             />
             <div>
-              <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>W RESIDENTS</h1>
+              <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{receiptData.recipient?.building_name || 'ที่พัก'}</h1>
               <p style={{ fontSize: '14px', color: '#64748b', margin: '5px 0 0 0' }}>ระบบจัดการที่พักอาศัย</p>
             </div>
           </div>
@@ -213,7 +213,7 @@ export const ReceiptContent = ({ receiptData }) => {
 
       {/* Footer */}
       <div style={{ paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-        <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0' }}>ขอบคุณที่ใช้บริการ W RESIDENTS</p>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0' }}>ขอบคุณที่ใช้บริการ {receiptData.recipient?.building_name || 'ที่พัก'}</p>
         <p style={{ fontSize: '12px', color: '#94a3b8', margin: '3px 0' }}>เอกสารนี้สร้างโดยระบบอัตโนมัติ</p>
       </div>
     </div>

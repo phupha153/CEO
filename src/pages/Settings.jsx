@@ -2127,7 +2127,7 @@ export default function Settings() {
                           <Input
                             value={buildingInfo.building_name}
                             onChange={(e) => setBuildingInfo({ ...buildingInfo, building_name: e.target.value })}
-                            placeholder="เช่น W RESIDENTS"
+                            placeholder="เช่น ชื่อที่พัก"
                             required
                           />
                         </div>
