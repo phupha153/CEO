@@ -136,15 +136,14 @@ export default function Announcements() {
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
-      // ⚡ Fetch แบบขนาน (Parallel)
+      // ⚡ Fetch แบบขนาน (Parallel) พร้อมดักจับ Error รายตัว (เพื่อไม่ให้พังทั้งหมด)
       const promises = [
-          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500),
-          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100) // Always fetch unlinked
+          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500).catch(e => { console.warn('Fail fetch branch line', e); return []; }),
+          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100).catch(e => { console.warn('Fail fetch null line', e); return []; }) 
       ];
 
-      // ถ้ามีสาขาหลัก และเราไม่ได้อยู่ที่สาขาหลัก -> ให้ดึงข้อความจากสาขาหลักมาด้วย (เฉพาะที่ยังไม่ผูกผู้เช่า)
       if (defaultBranchId && defaultBranchId !== 'none' && !isDefaultBranch) {
-          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300));
+          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300).catch(e => { console.warn('Fail fetch default branch line', e); return []; }));
       }
 
       const results = await Promise.all(promises);
@@ -192,15 +191,14 @@ export default function Announcements() {
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
-      // ⚡ Fetch แบบขนาน (Parallel)
+      // ⚡ Fetch แบบขนาน (Parallel) พร้อมดักจับ Error รายตัว
       const promises = [
-          base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500),
-          base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100) // Always fetch unlinked
+          base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500).catch(e => { console.warn('Fail fetch branch fb', e); return []; }),
+          base44.entities.FacebookMessage?.filter({ branch_id: null }, '-created_date', 100).catch(e => { console.warn('Fail fetch null fb', e); return []; }) 
       ];
 
-      // ถ้ามีสาขาหลัก และเราไม่ได้อยู่ที่สาขาหลัก -> ให้ดึงข้อความจากสาขาหลักมาด้วย (เฉพาะที่ยังไม่ผูกผู้เช่า)
       if (defaultBranchId && defaultBranchId !== 'none' && !isDefaultBranch) {
-          promises.push(base44.entities.FacebookMessage?.filter({ branch_id: defaultBranchId }, '-created_date', 300));
+          promises.push(base44.entities.FacebookMessage?.filter({ branch_id: defaultBranchId }, '-created_date', 300).catch(e => { console.warn('Fail fetch default branch fb', e); return []; }));
       }
 
       const results = await Promise.all(promises);
@@ -365,8 +363,19 @@ export default function Announcements() {
     if (unreadMessages.length > 0) {
       const entityName = selectedConversation.platform === 'facebook' ? 'FacebookMessage' : 'LineMessage';
       
-      // ⚡ แบ่ง batch เพื่อป้องกัน rate limit (ครั้งละ 10 messages, หน่วง 500ms)
-      const batchSize = 10;
+      // ⚡ อัปเดต state ใน UI ไปก่อนเลย เพื่อให้ตัวเลขแจ้งเตือนหายไปทันทีโดยไม่ต้องรอโหลดใหม่
+      queryClient.setQueryData([entityName === 'FacebookMessage' ? 'facebookMessages' : 'lineMessages', selectedBranchId], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map(msg => {
+          if (unreadMessages.find(u => u.id === msg.id)) {
+            return { ...msg, is_read: true };
+          }
+          return msg;
+        });
+      });
+
+      // ⚡ แบ่ง batch เพื่อป้องกัน rate limit (ครั้งละ 5 messages, หน่วง 500ms)
+      const batchSize = 5;
       const batches = [];
       for (let i = 0; i < unreadMessages.length; i += batchSize) {
         batches.push(unreadMessages.slice(i, i + batchSize));
@@ -381,19 +390,14 @@ export default function Announcements() {
             )
           );
           if (batches.indexOf(batch) < batches.length - 1) {
-            await new Promise(r => setTimeout(r, 500)); // หน่วง 500ms ระหว่าง batch
+            await new Promise(r => setTimeout(r, 500)); 
           }
         }
         
-        // Refresh messages หลังจาก mark เป็น read
-        if (selectedConversation.platform === 'facebook') {
-          queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
-        } else {
-          queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-        }
+        // ไม่ต้อง invalidateQueries ให้ดึงข้อมูลมหาศาลใหม่ทันที เนื่องจากอัปเดต cache ด้านบนไปแล้ว
       })();
     }
-  }, [selectedConversation?.line_user_id, selectedConversation?.facebook_user_id, selectedMessages]);
+  }, [selectedConversation?.line_user_id, selectedConversation?.facebook_user_id, selectedMessages, queryClient, selectedBranchId]);
 
   // นับผู้เช่าที่มี LINE/Facebook User ID
   const tenantsWithLine = tenants.filter(t => t.line_user_id);
