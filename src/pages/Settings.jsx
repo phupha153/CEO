@@ -567,7 +567,9 @@ export default function Settings() {
     const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token', false);
     const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing', false);
 
-    const defBranchConf = configs.find(c => c.key === 'default_communication_branch' && !c.branch_id);
+    const oe = branchOwnerStatus?.owner_email || currentUser?.email;
+    const defKey = oe ? 'default_communication_branch_' + oe : 'default_communication_branch';
+    const defBranchConf = configs.find(c => c.key === defKey && !c.branch_id);
     setDefaultCommunicationBranch(defBranchConf?.value || 'none');
     setBuildingLogo(buildingLogoConfig?.value || ''); setSignatureImage(signatureConfig?.value || ''); setStampImage(stampConfig?.value || '');
     
@@ -727,15 +729,11 @@ export default function Settings() {
     mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
       const isDeveloper = userRole === 'developer';
       
-      // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
-      const processInChunks = async (items, fn, chunkSize = 3) => {
+      const processInChunks = async (items, fn) => {
         const results = [];
-        for (let i = 0; i < items.length; i += chunkSize) {
-          const chunk = items.slice(i, i + chunkSize);
-          const chunkResults = await Promise.all(chunk.map(fn));
-          results.push(...chunkResults);
-          // Small delay between chunks to be nice to the API
-          if (i + chunkSize < items.length) await new Promise(r => setTimeout(r, 300));
+        for (let i = 0; i < items.length; i += 3) {
+          results.push(...await Promise.all(items.slice(i, i + 3).map(fn)));
+          if (i + 3 < items.length) await new Promise(r => setTimeout(r, 300));
         }
         return results;
       };
@@ -934,14 +932,11 @@ export default function Settings() {
     mutationFn: async (data) => {
       const isDeveloper = userRole === 'developer';
       
-      // Helper function to process items in chunks (Inline definition to avoid dependency issues)
-      const processInChunks = async (items, fn, chunkSize = 3) => {
+      const processInChunks = async (items, fn) => {
         const results = [];
-        for (let i = 0; i < items.length; i += chunkSize) {
-          const chunk = items.slice(i, i + chunkSize);
-          const chunkResults = await Promise.all(chunk.map(fn));
-          results.push(...chunkResults);
-          if (i + chunkSize < items.length) await new Promise(r => setTimeout(r, 300));
+        for (let i = 0; i < items.length; i += 3) {
+          results.push(...await Promise.all(items.slice(i, i + 3).map(fn)));
+          if (i + 3 < items.length) await new Promise(r => setTimeout(r, 300));
         }
         return results;
       };
@@ -3120,7 +3115,7 @@ export default function Settings() {
                         />
 
                         {(userRole === 'developer' || userRole === 'owner') && (
-                          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-100 shadow-sm relative overflow-hidden"><div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-100 rounded-full opacity-50 blur-xl"/><div className="flex items-start gap-4 relative z-10"><div className="bg-indigo-100 p-3 rounded-full flex-shrink-0 mt-1 shadow-sm border border-indigo-200"><MessageSquare className="w-6 h-6 text-indigo-600"/></div><div className="flex-1"><h4 className="text-lg font-bold text-indigo-900 mb-2">สาขาหลักสำหรับรับลูกค้าใหม่ (Default Branch)</h4><div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-4"><p className="text-sm text-indigo-800 leading-relaxed">เมื่อมี <b>"ผู้เช่าคนใหม่"</b> ทัก LINE เข้ามาครั้งแรก (ระบบยังไม่รู้ว่าเขาพักอยู่สาขาไหน)<br/>ข้อความจะถูกส่งไปที่ <b>"สาขาที่คุณเลือกไว้ด้านล่างนี้"</b> เป็นที่แรก เพื่อให้แอดมินช่วยตอบคำถามและรับลงทะเบียน</p></div><div className="max-w-md"><Select value={defaultCommunicationBranch} onValueChange={async (v)=>{setDefaultCommunicationBranch(v);try{const c=await base44.entities.Config.filter({key:'default_communication_branch'},'',100);const cArr = Array.isArray(c) ? c : (c ? [c] : []);const d=cArr.find(x=>!x.branch_id);if(d){if(v&&v!=='none')await base44.entities.Config.update(d.id,{value:v});else await base44.entities.Config.delete(d.id);}else if(v&&v!=='none')await base44.entities.Config.create({key:'default_communication_branch',value:v,category:'notification'});await queryClient.refetchQueries({queryKey:['configs']});toast.success('บันทึกสาขาหลักสำเร็จ');}catch(e){toast.error('บันทึกไม่สำเร็จ');}}}><SelectTrigger className="bg-white border-indigo-300 shadow-sm h-12 text-base font-medium text-indigo-900"><SelectValue placeholder="-- กรุณาเลือกสาขาหลัก --"/></SelectTrigger><SelectContent><SelectItem value="none">-- ไม่ระบุ (ให้ดึงเฉพาะสาขาตัวเอง) --</SelectItem>{branches.map(b=><SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}</SelectContent></Select></div></div></div></div>
+                          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-100 shadow-sm relative overflow-hidden"><div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-100 rounded-full opacity-50 blur-xl"/><div className="flex items-start gap-4 relative z-10"><div className="bg-indigo-100 p-3 rounded-full flex-shrink-0 mt-1 shadow-sm border border-indigo-200"><MessageSquare className="w-6 h-6 text-indigo-600"/></div><div className="flex-1"><h4 className="text-lg font-bold text-indigo-900 mb-2">สาขาหลักสำหรับรับลูกค้าใหม่ (Default Branch)</h4><div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-4"><p className="text-sm text-indigo-800 leading-relaxed">เมื่อมี <b>"ผู้เช่าคนใหม่"</b> ทัก LINE เข้ามาครั้งแรก (ระบบยังไม่รู้ว่าเขาพักอยู่สาขาไหน)<br/>ข้อความจะถูกส่งไปที่ <b>"สาขาที่คุณเลือกไว้ด้านล่างนี้"</b> เป็นที่แรก เพื่อให้แอดมินช่วยตอบคำถามและรับลงทะเบียน</p></div><div className="max-w-md"><Select value={defaultCommunicationBranch} onValueChange={async (v)=>{setDefaultCommunicationBranch(v);try{const oe=branchOwnerStatus?.owner_email||currentUser?.email;const k=oe?'default_communication_branch_'+oe:'default_communication_branch';const c=await base44.entities.Config.filter({key:k},'',100);const cArr=Array.isArray(c)?c:(c?[c]:[]);const d=cArr.find(x=>!x.branch_id);if(d){if(v&&v!=='none')await base44.entities.Config.update(d.id,{value:v});else await base44.entities.Config.delete(d.id);}else if(v&&v!=='none')await base44.entities.Config.create({key:k,value:v,category:'notification'});await queryClient.refetchQueries({queryKey:['configs']});toast.success('บันทึกสำเร็จ');}catch(e){toast.error('ไม่สำเร็จ');}}}><SelectTrigger className="bg-white border-indigo-300 shadow-sm h-12 text-base font-medium text-indigo-900"><SelectValue placeholder="-- กรุณาเลือกสาขาหลัก --"/></SelectTrigger><SelectContent><SelectItem value="none">-- ไม่ระบุ (ให้ดึงเฉพาะสาขาตัวเอง) --</SelectItem>{branches.map(b=><SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}</SelectContent></Select></div></div></div></div>
                         )}
                         <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl"><img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" alt="LINE Logo" className="w-12 h-12 flex-shrink-0"/><div className="flex-1"><h3 className="text-white font-bold text-lg">LINE Official Account</h3><p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p></div></div>
                         <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
