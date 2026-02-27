@@ -559,32 +559,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Update bill_sent_date และ overdue_reminder_sent_date (ถ้าเป็น template overdue)
-        const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
-        const now = new Date().toISOString();
-        const updateBatchSize = 100;
-
-        // ⭐ สร้าง update payload ตาม template
-        const updatePayload = { bill_sent_date: now };
-        if (template === 'overdue') {
-            updatePayload.overdue_reminder_sent_date = now;
-        }
-
-        for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
-            const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
-            await Promise.all(
-                batch.map(id =>
-                    base44.asServiceRole.entities.Payment.update(id, updatePayload)
-                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
-                )
-            );
-            console.log(`✅ Updated bill_sent_date${template === 'overdue' ? ' + overdue_reminder_sent_date' : ''}: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
-        }
-
-        // Send messages
+        // Send messages FIRST
         let successCount = 0;
         let failCount = 0;
         const errors = [];
+        const successfulPaymentIds = []; // เก็บ ID ของบิลที่ส่งสำเร็จเพื่อนำไปอัปเดตสถานะ
 
         // ⭐ ลบออก - เช็คก่อนหน้านี้แล้ว
         const facebookRecipients = recipients.filter(r => r.facebookUserId);
