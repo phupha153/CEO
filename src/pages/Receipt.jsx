@@ -260,14 +260,14 @@ export default function Receipt() {
   const elecAmount = receiptData.electricity_amount || 0;
   const calculatedElecAmount = elecUnits * (receiptData.electricity_rate || 0);
   const isElecMinimum = elecUnits === 0 || Math.abs(calculatedElecAmount - elecAmount) > 0.01;
-  const elecMeterText = (receiptData.electricity_previous || receiptData.electricity_current) 
+  const elecMeterText = (receiptData.electricity_previous != null && receiptData.electricity_current != null) 
     ? ` (${receiptData.electricity_previous}-${receiptData.electricity_current})` 
     : '';
 
   lineItems.push({
     name: isElecMinimum 
       ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย${elecAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
-      : `ค่าไฟฟ้า${elecMeterText} ${elecUnits} หน่วย × ${receiptData.electricity_rate} บาท`,
+      : `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย × ${receiptData.electricity_rate} บาท`,
     quantity: 1,
     price: elecAmount,
     total: elecAmount
@@ -278,14 +278,14 @@ export default function Receipt() {
   const waterAmount = receiptData.water_amount || 0;
   const calculatedWaterAmount = waterUnits * (receiptData.water_rate || 0);
   const isWaterMinimum = waterUnits === 0 || Math.abs(calculatedWaterAmount - waterAmount) > 0.01;
-  const waterMeterText = (receiptData.water_previous || receiptData.water_current) 
+  const waterMeterText = (receiptData.water_previous != null && receiptData.water_current != null) 
     ? ` (${receiptData.water_previous}-${receiptData.water_current})` 
     : '';
 
   lineItems.push({
     name: isWaterMinimum 
       ? `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย${waterAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
-      : `ค่าน้ำประปา${waterMeterText} ${waterUnits} หน่วย × ${receiptData.water_rate} บาท`,
+      : `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย × ${receiptData.water_rate} บาท`,
     quantity: 1,
     price: waterAmount,
     total: waterAmount
