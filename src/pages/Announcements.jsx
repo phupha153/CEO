@@ -122,12 +122,17 @@ export default function Announcements() {
       let defaultBranchId = null;
       let isDefaultBranch = false;
       try {
-          const configs = await base44.entities.Config.list('', 1000);
-          const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-          const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
-          if (defConfig) {
-              defaultBranchId = defConfig.value;
-              isDefaultBranch = defaultBranchId === selectedBranchId;
+          const bRes = await base44.entities.Branch.filter({ id: selectedBranchId });
+          const branch = Array.isArray(bRes) ? bRes[0] : bRes;
+          if (branch) {
+              const ownerEmail = branch.owner_id || branch.created_by;
+              const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch';
+              const configs = await base44.entities.Config.filter({ key: defKey, branch_id: null }, '', 1);
+              const defConfig = Array.isArray(configs) ? configs[0] : configs;
+              if (defConfig && defConfig.value) {
+                  defaultBranchId = defConfig.value;
+                  isDefaultBranch = defaultBranchId === selectedBranchId;
+              }
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
@@ -173,12 +178,17 @@ export default function Announcements() {
       let defaultBranchId = null;
       let isDefaultBranch = false;
       try {
-          const configs = await base44.entities.Config.list('', 1000);
-          const configList = Array.isArray(configs) ? configs : (configs ? [configs] : []);
-          const defConfig = configList.find(c => c.key === 'default_communication_branch' && !c.branch_id);
-          if (defConfig) {
-              defaultBranchId = defConfig.value;
-              isDefaultBranch = defaultBranchId === selectedBranchId;
+          const bRes = await base44.entities.Branch.filter({ id: selectedBranchId });
+          const branch = Array.isArray(bRes) ? bRes[0] : bRes;
+          if (branch) {
+              const ownerEmail = branch.owner_id || branch.created_by;
+              const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch';
+              const configs = await base44.entities.Config.filter({ key: defKey, branch_id: null }, '', 1);
+              const defConfig = Array.isArray(configs) ? configs[0] : configs;
+              if (defConfig && defConfig.value) {
+                  defaultBranchId = defConfig.value;
+                  isDefaultBranch = defaultBranchId === selectedBranchId;
+              }
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
