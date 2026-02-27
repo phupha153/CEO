@@ -136,15 +136,15 @@ export default function Announcements() {
           }
       } catch (e) { console.warn('Failed to fetch config, skipping default branch check', e); }
 
-      // ⚡ Fetch แบบขนาน (Parallel) พร้อมดัก Error แยกแต่ละ Request ไม่ให้พังทั้งหมด
+      // ⚡ Fetch แบบขนาน (Parallel)
       const promises = [
-          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500).catch(e => { console.error('Error branch messages', e); return []; }),
-          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100).catch(e => { console.error('Error null messages', e); return []; }) // Always fetch unlinked
+          base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500),
+          base44.entities.LineMessage.filter({ branch_id: null }, '-created_date', 100) // Always fetch unlinked
       ];
 
       // ถ้ามีสาขาหลัก และเราไม่ได้อยู่ที่สาขาหลัก -> ให้ดึงข้อความจากสาขาหลักมาด้วย (เฉพาะที่ยังไม่ผูกผู้เช่า)
       if (defaultBranchId && defaultBranchId !== 'none' && !isDefaultBranch) {
-          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300).catch(e => { console.error('Error default branch messages', e); return []; }));
+          promises.push(base44.entities.LineMessage.filter({ branch_id: defaultBranchId }, '-created_date', 300));
       }
 
       const results = await Promise.all(promises);
