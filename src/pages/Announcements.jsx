@@ -385,11 +385,17 @@ export default function Announcements() {
           }
         }
         
-        // Refresh messages หลังจาก mark เป็น read
+        // ⭐ อัปเดต Cache ทันทีโดยไม่ต้องยิง API ใหม่ทั้งหมด (Optimistic Update)
         if (selectedConversation.platform === 'facebook') {
-          queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
+          queryClient.setQueryData(['facebookMessages', selectedBranchId], (old) => {
+            if (!old) return old;
+            return old.map(m => unreadMessages.find(u => u.id === m.id) ? { ...m, is_read: true } : m);
+          });
         } else {
-          queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+          queryClient.setQueryData(['lineMessages', selectedBranchId], (old) => {
+            if (!old) return old;
+            return old.map(m => unreadMessages.find(u => u.id === m.id) ? { ...m, is_read: true } : m);
+          });
         }
       })();
     }
