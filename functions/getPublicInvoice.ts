@@ -118,22 +118,25 @@ Deno.serve(async (req) => {
         }
 
         // ดึง config ของสาขา
-        const getConfigValue = (key) => {
+        const getConfigValue = (key, allowGlobal = false) => {
             const branchConfig = configs.find(c => c.key === key && c.branch_id === actualBranchId);
-            if (branchConfig) return branchConfig.value;
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value || null;
+            if (branchConfig && branchConfig.value) return branchConfig.value;
+            if (allowGlobal) {
+                const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+                return globalConfig?.value || null;
+            }
+            return null;
         };
 
         const configData = {
-            building_name: getConfigValue('building_name'),
-            building_logo: getConfigValue('building_logo'),
-            promptpay: getConfigValue('promptpay'),
-            promptpay_qr_url: getConfigValue('promptpay_qr_url'),
-            bank_name: getConfigValue('bank_name'),
-            bank_account_number: getConfigValue('bank_account_number'),
-            bank_account_name: getConfigValue('bank_account_name'),
-            contact_phone: getConfigValue('contact_phone')
+            building_name: getConfigValue('building_name', true),
+            building_logo: getConfigValue('building_logo', true),
+            promptpay: getConfigValue('promptpay', false), // NO GLOBAL FALLBACK for bank details
+            promptpay_qr_url: getConfigValue('promptpay_qr_url', false),
+            bank_name: getConfigValue('bank_name', false),
+            bank_account_number: getConfigValue('bank_account_number', false),
+            bank_account_name: getConfigValue('bank_account_name', false),
+            contact_phone: getConfigValue('contact_phone', true)
         };
 
         // ⭐ ส่ง configs กลับไปด้วยเพื่อคำนวณค่าปรับที่ frontend
