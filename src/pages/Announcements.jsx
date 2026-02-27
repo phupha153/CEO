@@ -114,7 +114,7 @@ export default function Announcements() {
   }, [tenants, rooms, bookings]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
-  const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
+  const { data: lineMessages = [], isLoading: messagesLoading, isFetching: lineFetching, error: messagesError, refetch: refetchLineMessages } = useQuery({
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
