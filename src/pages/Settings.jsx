@@ -357,12 +357,10 @@ export default function Settings() {
       
       // ดึงทีละ batch เพื่อป้องกัน query ใหญ่เกินไป
       const allPackages = [];
-      const chunkSize = 10;
-      for (let i = 0; i < ownedBranchIds.length; i += chunkSize) {
-        const chunk = ownedBranchIds.slice(i, i + chunkSize);
-        for (const branchId of chunk) {
+      for (let i = 0; i < ownedBranchIds.length; i += 10) {
+        for (const branchId of ownedBranchIds.slice(i, i + 10)) {
           const pkgs = await base44.entities.BranchPackage.filter({ branch_id: branchId }, '-created_date', 100);
-          allPackages.push(...pkgs);
+          allPackages.push(...(Array.isArray(pkgs) ? pkgs : (pkgs ? [pkgs] : [])));
         }
       }
       return allPackages;
@@ -761,8 +759,8 @@ export default function Settings() {
         }
         
         return processInChunks(ownedBranchIds, async (branchId, index) => {
-          const existingConfigs = await base44.entities.Config.filter({ key, branch_id: branchId }, '', 1);
-          
+          const eCfg = await base44.entities.Config.filter({ key, branch_id: branchId }, '', 1);
+          const existingConfigs = Array.isArray(eCfg) ? eCfg : (eCfg ? [eCfg] : []);
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
             // Optimization: Skip update if value hasn't changed
@@ -963,8 +961,8 @@ export default function Settings() {
         }
         
         return processInChunks(ownedBranchIds, async (branchId) => {
-          const existingConfigs = await base44.entities.NotificationConfig.filter({ branch_id: branchId }, '', 1);
-          
+          const eCfg = await base44.entities.NotificationConfig.filter({ branch_id: branchId }, '', 1);
+          const existingConfigs = Array.isArray(eCfg) ? eCfg : (eCfg ? [eCfg] : []);
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
             // Update first match
