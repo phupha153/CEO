@@ -685,6 +685,13 @@ Deno.serve(async (req) => {
                 failCount += result.failCount || 0;
                 if (result.errors) errors.push(...result.errors);
 
+                // หาบิลที่ส่งสำเร็จ
+                const failedFBUserIds = (result.errors || []).map(err => err.recipientId).filter(Boolean);
+                const successFBIds = facebookRecipients
+                    .filter(r => !failedFBUserIds.includes(r.facebookUserId))
+                    .map(r => r.metadata.paymentId);
+                successfulPaymentIds.push(...successFBIds);
+
                 console.log(`✅ Facebook: ${result.successCount || 0}/${facebookRecipients.length} sent`);
                 if (result.errors && result.errors.length > 0) {
                     console.error('❌ Facebook Send Errors:', JSON.stringify(result.errors, null, 2));
