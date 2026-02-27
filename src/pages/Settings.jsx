@@ -325,18 +325,10 @@ export default function Settings() {
   const { data: notificationConfigs = [] } = useQuery({
     queryKey: ['notificationConfigs', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranch?.id) {
-        // 🔒 SECURITY FIX: ดึง global configs เท่านั้น
-        return await base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000);
-      }
-      
-      // 🔒 SECURITY FIX: ดึงเฉพาะของสาขานี้ + global
-      const [branchConfigs, globalConfigs] = await Promise.all([
-        base44.entities.NotificationConfig.filter({ branch_id: selectedBranch.id }, '', 1000),
-        base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000)
-      ]);
-      
-      return [...branchConfigs, ...globalConfigs];
+      const toArr = (d) => Array.isArray(d) ? d : (d ? [d] : []);
+      if (!selectedBranch?.id) return toArr(await base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000));
+      const [bc, gc] = await Promise.all([base44.entities.NotificationConfig.filter({ branch_id: selectedBranch.id }, '', 1000), base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000)]);
+      return [...toArr(bc), ...toArr(gc)];
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
