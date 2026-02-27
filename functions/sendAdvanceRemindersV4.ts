@@ -87,7 +87,7 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
     const bankName = getConfig('bank_name', branchId, null);
     const accNum = getConfig('bank_account_number', branchId, null);
     const accName = getConfig('bank_account_name', branchId, null);
-    const building = getConfig('building_name', branchId, 'W RESIDENTS');
+    const building = getConfig('building_name', branchId, 'ที่พัก');
 
     // 🛡️ Safety Check: ถ้าไม่มี bank config = skip branch นี้
     if (!bankName || !accNum || !accName) {
