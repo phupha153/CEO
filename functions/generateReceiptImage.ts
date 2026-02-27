@@ -106,8 +106,8 @@ Deno.serve(async (req) => {
 
         // ข้อมูลผู้รับเงิน
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
-        const buildingName = recipient.building_name || 'Double Residence';
-        const displayLessorName = recipient.company_name || recipient.lessor_name || 'ธนานนท์ พรมพักตร์';
+        const buildingName = recipient.building_name || 'ที่พัก';
+        const displayLessorName = recipient.company_name || recipient.lessor_name || '-';
         const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
         const buildingPhone = recipient.building_phone || '';

@@ -311,9 +311,9 @@ Deno.serve(async (req) => {
         const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
         console.log(`📄 Receipt link: ${receiptLink}`);
 
-        const bankAccountName = getConfig('bank_account_name', 'ธนานนท์ พรมพักตร์');
+        const bankAccountName = getConfig('bank_account_name', '-');
         const lessorName = getConfig('lessor_name', bankAccountName);
-        const buildingName = getConfig('building_name', 'W RESIDENTS');
+        const buildingName = getConfig('building_name', 'ที่พัก');
         const buildingAddress = getConfig('building_address', '');
         const buildingPhone = getConfig('building_phone', '');
         
