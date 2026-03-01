@@ -561,30 +561,25 @@ export default function ChatWindow({
           </div>
         </div>
 
-      {/* Profile Panel - Use Portal to render at document.body */}
-      {showProfile && createPortal(
+      </div>
+
+      {/* Profile Panel */}
+      {showProfile && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - Only visible on mobile */}
           <div 
-            className="fixed inset-0 bg-black/50 z-[999] animate-in fade-in duration-200"
+            className="lg:hidden fixed inset-0 bg-black/50 z-[99] animate-in fade-in duration-200"
             onClick={() => {
               console.log('❌ Close profile panel (backdrop click)');
               setShowProfile(false);
             }}
           />
 
-          {/* Profile Panel - Fixed Right Sidebar with Slide Animation */}
+          {/* Profile Panel - Fixed on mobile, Static on desktop */}
           <div 
-            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto animate-in slide-in-from-right duration-300"
+            className="fixed lg:static inset-y-0 right-0 w-80 bg-white shadow-2xl lg:shadow-none lg:border-l z-[100] lg:z-0 overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              position: 'fixed',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              maxWidth: '320px',
-              width: '100%'
-            }}
+            style={{ maxWidth: '320px' }}
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
