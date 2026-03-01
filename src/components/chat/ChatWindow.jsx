@@ -340,7 +340,7 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex-1 flex h-full relative overflow-hidden">
+    <div className="flex-1 flex h-full relative overflow-hidden w-full">
       <div className="flex-1 flex flex-col bg-slate-50 h-full min-w-0 relative">
         {/* Header */}
         <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative flex-shrink-0">
