@@ -536,7 +536,7 @@ Deno.serve(async (req) => {
                 if (!accountMatch) {
                     console.log(`   ⚠️ Account mismatch - notifying customer`);
                     
-                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nควรโอนเข้าบัญชี: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบและส่งสลิปมาใหม่อีกครั้งค่ะ`;
                     
                     await entityService.Payment.update(payment.id, {
                         notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
