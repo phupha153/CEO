@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { differenceInDays, parseISO } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 export default function AIInsights({
   payments = [],
