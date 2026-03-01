@@ -73,6 +73,7 @@ import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import Home from './pages/Home';
+import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
@@ -87,6 +88,8 @@ import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicBooking from './pages/PublicBooking';
 import PublicInvoice from './pages/PublicInvoice';
+import PublicReceipt from './pages/PublicReceipt';
+import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
@@ -103,9 +106,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Invoice from './pages/Invoice';
-import PublicReceipt from './pages/PublicReceipt';
-import Receipt from './pages/Receipt';
 import __Layout from './Layout.jsx';
 
 
@@ -136,6 +136,7 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
     "Home": Home,
+    "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
@@ -150,6 +151,8 @@ export const PAGES = {
     "PrivacyPolicy": PrivacyPolicy,
     "PublicBooking": PublicBooking,
     "PublicInvoice": PublicInvoice,
+    "PublicReceipt": PublicReceipt,
+    "Receipt": Receipt,
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
@@ -166,9 +169,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Invoice": Invoice,
-    "PublicReceipt": PublicReceipt,
-    "Receipt": Receipt,
 }
 
 export const pagesConfig = {

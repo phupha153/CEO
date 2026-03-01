@@ -95,10 +95,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['allRooms'],
+    queryKey: ['allRooms', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.Room.list('-room_number', 1000);
+      if (canViewAllBranches) return await base44.entities.Room.list('-room_number', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.Room.filter({ branch_id: branchId }, '-room_number', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -112,10 +122,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings'],
+    queryKey: ['allBookings', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.Booking.list('-created_date', 1000);
+      if (canViewAllBranches) return await base44.entities.Booking.list('-created_date', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.Booking.filter({ branch_id: branchId }, '-created_date', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -129,10 +149,20 @@ export default function AllBranchesDashboard() {
   }, [allBookings, accessibleBranchIds]);
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments'],
+    queryKey: ['allPayments', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.Payment.list('-due_date', 1000);
+      if (canViewAllBranches) return await base44.entities.Payment.list('-due_date', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.Payment.filter({ branch_id: branchId }, '-due_date', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -146,10 +176,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants'],
+    queryKey: ['allTenants', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.Tenant.list('-created_date', 1000);
+      if (canViewAllBranches) return await base44.entities.Tenant.list('-created_date', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.Tenant.filter({ branch_id: branchId }, '-created_date', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -163,10 +203,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allMaintenance = [] } = useQuery({
-    queryKey: ['allMaintenance'],
+    queryKey: ['allMaintenance', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.MaintenanceRequest.list('-created_date', 1000);
+      if (canViewAllBranches) return await base44.entities.MaintenanceRequest.list('-created_date', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.MaintenanceRequest.filter({ branch_id: branchId }, '-created_date', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -180,10 +230,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allExpenses = [] } = useQuery({
-    queryKey: ['allExpenses'],
+    queryKey: ['allExpenses', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      return await base44.entities.Expense.list('-date', 1000);
+      if (canViewAllBranches) return await base44.entities.Expense.list('-date', 1000);
+      const branchIds = Array.from(accessibleBranchIds);
+      if (branchIds.length === 0) return [];
+      
+      const allResults = [];
+      for (const branchId of branchIds) {
+        const result = await base44.entities.Expense.filter({ branch_id: branchId }, '-date', 1000);
+        allResults.push(...(result || []));
+      }
+      return allResults;
     },
+    enabled: accessibleBranchIds.size > 0 || canViewAllBranches,
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
