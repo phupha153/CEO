@@ -512,6 +512,10 @@ ${branches.length > 0 ? `\n**ข้อมูลแต่ละสาขา (${br
 
   const { alertLines, forecastLines } = parseInsights(insights);
 
+  if (userRole !== 'developer') {
+    return null;
+  }
+
   return (
     <div className="relative">
       <div className="relative overflow-hidden rounded-3xl bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl">
