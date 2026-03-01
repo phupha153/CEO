@@ -2993,91 +2993,17 @@ export default function Settings() {
               )}
 
               {activeTab === 'bank' && (
-                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-purple-600" />
-                      บัญชีธนาคาร
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BranchToggle
-                      applyToAllBranches={applyToAllBranches_bank}
-                      setApplyToAllBranches={setApplyToAllBranches_bank}
-                      selectedBranch={selectedBranch}
-                      canSetGlobalConfig={canSetGlobalConfig}
-                    />
-
-                    <form onSubmit={handleBankInfoSubmit} className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <Label>ชื่อบัญชี (ภาษาไทย)</Label>
-                          <Input
-                            value={bankInfo.account_name}
-                            onChange={(e) => setBankInfo({ ...bankInfo, account_name: e.target.value })}
-                            placeholder="ไพทูลย์ มีของ"
-                          />
-                        </div>
-                        <div>
-                          <Label>ชื่อบัญชี (ภาษาอังกฤษ)</Label>
-                          <div className="relative">
-                            <Input
-                              value={bankInfo.account_name_en}
-                              onChange={(e) => setBankInfo({ ...bankInfo, account_name_en: e.target.value })}
-                              placeholder="PHAITOON M"
-                              disabled={translatingName}
-                            />
-                            {translatingName && (
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {translatingName ? '🤖 AI กำลังแปลอัตโนมัติ...' : 'แปลจากชื่อไทยอัตโนมัติ หรือแก้ไขเองได้'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label>ธนาคาร</Label>
-                          <Input
-                            value={bankInfo.bank_name}
-                            onChange={(e) => setBankInfo({ ...bankInfo, bank_name: e.target.value })}
-                            placeholder="ธนาคารกสิกรไทย"
-                          />
-                        </div>
-                        <div>
-                          <Label>เลขที่บัญชี</Label>
-                          <Input
-                            value={bankInfo.account_number}
-                            onChange={(e) => setBankInfo({ ...bankInfo, account_number: e.target.value })}
-                            placeholder="xxx-x-xxxxx-x"
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Label>พร้อมเพย์</Label>
-                          <Input
-                            value={bankInfo.promptpay}
-                            onChange={(e) => setBankInfo({ ...bankInfo, promptpay: e.target.value })}
-                            placeholder="0812345678"
-                          />
-                        </div>
-                      </div>
-                      <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600" disabled={isSavingBankInfo}>
-                        {isSavingBankInfo ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            กำลังบันทึก...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-4 h-4 mr-2" />
-                            บันทึก
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
+                <BankTab
+                  bankInfo={bankInfo}
+                  setBankInfo={setBankInfo}
+                  applyToAllBranches={applyToAllBranches_bank}
+                  setApplyToAllBranches={setApplyToAllBranches_bank}
+                  selectedBranch={selectedBranch}
+                  canSetGlobalConfig={canSetGlobalConfig}
+                  handleBankInfoSubmit={handleBankInfoSubmit}
+                  translatingName={translatingName}
+                  isSavingBankInfo={isSavingBankInfo}
+                />
               )}
 
               {activeTab === 'messaging' && (
