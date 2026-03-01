@@ -70,7 +70,7 @@ export default function ChatWindow({
 }) {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(() => window.innerWidth >= 1024);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [linking, setLinking] = useState(false);
   const [showAddTenantDialog, setShowAddTenantDialog] = useState(false);
