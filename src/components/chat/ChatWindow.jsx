@@ -951,25 +951,24 @@ export default function ChatWindow({
               </div>
             </div>
           </div>
-          </>,
-          document.body
-          )}
+        </>
+      )}
 
-                  {/* Add Tenant Dialog */}
-                  <AddTenantDialog
-                    open={showAddTenantDialog}
-                    onClose={() => {
-                      setShowAddTenantDialog(false);
-                      setAiExtractedData(null);
-                      setAnalyzingChat(false);
-                    }}
-                    aiData={aiExtractedData}
-                    rooms={rooms}
-                    onSubmit={handleSubmitTenant}
-                    submitting={submittingTenant}
-                    conversation={conversation}
-                    analyzing={analyzingChat}
-                  />
-                  </div>
-                  );
-                  }
+      {/* Add Tenant Dialog */}
+      <AddTenantDialog
+        open={showAddTenantDialog}
+        onClose={() => {
+          setShowAddTenantDialog(false);
+          setAiExtractedData(null);
+          setAnalyzingChat(false);
+        }}
+        aiData={aiExtractedData}
+        rooms={rooms}
+        onSubmit={handleSubmitTenant}
+        submitting={submittingTenant}
+        conversation={conversation}
+        analyzing={analyzingChat}
+      />
+    </div>
+  );
+}
