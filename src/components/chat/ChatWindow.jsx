@@ -436,6 +436,114 @@ export default function ChatWindow({
         </Button>
       </div>
 
+      {/* Quick Action Bar (Moved out for easy access) */}
+      {!tenant && (
+        <div className="bg-white border-b px-4 py-2.5 z-10 relative flex flex-wrap items-center gap-2 shadow-sm">
+          <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+            <select
+              value={selectedRoomId}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
+              className="flex-1 text-sm border rounded-lg px-2 py-1.5 h-9 bg-slate-50 focus:bg-white transition-colors"
+              disabled={!tenants || tenants.length === 0 || !rooms || rooms.length === 0}
+            >
+              <option value="">
+                {!tenants || tenants.length === 0 ? '⏳ กำลังโหลด...' : '-- เลือกห้องเพื่อเชื่อมต่อ --'}
+              </option>
+              {(() => {
+                if (!tenants || tenants.length === 0 || !rooms || rooms.length === 0 || !bookings) return null;
+                const isFacebook = !!conversation.facebook_user_id;
+                const tenantsWithoutPlatform = tenants.filter(t => t.status !== 'moved_out' && (isFacebook ? !t.facebook_user_id : !t.line_user_id));
+                const tenantRoomMap = {};
+                bookings.filter(b => b.status === 'active').forEach(booking => {
+                  const room = rooms.find(r => r.id === booking.room_id);
+                  if (room) tenantRoomMap[booking.tenant_id] = room.room_number;
+                });
+                return tenantsWithoutPlatform
+                  .map(tenant => ({ tenant, roomNumber: tenant.room_number || tenantRoomMap[tenant.id] }))
+                  .filter(({ roomNumber }) => roomNumber)
+                  .sort((a, b) => (a.roomNumber || '').localeCompare(b.roomNumber || '', 'th', { numeric: true }))
+                  .map(({ tenant, roomNumber }) => (
+                    <option key={tenant.id} value={tenant.id}>ห้อง {roomNumber} - {tenant.full_name}</option>
+                  ));
+              })()}
+            </select>
+            <Button
+              size="sm"
+              className={`h-9 whitespace-nowrap ${conversation.facebook_user_id ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+              disabled={!selectedRoomId || linking}
+              onClick={async () => {
+                if (!selectedRoomId) return;
+                setLinking(true);
+                try {
+                  const updateData = conversation.facebook_user_id ? { facebook_user_id: conversation.facebook_user_id } : { line_user_id: conversation.line_user_id };
+                  await base44.entities.Tenant.update(selectedRoomId, updateData);
+                  try {
+                    const targetTenant = tenants.find(t => t.id === selectedRoomId);
+                    if (targetTenant) {
+                      if (conversation.facebook_user_id) {
+                        const pastMessages = await base44.entities.FacebookMessage.filter({ facebook_user_id: conversation.facebook_user_id }, '', 1000);
+                        const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+                        for (const msg of msgs) {
+                          if (msg.branch_id !== targetTenant.branch_id || msg.tenant_id !== targetTenant.id) {
+                            await base44.entities.FacebookMessage.update(msg.id, { branch_id: targetTenant.branch_id, tenant_id: targetTenant.id });
+                          }
+                        }
+                      } else if (conversation.line_user_id) {
+                        const pastMessages = await base44.entities.LineMessage.filter({ line_user_id: conversation.line_user_id }, '', 1000);
+                        const msgs = Array.isArray(pastMessages) ? pastMessages : (pastMessages ? [pastMessages] : []);
+                        for (const msg of msgs) {
+                          if (msg.branch_id !== targetTenant.branch_id || msg.tenant_id !== targetTenant.id) {
+                            await base44.entities.LineMessage.update(msg.id, { branch_id: targetTenant.branch_id, tenant_id: targetTenant.id });
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Failed to migrate history:', e);
+                  }
+                  const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
+                  toast.success(`เชื่อมต่อ ${platform} สำเร็จ และดึงประวัติแชทมาแล้ว`);
+                  setSelectedRoomId('');
+                  setShowProfile(false);
+                  if (onRefresh) await onRefresh();
+                } catch (error) {
+                  toast.error('เชื่อมต่อไม่สำเร็จ: ' + error.message);
+                } finally {
+                  setLinking(false);
+                }
+              }}
+            >
+              {linking ? <Loader2 className="w-4 h-4 animate-spin md:mr-1" /> : <Link className="w-4 h-4 md:mr-1" />}
+              <span className="hidden md:inline">เชื่อมต่อ</span>
+            </Button>
+          </div>
+          
+          {/* Divider for mobile */}
+          <div className="w-full h-px bg-slate-100 md:hidden my-1"></div>
+
+          <div className="flex-shrink-0 w-full md:w-auto">
+            <Button
+              size="sm"
+              className="w-full md:w-auto h-9 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 whitespace-nowrap shadow-sm"
+              disabled={analyzingChat || messages.length === 0}
+              onClick={() => {
+                if (messages.length === 0) {
+                  toast.error('ยังไม่มีข้อความให้วิเคราะห์');
+                  return;
+                }
+                handleAnalyzeChat();
+              }}
+            >
+              {analyzingChat ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />กำลังวิเคราะห์...</>
+              ) : (
+                <><UserPlus className="w-4 h-4 mr-2" /> เพิ่มผู้เช่าใหม่ (AI)</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 relative z-0">
           {loading ? (
