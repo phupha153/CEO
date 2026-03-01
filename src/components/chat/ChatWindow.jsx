@@ -183,7 +183,7 @@ export default function ChatWindow({
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50">
+      <div className="flex-1 flex h-full w-full items-center justify-center bg-slate-50">
         <div className="text-center text-slate-400">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
             <Send className="w-8 h-8" />
