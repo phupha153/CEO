@@ -1173,12 +1173,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                     payment_slip_url: slipImageUrl,
                     notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
                 });
-                
-                await sendMessage(base44, lineUserId, 
-                    `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
-                    branchId,
-                    replyToken
-                );
+                // 🛑 ไม่ส่งข้อความกลับ ให้เงียบไว้รอ cron job ตรวจสอบ
+                console.log('📸 504 Timeout: Saved slip silently for cron recheck');
                 return;
             }
             
@@ -1200,12 +1196,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 payment_slip_url: slipImageUrl,
                 notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
             });
-            
-            await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
-                branchId,
-                replyToken
-            );
+            // 🛑 ไม่ส่งข้อความกลับ ให้เงียบไว้รอ cron job ตรวจสอบ
+            console.log('📸 Fetch Error: Saved slip silently for cron recheck');
             return;
         }
 
@@ -1255,6 +1247,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 message: 'Fraud slip detected',
                 details: { error_code: errorCode }
             }).catch(() => {});
+            // 🛑 เงียบไว้ ไม่บันทึก url รูปลงบิล ไม่ตอบกลับ
+            console.log('📸 Slip2Go Error 200500: Ignored silently (Not a slip)');
             return;
         }
 

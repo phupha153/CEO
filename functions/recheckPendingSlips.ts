@@ -388,6 +388,24 @@ Deno.serve(async (req) => {
                 // ⭐ เช็คว่า Slip2Go ตอบกลับสำเร็จหรือไม่
                 const isSlipValid = slip2goResponse.ok && slip2goData.code === '200200' && slip2goData.data;
                 const isDuplicate = slip2goData.code === '200501' || (slip2goData.message && slip2goData.message.toLowerCase().includes('duplicate'));
+                const isFraudSlip = slip2goData.code === '200500' || (slip2goData.message && slip2goData.message.toLowerCase().includes('fraud'));
+
+                // ⭐ ถ้าพบว่าเป็นรหัส 200500 (ไม่ใช่รูปสลิป) ให้ล้างข้อมูลทิ้งทันที
+                if (isFraudSlip) {
+                    console.log(`   ❌ Error 200500: Not a valid slip. Clearing data silently.`);
+                    
+                    // ลบคำว่า "รอตรวจสอบ..." ออกจาก notes
+                    let newNotes = payment.notes || '';
+                    newNotes = newNotes.replace(/\n\n⚠️ รอตรวจสอบ:.*$/, '');
+                    
+                    await entityService.Payment.update(payment.id, {
+                        payment_slip_url: null, // เคลียร์รูปทิ้ง ไม่ให้ค้างในบิล
+                        notes: newNotes
+                    });
+                    
+                    failCount++;
+                    continue;
+                }
 
                 // ⭐ ถ้าเป็น Duplicate - ถือว่าสลิปถูกต้อง (เคยตรวจสอบผ่านแล้ว)
                 if (isDuplicate && slip2goData.data) {
