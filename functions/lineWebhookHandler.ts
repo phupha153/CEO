@@ -1169,13 +1169,21 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
             
             if (slip2goResponse.status === 504 || responseText.includes('504')) {
-                // ปล่อยผ่านเงียบๆ ไม่ต้องอัปเดตบิลและไม่ตอบกลับ (ป้องกันภาพที่ไม่ใช่สลิปแต่ทำให้ API timeout)
-                console.log('📸 Slip2Go timeout (504) - Ignoring silently (Not a valid slip)');
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                    payment_slip_url: slipImageUrl,
+                    notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบตรวจสอบช้า`
+                });
+                
+                await sendMessage(base44, lineUserId, 
+                    `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                    branchId,
+                    replyToken
+                );
                 return;
             }
             
         } catch (fetchError) {
-            // Log to DB Only
+            // Log to DB
             await base44.asServiceRole.entities.WebhookLog.create({
                 webhook_type: 'line',
                 branch_id: branchId,
@@ -1188,16 +1196,23 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 error_message: fetchError.message
             }).catch(() => {});
 
-            // ปล่อยผ่านเงียบๆ ไม่ต้องอัปเดตบิลและไม่ตอบกลับ
-            console.log('📸 Slip2Go fetch error/timeout - Ignoring silently (Not a valid slip)');
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ส่งสลิปผ่าน LINE แต่ระบบขัดข้อง`
+            });
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
             return;
         }
 
         const errorCode = slip2goData.code;
         const errorMessage = slip2goData.message || '';
 
-        // แปลง errorCode เป็น String เสมอก่อนเช็ค เพราะบางครั้ง API อาจจะคืนค่ามาเป็น Number (เช่น 200500 แทน '200500')
-        const isDuplicateError = String(errorCode) === '200501' || errorMessage.toLowerCase().includes('duplicate');
+        const isDuplicateError = errorCode === '200501' || errorMessage.toLowerCase().includes('duplicate');
 
         if (isDuplicateError) {
             // Log duplicate
@@ -1225,7 +1240,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         // 200404 = Not found (ธนาคารยัง sync ไม่ทัน) → บันทึกรอตรวจซ้ำ
         // อื่นๆ = Unknown error → ไม่ตอบ ไม่บันทึก
 
-        const isFraudSlip = String(errorCode) === '200500' || errorMessage.toLowerCase().includes('fraud');
+        const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
 
         if (isFraudSlip && !verificationSuccess) {
             // Log fraud attempt
@@ -1246,7 +1261,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
 
         if (!isSlipValid) {
-            const isSlipNotFound = String(errorCode) === '200404' || errorMessage === 'Slip not found';
+            const isSlipNotFound = errorCode === '200404' || errorMessage === 'Slip not found';
 
             if (isSlipNotFound) {
                 const now = new Date().toISOString();
