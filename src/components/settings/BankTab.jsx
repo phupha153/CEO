@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Save, Loader2 } from "lucide-react";
-import BranchToggle from "./BranchToggle";
+import { BranchToggle } from "./BranchToggle";
 
 export default function BankTab({
   bankInfo,
