@@ -151,14 +151,20 @@ export default function AllBranchesDashboard() {
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', Array.from(accessibleBranchIds)],
     queryFn: async () => {
-      if (canViewAllBranches) return await base44.entities.Payment.list('-due_date', 1000);
+      if (canViewAllBranches) {
+        const paymentsData = await base44.entities.Payment.list('-due_date', 2000);
+        return paymentsData || [];
+      }
+      
       const branchIds = Array.from(accessibleBranchIds);
       if (branchIds.length === 0) return [];
       
       const allResults = [];
       for (const branchId of branchIds) {
         const result = await base44.entities.Payment.filter({ branch_id: branchId }, '-due_date', 1000);
-        allResults.push(...(result || []));
+        if (result && Array.isArray(result)) {
+          allResults.push(...result);
+        }
       }
       return allResults;
     },
@@ -170,10 +176,11 @@ export default function AllBranchesDashboard() {
   });
 
   // กรอง payments ตามสาขาที่เข้าถึงได้
-  const payments = useMemo(() => 
-    allPayments.filter(payment => accessibleBranchIds.has(payment.branch_id)),
-    [allPayments, accessibleBranchIds]
-  );
+  const payments = useMemo(() => {
+    if (!Array.isArray(allPayments)) return [];
+    if (canViewAllBranches) return allPayments;
+    return allPayments.filter(payment => accessibleBranchIds.has(payment.branch_id));
+  }, [allPayments, accessibleBranchIds, canViewAllBranches]);
 
   const { data: allTenants = [] } = useQuery({
     queryKey: ['allTenants', Array.from(accessibleBranchIds)],
