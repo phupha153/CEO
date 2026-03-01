@@ -135,9 +135,8 @@ Deno.serve(async (req) => {
         // ⭐ แสดงค่าไฟเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
         const elecUnits = payment.electricity_units || 0;
         const elecAmount = payment.electricity_amount || 0;
-        const elecMeterText = (payment.electricity_previous !== undefined && payment.electricity_current !== undefined) ? ` (${payment.electricity_previous}-${payment.electricity_current})` : '';
         items.push({ 
-            name: `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย`, 
+            name: `ค่าไฟ (${elecUnits} หน่วย)`, 
             qty: 1, 
             price: elecAmount 
         });
@@ -145,9 +144,8 @@ Deno.serve(async (req) => {
         // ⭐ แสดงค่าน้ำเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
         const waterUnits = payment.water_units || 0;
         const waterAmount = payment.water_amount || 0;
-        const waterMeterText = (payment.water_previous !== undefined && payment.water_current !== undefined) ? ` (${payment.water_previous}-${payment.water_current})` : '';
         items.push({ 
-            name: `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย`, 
+            name: `ค่าน้ำ (${waterUnits} หน่วย)`, 
             qty: 1, 
             price: waterAmount 
         });
