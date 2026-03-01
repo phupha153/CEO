@@ -1397,7 +1397,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
 
-            const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+            const errorMsg = `โอนเงินไปผิดบัญชี\n\nควรโอนเข้าบัญชี: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบและส่งสลิปมาใหม่อีกครั้งค่ะ`;
 
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
