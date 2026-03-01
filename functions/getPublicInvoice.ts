@@ -87,16 +87,18 @@ Deno.serve(async (req) => {
         // ดึงข้อมูลที่เกี่ยวข้อง
         console.log(`🔍 Fetching related data for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
-        const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
+        const [tenantResults, roomResults, branchResults, meterReadingResults, configs] = await Promise.all([
             payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
             payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
             actualBranchId ? base44.asServiceRole.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
+            payment.meter_reading_id ? base44.asServiceRole.entities.MeterReading.filter({ id: payment.meter_reading_id }) : Promise.resolve([]),
             base44.asServiceRole.entities.Config.list()
         ]);
 
         const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
         const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
         const branch = Array.isArray(branchResults) ? branchResults[0] : branchResults;
+        const meterReading = Array.isArray(meterReadingResults) ? meterReadingResults[0] : meterReadingResults;
 
         console.log(`📋 Found: room=${room?.room_number}, tenant=${tenant?.full_name}, branch=${branch?.branch_name}`);
         
