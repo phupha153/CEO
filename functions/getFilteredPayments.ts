@@ -250,8 +250,8 @@ Deno.serve(async (req) => {
     if (debug) logs.push({ step: 'Step 8a: Before Counts', data: step8aData });
     
     // 🔢 Calculate counts from ENRICHED data (before status filter, for all tabs)
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
     
     const counts = {
       all: enrichedPayments.length,
@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
         try {
           const dueDate = new Date(p.due_date);
           dueDate.setHours(0, 0, 0, 0);
-          return now <= dueDate;
+          return todayDate <= dueDate;
         } catch {
           return true;
         }
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
         try {
           const dueDate = new Date(p.due_date);
           dueDate.setHours(0, 0, 0, 0);
-          return now > dueDate;
+          return todayDate > dueDate;
         } catch {
           return false;
         }
