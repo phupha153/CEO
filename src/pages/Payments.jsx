@@ -4577,19 +4577,16 @@ Return JSON.`;
                     </div>
 
                     <div>
-                      <Label className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-600" />
-                        ค่าปรับ (บาท)
-                      </Label>
+                      <div className="flex justify-between items-center mb-1"><Label className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-600" />ค่าปรับ (บาท)</Label><label className="flex items-center gap-1 text-xs cursor-pointer"><input type="checkbox" checked={formData.late_fee_locked} onChange={e => setFormData({...formData, late_fee_locked: e.target.checked})} className="rounded text-red-600" /> ล็อคค่าปรับอัตโนมัติ</label></div>
                       <Input 
                         type="number" 
                         value={formData.late_fee_amount} 
-                        onChange={(e) => setFormData({ ...formData, late_fee_amount: parseFloat(e.target.value) || 0 })} 
+                        onChange={(e) => setFormData({ ...formData, late_fee_amount: parseFloat(e.target.value) || 0, late_fee_locked: true })} 
                         onWheel={(e) => e.target.blur()}
                         placeholder="0"
                         className="border-red-200 focus:border-red-400"
                       />
-                      <p className="text-xs text-slate-500 mt-1">สามารถระบุค่าปรับเพิ่มเติมได้</p>
+                      <p className="text-xs text-slate-500 mt-1">การแก้ไขตัวเลขจะล็อคค่าปรับอัตโนมัติทันที</p>
                     </div>
 
                     <Card className="bg-slate-50 border-slate-200">
