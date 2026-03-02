@@ -153,7 +153,7 @@ export default function PaymentsPage() {
     common_fee_amount: 0,
     parking_fee_amount: 0,
     other_amount: 0,
-    late_fee_amount: 0,
+    late_fee_amount: 0, late_fee_locked: false,
     payment_method: 'cash',
     payment_slip_url: '',
     notes: ''
