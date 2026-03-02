@@ -116,25 +116,54 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
           <p className="text-xs text-slate-500 mt-1">{tenant?.full_name}</p>
         </div>
 
+        <div className="flex gap-2 mb-4">
+          <Button
+            type="button"
+            variant={actionType === 'add' ? 'default' : 'outline'}
+            className={`flex-1 ${actionType === 'add' ? 'bg-green-600 hover:bg-green-700 text-white' : 'text-green-700 border-green-200 hover:bg-green-50'}`}
+            onClick={() => setActionType('add')}
+          >
+            เติมเงิน
+          </Button>
+          <Button
+            type="button"
+            variant={actionType === 'deduct' ? 'default' : 'outline'}
+            className={`flex-1 ${actionType === 'deduct' ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'text-orange-700 border-orange-200 hover:bg-orange-50'}`}
+            onClick={() => setActionType('deduct')}
+          >
+            หักเงิน
+          </Button>
+          <Button
+            type="button"
+            variant={actionType === 'set' ? 'default' : 'outline'}
+            className={`flex-1 ${actionType === 'set' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-blue-700 border-blue-200 hover:bg-blue-50'}`}
+            onClick={() => setActionType('set')}
+          >
+            แก้ไขยอด
+          </Button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>จำนวนเงินที่เติม (บาท) *</Label>
+            <Label>{actionType === 'set' ? 'ยอดเงินที่ต้องการตั้งค่า (บาท) *' : 'จำนวนเงิน (บาท) *'}</Label>
             <Input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="เช่น 15000"
               required
-              min="1"
+              min={actionType === 'set' ? "0" : "1"}
               step="0.01"
             />
-            <p className="text-xs text-slate-500 mt-1">
-              💡 สามารถเติมได้ตามจำนวนที่ต้องการ (เช่น ค่าเช่า 3 เดือน)
-            </p>
+            {actionType === 'add' && (
+              <p className="text-xs text-slate-500 mt-1">
+                💡 สามารถเติมได้ตามจำนวนที่ต้องการ (เช่น ค่าเช่า 3 เดือน)
+              </p>
+            )}
           </div>
 
           <div>
-            <Label>วิธีการชำระเงิน</Label>
+            <Label>วิธีการ/เหตุผล</Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
               <SelectTrigger>
                 <SelectValue />
