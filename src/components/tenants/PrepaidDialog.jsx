@@ -14,6 +14,7 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
   const [slipUrl, setSlipUrl] = useState('');
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actionType, setActionType] = useState('add');
 
   // ⭐ Guard: Don't render if tenant is not loaded yet
   if (!open || !tenant?.id) return null;
