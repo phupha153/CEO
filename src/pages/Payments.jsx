@@ -986,10 +986,9 @@ export default function PaymentsPage() {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-
     let dueMonth = currentMonth;
     let dueYear = currentYear;
-    if (billGenerationDay > payDay) {
+    if (now.getDate() > payDay) {
       dueMonth += 1;
       if (dueMonth > 11) { dueMonth = 0; dueYear += 1; }
     }
