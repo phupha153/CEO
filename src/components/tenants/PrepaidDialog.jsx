@@ -212,7 +212,14 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>ยอดคงเหลือใหม่:</strong> {(currentBalance + (parseFloat(amount) || 0)).toLocaleString()} บาท
+              <strong>ยอดคงเหลือใหม่:</strong> {
+                (actionType === 'set' 
+                  ? (parseFloat(amount) || 0)
+                  : actionType === 'deduct'
+                    ? Math.max(0, currentBalance - (parseFloat(amount) || 0))
+                    : (currentBalance + (parseFloat(amount) || 0))
+                ).toLocaleString()
+              } บาท
             </p>
           </div>
 
@@ -227,7 +234,13 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              className={`text-white ${
+                actionType === 'add' 
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
+                  : actionType === 'deduct'
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              }`}
               disabled={saving}
             >
               {saving ? (
@@ -237,8 +250,8 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  เติมเงิน
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  ยืนยัน
                 </>
               )}
             </Button>
