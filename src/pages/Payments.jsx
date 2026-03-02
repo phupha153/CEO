@@ -559,11 +559,9 @@ export default function PaymentsPage() {
       (c.key === 'bill_generation_day' && !c.branch_id)
     );
     const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
-    
     let dueMonth = today.getMonth();
     let dueYear = today.getFullYear();
-    
-    if (billGenerationDay > payDay) {
+    if (today.getDate() > payDay) {
       dueMonth += 1;
       if (dueMonth > 11) {
         dueMonth = 0;
