@@ -583,10 +583,8 @@ export default function PaymentsPage() {
         return cache.get(payment.id);
       }
 
-      if (!payment || !payment.due_date || payment.status === 'paid') {
-        cache.set(payment.id, 0);
-        return 0;
-      }
+      if (!payment || !payment.due_date || payment.status === 'paid') { cache.set(payment.id, 0); return 0; }
+      if (payment.late_fee_locked) { cache.set(payment.id, payment.late_fee_amount || 0); return payment.late_fee_amount || 0; }
 
       const branchConfig = configsList.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
       const globalConfig = configsList.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
