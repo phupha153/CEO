@@ -1530,7 +1530,7 @@ export default function PaymentsPage() {
       common_fee_amount: parseFloat(formData.common_fee_amount || 0),
       parking_fee_amount: parseFloat(formData.parking_fee_amount || 0),
       other_amount: parseFloat(formData.other_amount || 0),
-      late_fee_amount: parseFloat(formData.late_fee_amount || 0),
+      late_fee_amount: parseFloat(formData.late_fee_amount || 0), late_fee_locked: formData.late_fee_locked || false,
       total_amount: total,
       payment_method: formData.payment_method,
       payment_slip_url: formData.payment_slip_url || '',
