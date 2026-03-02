@@ -104,7 +104,7 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-green-600" />
-            เติมเงินชำระล่วงหน้า
+            จัดการเงินชำระล่วงหน้า
           </DialogTitle>
         </DialogHeader>
 
