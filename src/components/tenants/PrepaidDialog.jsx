@@ -50,7 +50,21 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
         return;
       }
       const currentBalance = tenant?.prepaid_balance || 0;
-      const newBalance = currentBalance + parseFloat(amount);
+      const val = parseFloat(amount);
+      
+      let newBalance = currentBalance;
+      let actionText = '';
+      
+      if (actionType === 'add') {
+        newBalance = currentBalance + val;
+        actionText = `เติมเงินชำระล่วงหน้า ${val.toLocaleString()} บาท`;
+      } else if (actionType === 'deduct') {
+        newBalance = currentBalance - val;
+        actionText = `หักเงินชำระล่วงหน้า ${val.toLocaleString()} บาท`;
+      } else if (actionType === 'set') {
+        newBalance = val;
+        actionText = `แก้ไขยอดเงินล่วงหน้าเป็น ${val.toLocaleString()} บาท`;
+      }
 
       await base44.entities.Tenant.update(tenant.id, {
         prepaid_balance: newBalance
@@ -63,10 +77,10 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
         entity_type: 'Tenant',
         entity_id: tenant.id,
         entity_name: tenant.full_name,
-        description: `เติมเงินชำระล่วงหน้า ${parseFloat(amount).toLocaleString()} บาท (ยอดคงเหลือใหม่: ${newBalance.toLocaleString()} บาท)`
+        description: `${actionText} (ยอดคงเหลือใหม่: ${newBalance.toLocaleString()} บาท)`
       });
 
-      toast.success(`เติมเงินสำเร็จ! ยอดคงเหลือ: ${newBalance.toLocaleString()} บาท`);
+      toast.success(`อัปเดตยอดสำเร็จ! ยอดคงเหลือ: ${newBalance.toLocaleString()} บาท`);
       
       setAmount('');
       setSlipUrl('');
