@@ -1611,7 +1611,7 @@ export default function PaymentsPage() {
       common_fee_amount: payment.common_fee_amount || 0,
       parking_fee_amount: payment.parking_fee_amount || 0,
       other_amount: payment.other_amount || 0,
-      late_fee_amount: payment.late_fee_amount || 0,
+      late_fee_amount: payment.late_fee_amount || 0, late_fee_locked: payment.late_fee_locked || false,
       payment_method: payment.payment_method || 'cash',
       payment_slip_url: payment.payment_slip_url || '',
       notes: payment.notes || ''
