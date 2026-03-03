@@ -106,6 +106,7 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import SystemAssistant from './pages/SystemAssistant';
 import __Layout from './Layout.jsx';
 
 
@@ -169,6 +170,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "SystemAssistant": SystemAssistant,
 }
 
 export const pagesConfig = {
