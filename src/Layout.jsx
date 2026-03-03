@@ -178,6 +178,13 @@ const navigationItems = [
     hideOnMobile: true
   },
   {
+    title: "ผู้ช่วย AI (วิธีใช้งาน)",
+    url: createPageUrl("SystemAssistant"),
+    icon: Sparkles,
+    requiredPermission: "dashboard_view",
+    requiredFeature: "dashboard_view"
+  },
+  {
     title: "ตั้งค่า",
     url: createPageUrl("Settings"),
     icon: Settings,
