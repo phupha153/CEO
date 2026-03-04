@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
                           console.log(`✅ LINE sent to ${recipient.lineUserId.substring(0, 10)}...`);
                           return { success: true, lineUserId: recipient.lineUserId };
                      }, retryAttempts, 1000);
-                }).map((p, idx) => p.catch(e => ({ success: false, lineUserId: batch[idx].lineUserId, error: e.message })));
+                }).map(p => p.catch(e => ({ success: false, lineUserId: null, error: e.message })));
 
                 const batchResults = await Promise.all(batchPromises);
                 
