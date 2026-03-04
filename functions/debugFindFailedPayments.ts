@@ -4,20 +4,33 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Find the latest function log to get the failed list
-        const logs = await base44.asServiceRole.entities.FunctionLog.filter({
+        // Find the latest function log for overdue reminders as well
+        const dueLogs = await base44.asServiceRole.entities.FunctionLog.filter({
             function_name: "sendDueDateReminders"
-        }, '-run_timestamp', 1);
+        }, '-run_timestamp', 5);
         
-        if (logs.length > 0 && logs[0].details && logs[0].details.errors) {
-            const errors = logs[0].details.errors;
-            return Response.json({
-                total_failed: errors.length,
-                errors: errors
-            });
-        }
+        const overdueLogs = await base44.asServiceRole.entities.FunctionLog.filter({
+            function_name: "sendAutomatedOverdueReminders"
+        }, '-run_timestamp', 5);
         
-        return Response.json({ message: "No recent errors found" });
+        return Response.json({
+            dueLogs: dueLogs.map(l => ({
+                id: l.id,
+                time: l.run_timestamp,
+                status: l.status,
+                sent: l.total_sent,
+                failed: l.total_failed,
+                errors: l.details?.errors
+            })),
+            overdueLogs: overdueLogs.map(l => ({
+                id: l.id,
+                time: l.run_timestamp,
+                status: l.status,
+                sent: l.total_sent,
+                failed: l.total_failed,
+                errors: l.details?.errors
+            }))
+        });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
