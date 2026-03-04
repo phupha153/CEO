@@ -61,6 +61,7 @@ export default function ContractEditor() {
   const [aiPendingChanges, setAiPendingChanges] = useState(null);
   const [showAiConfirmDialog, setShowAiConfirmDialog] = useState(false);
   const [printMode, setPrintMode] = useState('all');
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const activeContractId = contractId || tempContractId;
 
