@@ -4,26 +4,30 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Find the latest function log for overdue reminders as well
-        const logs = await base44.asServiceRole.entities.FunctionLog.filter({
-            function_name: "sendAutomatedOverdueReminders"
+        // Find the latest function log for due reminders
+        const dueLogs = await base44.asServiceRole.entities.FunctionLog.filter({
+            function_name: "sendDueDateReminders"
         }, '-run_timestamp', 20);
         
-        const errorLog = logs.find(l => l.total_failed > 0);
+        const errorLog = dueLogs.find(l => l.total_failed > 0);
         
         if (!errorLog) {
              return Response.json({ message: "No error log found" });
         }
         
-        // Filter out the unique error messages
-        const uniqueErrors = [...new Set(errorLog.details?.errors || [])];
+        // Count frequencies of errors
+        const errorCounts = {};
+        (errorLog.details?.errors || []).forEach(err => {
+            errorCounts[err] = (errorCounts[err] || 0) + 1;
+        });
         
         return Response.json({
             id: errorLog.id,
             time: errorLog.run_timestamp,
             sent: errorLog.total_sent,
             failed: errorLog.total_failed,
-            uniqueErrors: uniqueErrors
+            errorCounts: errorCounts,
+            errors: errorLog.details?.errors?.slice(0, 10)
         });
         
     } catch (error) {
