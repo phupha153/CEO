@@ -399,7 +399,15 @@ export default function ContractEditor() {
   };
 
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
+  };
+
+  const executePrint = (mode) => {
+    setPrintMode(mode);
+    setShowPrintDialog(false);
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   const handleTenantChange = (tenantId) => {
