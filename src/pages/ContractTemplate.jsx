@@ -352,32 +352,32 @@ export default function ContractTemplate() {
       <div ref={printRef} className="contract-print">
         <style>{`
           @media print {
-            /* 1. ซ่อนทุกอย่างในหน้าเว็บ */
-            body * {
-              visibility: hidden;
+            .no-print { display: none !important; }
+            
+            /* Override CSS rules from Layout.js that lock height and hide overflow */
+            html, body, #root, main, div[class*="flex"], div[class*="overflow-hidden"], div[class*="h-screen"], div[class*="overflow-y-auto"] {
+              display: block !important;
+              height: auto !important;
+              min-height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
+              position: static !important;
             }
             
-            /* 2. ดึงเฉพาะส่วนพิมพ์ออกมาและบังคับให้แสดงผล */
-            .contract-print, .contract-print * {
-              visibility: visible;
-            }
-            
-            /* 3. ย้ายตำแหน่งของส่วนพิมพ์ให้หลุดจาก Layout หลัก ไปอยู่มุมซ้ายบนสุดของกระดาษ */
-            .contract-print {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 21cm;
-              margin: 0;
-              padding: 0;
-              background: white;
+            /* Hide the sidebar explicitly in print mode */
+            [data-sidebar="sidebar"] {
+              display: none !important;
             }
 
-            .no-print { 
-              display: none !important; 
+            .contract-print {
+              display: block !important;
+              width: 21cm;
+              margin: 0 auto;
+              background: white;
             }
             
             .page {
+              page-break-inside: avoid;
               page-break-after: always;
               padding: 2.5cm 2cm 2.5cm 3cm;
               min-height: 29.7cm;
