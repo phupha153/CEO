@@ -17,8 +17,9 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // Fetch payments updated today
-        const todaysDateStr = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const todaysDateStr = thailandTime.toISOString().split('T')[0];
         
         // We know the due date is 2026-03-05
         const sentPayments = await fetchAll(base44.asServiceRole.entities.Payment, {
@@ -61,16 +62,7 @@ Deno.serve(async (req) => {
         const roomMap = new Map(rooms.filter(Boolean).map(r => [r.id, r]));
         const branchMap = new Map(branches.filter(Boolean).map(b => [b.id, b]));
         
-        // Determine which ones actually failed
-        const actuallyFailed = sentToday.filter(p => {
-            const tenant = tenantMap.get(p.tenant_id);
-            if (!tenant) return true;
-            // Mark as failed if line_user_id is not exactly 33 chars or missing
-            // Or if they don't have Facebook token
-            return true; // Just get all 36 for inspection
-        });
-        
-        const results = actuallyFailed.map(p => {
+        const results = sentToday.map(p => {
             const tenant = tenantMap.get(p.tenant_id);
             const room = roomMap.get(p.room_id);
             const branch = branchMap.get(p.branch_id);
@@ -93,16 +85,23 @@ Deno.serve(async (req) => {
             };
         });
 
-        // Sort by updated_date descending to see the latest 36
-        results.sort((a, b) => {
-            const pa = sentToday.find(x => x.id === a.payment_id);
-            const pb = sentToday.find(x => x.id === b.payment_id);
-            return new Date(pb.updated_date) - new Date(pa.updated_date);
+        // Filter only those with issues
+        const failedResults = results.filter(r => r.issues.length > 0);
+
+        // Get unique tenants to reduce duplicates
+        const uniqueResults = [];
+        const seen = new Set();
+        failedResults.forEach(r => {
+            const key = `${r.branch}-${r.room}-${r.tenant_name}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueResults.push(r);
+            }
         });
 
         return Response.json({
             markedAsSent: sentToday.length,
-            latest36: results.slice(0, 36)
+            failedList: uniqueResults.slice(0, 50) // showing top 50
         });
         
     } catch (error) {
