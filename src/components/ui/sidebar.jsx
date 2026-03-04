@@ -441,6 +441,7 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
+// Trigger rebuild
 const SidebarMenuButton = React.forwardRef((
   {
     asChild = false,
