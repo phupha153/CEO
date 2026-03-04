@@ -148,8 +148,13 @@ export default function ContractTemplate() {
     saveMutation.mutate(formData);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const [printMode, setPrintMode] = useState('all');
+
+  const handlePrint = (mode = 'all') => {
+    setPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   const handleTenantChange = (tenantId) => {
