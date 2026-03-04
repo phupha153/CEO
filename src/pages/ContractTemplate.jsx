@@ -12,6 +12,7 @@ import { Save, Printer, Mail, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
+import PrintDialog from '../components/contract/PrintDialog';
 
 export default function ContractTemplate() {
   const [searchParams] = useSearchParams();
