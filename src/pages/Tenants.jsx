@@ -3518,7 +3518,7 @@ const tenantSchema = {
                                              <Label className="text-slate-600">วันเริ่มสัญญา</Label>
                                              <p className="font-semibold flex items-center gap-1">
                                                <Calendar className="w-3 h-3 text-green-600" />
-                                               {typeof booking.check_in_date === 'string' ? (
+                                               {typeof booking.check_in_date === 'string' && !isNaN(parseISO(booking.check_in_date).getTime()) ? (
                                                  <>
                                                    {format(parseISO(booking.check_in_date), 'd MMM', { locale: th })} {parseInt(booking.check_in_date.split('-')[0]) + 543}
                                                  </>
