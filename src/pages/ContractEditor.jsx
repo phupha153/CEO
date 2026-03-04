@@ -399,6 +399,7 @@ export default function ContractEditor() {
   };
 
   const handlePrint = () => {
+    console.log("Printing contract");
     setShowPrintDialog(true);
   };
 
