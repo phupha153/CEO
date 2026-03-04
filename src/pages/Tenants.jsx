@@ -3570,7 +3570,7 @@ const tenantSchema = {
                                                 )}
                                               </p>
                                               <p className="text-xs text-slate-600 mt-1">
-                                                ครบกำหนด: {paymentStatus.payment.due_date && typeof paymentStatus.payment.due_date === 'string' ? format(parseISO(paymentStatus.payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
+                                                ครบกำหนด: {paymentStatus.payment.due_date && typeof paymentStatus.payment.due_date === 'string' && !isNaN(parseISO(paymentStatus.payment.due_date).getTime()) ? format(parseISO(paymentStatus.payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
                                               </p>
                                               <p className="text-sm font-bold mt-1">
                                                 จำนวน: {paymentStatus.payment.total_amount?.toLocaleString() || 0} บาท
