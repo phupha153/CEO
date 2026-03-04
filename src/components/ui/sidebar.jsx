@@ -441,19 +441,17 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-// Build trigger v3
-const SidebarMenuButton = React.forwardRef((
-  {
+// Build trigger v4
+const SidebarMenuButton = React.forwardRef((props, ref) => {
+  let {
     asChild = false,
     isActive = false,
     variant = "default",
     size = "default",
     tooltip,
     className,
-    ...props
-  },
-  ref
-) => {
+    ...rest
+  } = props;
   const Comp = asChild ? Slot : "button"
   const { isMobile, state } = useSidebar()
 
@@ -464,7 +462,7 @@ const SidebarMenuButton = React.forwardRef((
       data-size={size}
       data-active={isActive}
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-      {...props} />
+      {...rest} />
   )
 
   if (!tooltip) {
