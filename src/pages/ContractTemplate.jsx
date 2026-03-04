@@ -352,52 +352,50 @@ export default function ContractTemplate() {
       <div ref={printRef} className="contract-print">
         <style>{`
           @media print {
-            /* ซ่อนทุกอย่างบนหน้าเว็บ */
-            body * {
-              visibility: hidden;
-            }
-            
-            /* แสดงผลเฉพาะส่วนที่ต้องการพิมพ์ */
-            .contract-print, .contract-print * {
-              visibility: visible;
-            }
-            
-            /* ย้ายส่วนพิมพ์ไปที่มุมซ้ายบนของหน้ากระดาษ */
-            .contract-print {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 21cm;
-              margin: 0;
-              padding: 0;
-              background: white;
+            /* 1. ใช้ display: none ซ่อนส่วนที่ไม่ต้องการแทน visibility: hidden */
+            .no-print,
+            [data-sidebar="sidebar"],
+            header,
+            aside {
+              display: none !important;
             }
 
-            /* *** หัวใจสำคัญ: ปลดล็อค Container แม่ทุกชั้นที่ครอบอยู่ให้ยืดความสูงได้และไม่ถูกตัด *** */
+            /* 2. บังคับทำลายข้อจำกัด Layout แม่ทุกชั้น เพื่อให้ความสูงยืดออกได้ตามเนื้อหาจริง */
             html, body, #root, 
             #root > div,
-            main,
+            main, 
             main > div,
-            .min-h-screen,
-            .h-screen,
-            .overflow-hidden,
-            .overflow-y-auto {
+            .min-h-screen, 
+            .h-screen, 
+            .flex,
+            .flex-1,
+            .flex-col,
+            .overflow-hidden, 
+            .overflow-y-auto, 
+            .overflow-x-hidden {
+              display: block !important;
               height: auto !important;
               min-height: auto !important;
               max-height: none !important;
               overflow: visible !important;
               position: static !important;
-              display: block !important;
+              padding: 0 !important;
+              margin: 0 !important;
             }
 
-            .no-print { 
-              display: none !important; 
+            /* 3. จัดการโครงสร้างกระดาษให้ดึงกลับสู่ Flow ปกติ (ห้ามใช้ absolute) */
+            .contract-print {
+              display: block !important;
+              position: static !important;
+              width: 21cm !important;
+              margin: 0 auto !important;
+              padding: 0 !important;
+              background: white !important;
             }
             
             .page {
               page-break-after: always;
-              padding: 2.5cm 2cm 2.5cm 3cm;
-              min-height: 29.7cm;
+              padding: 2cm 2cm 2cm 2.5cm !important;
               box-sizing: border-box;
               background: white;
             }
