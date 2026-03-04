@@ -353,10 +353,27 @@ export default function ContractTemplate() {
         <style>{`
           @media print {
             .no-print { display: none !important; }
+            
+            /* ปลดล็อคความสูงและการซ่อนเนื้อหาจาก Layout หลัก */
+            html, body, #root {
+              height: auto !important;
+              min-height: auto !important;
+              overflow: visible !important;
+              background: white !important;
+            }
+            
+            /* บังคับให้ Class ที่ล็อคกรอบจอ (เช่น h-screen, overflow-hidden) คลายออก */
+            .h-screen, .overflow-hidden, .overflow-y-auto, .flex-1 {
+              height: auto !important;
+              overflow: visible !important;
+              display: block !important;
+            }
+            
             .contract-print {
               width: 21cm;
               margin: 0 auto;
               background: white;
+              display: block !important;
             }
             .page {
               page-break-after: always;
