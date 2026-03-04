@@ -158,30 +158,6 @@ Deno.serve(async (req) => {
         
         console.log(`📊 After filtering: ${dueToday.length} payments need reminder`);
 
-        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น
-        const uniqueTenantIds = [...new Set(dueToday.map(p => p.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(dueToday.map(p => p.room_id).filter(id => id))];
-        
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
-        
-        const [tenantsBatch, roomsBatch] = await Promise.all([
-            uniqueTenantIds.length > 0 
-                ? Promise.all(uniqueTenantIds.map(id => 
-                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : [],
-            uniqueRoomIds.length > 0
-                ? Promise.all(uniqueRoomIds.map(id => 
-                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : []
-        ]);
-
-        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
-        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
-        
-        console.log(`✅ Loaded ${dueToday.length} relevant payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
-
         const totalDueToday = dueToday.length;
         console.log(`📊 Found ${totalDueToday} payments ready to send`);
 
@@ -190,6 +166,49 @@ Deno.serve(async (req) => {
 
         console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
+
+        // ⭐ ดึง tenant และ room แบบ Batch ทีละสาขา (ลด N+1 Queries)
+        const uniqueBranchIds = [...new Set(paymentsToProcess.map(p => p.branch_id).filter(id => id))];
+        console.log(`📥 Fetching tenants and rooms for ${uniqueBranchIds.length} branches...`);
+        
+        const allTenants = [];
+        const allRooms = [];
+        const CACHE_CHUNK = 500;
+
+        for (const bId of uniqueBranchIds) {
+            // ดึง Tenant
+            let tOffset = 0;
+            while (true) {
+                const chunk = await base44.asServiceRole.entities.Tenant.filter({ branch_id: bId }, '-id', CACHE_CHUNK, tOffset);
+                if (chunk.length === 0) break;
+                allTenants.push(...chunk.map(t => ({
+                    id: t.id,
+                    full_name: t.full_name,
+                    line_user_id: t.line_user_id,
+                    facebook_user_id: t.facebook_user_id
+                })));
+                tOffset += CACHE_CHUNK;
+                if (chunk.length < CACHE_CHUNK) break;
+            }
+
+            // ดึง Room
+            let rOffset = 0;
+            while (true) {
+                const chunk = await base44.asServiceRole.entities.Room.filter({ branch_id: bId }, '-id', CACHE_CHUNK, rOffset);
+                if (chunk.length === 0) break;
+                allRooms.push(...chunk.map(r => ({
+                    id: r.id,
+                    room_number: r.room_number
+                })));
+                rOffset += CACHE_CHUNK;
+                if (chunk.length < CACHE_CHUNK) break;
+            }
+        }
+
+        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
+        const roomMap = new Map(allRooms.map(r => [r.id, r]));
+        
+        console.log(`✅ Loaded ${paymentsToProcess.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
 
         // 4. เตรียมข้อความสำหรับแต่ละบิล
         const recipients = [];
