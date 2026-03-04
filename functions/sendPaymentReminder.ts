@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
             return Response.json({
                 success: false,
                 message: 'กรุณาระบุ branch_id หรือ paymentId'
-            }, { status: 400 });
+            }, { status: 200 });
         }
 
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
