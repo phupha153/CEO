@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
                     details: `ระบบไม่สามารถส่งข้อความ LINE ได้ เนื่องจากยังไม่มีการตั้งค่า LINE Channel Access Token\n\nกรุณาไปที่:\nSettings → แท็บ "ช่องทางสื่อสาร" → LINE → กรอก Channel Access Token`,
                     action: 'กรุณาตั้งค่า LINE ก่อนส่ง reminder',
                     recipients_affected: lineRecipients.length
-                }, { status: 400 });
+                }, { status: 200 });
             }
         }
 
