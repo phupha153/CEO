@@ -216,10 +216,10 @@ Deno.serve(async (req) => {
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
+                    message: 'กรุณาไปตั้งค่าข้อมูลธนาคารก่อน',
                     details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
-                }, { status: 400 });
+                }, { status: 200 });
             }
 
             // ⭐ ดึง pending และ overdue ที่ยังไม่ส่ง (bill_sent_date = null)
