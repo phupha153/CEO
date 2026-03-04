@@ -1,51 +1,15 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, CheckCircle2, Phone, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { MessageSquare, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function LineConnectButton({ tenant, variant = "outline", size = "sm" }) {
   const [showDialog, setShowDialog] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [verifying, setVerifying] = useState(false);
 
   if (!tenant?.id) return null;
 
   // เช็คว่าเชื่อมต่อแล้วหรือยัง
   const isConnected = !!tenant.line_user_id;
-
-  const handlePhoneVerify = async () => {
-    if (!phoneNumber || phoneNumber.trim() === "") {
-      toast.error("กรุณากรอกเบอร์โทรศัพท์");
-      return;
-    }
-
-    // ตรวจสอบว่าเบอร์ตรงกับข้อมูลผู้เช่าหรือไม่
-    const cleanPhone = phoneNumber.replace(/\s|-/g, "");
-    const tenantPhone = (tenant.phone || "").replace(/\s|-/g, "");
-
-    if (cleanPhone !== tenantPhone) {
-      toast.error("เบอร์โทรศัพท์ไม่ตรงกับข้อมูลผู้เช่า");
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      // ส่ง OTP หรือสร้างลิงก์เชื่อมต่อหลังยืนยันเบอร์
-      const connectUrl = `${window.location.origin}/LineConnect?t=${tenant.id}`;
-      navigator.clipboard.writeText(connectUrl);
-      toast.success("เบอร์ถูกต้อง! คัดลอกลิงก์เชื่อมต่อแล้ว - ส่งให้ผู้เช่าทาง LINE");
-      setShowDialog(false);
-      setPhoneNumber("");
-    } catch (error) {
-      toast.error("เกิดข้อผิดพลาด");
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   // ถ้าเชื่อมต่อแล้ว
   if (isConnected) {
