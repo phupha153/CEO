@@ -17,18 +17,20 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // Fetch all pending payments
-        const pendingPayments = await fetchAll(base44.asServiceRole.entities.Payment, {
-            status: "pending"
+        // Fetch payments sent today
+        const todaysDateStr = new Date().toISOString().split('T')[0];
+        const sentPayments = await fetchAll(base44.asServiceRole.entities.Payment, {
+            due_date: "2026-03-05"
         });
         
-        // Filter by due_date containing 2026-03-05
-        const todaysPayments = pendingPayments.filter(p => p.due_date && p.due_date.includes("2026-03-05"));
+        // Filter those marked as sent today
+        const sentToday = sentPayments.filter(p => 
+            p.due_date_reminder_sent_date && 
+            p.due_date_reminder_sent_date.includes(todaysDateStr)
+        );
         
-        const failedPayments = todaysPayments.filter(p => !p.due_date_reminder_sent_date);
-        
-        const tenantIds = [...new Set(failedPayments.map(p => p.tenant_id))];
-        const roomIds = [...new Set(failedPayments.map(p => p.room_id))];
+        const tenantIds = [...new Set(sentToday.map(p => p.tenant_id))];
+        const roomIds = [...new Set(sentToday.map(p => p.room_id))];
         
         const tenants = await Promise.all(tenantIds.map(id => base44.asServiceRole.entities.Tenant.get(id).catch(() => null)));
         const rooms = await Promise.all(roomIds.map(id => base44.asServiceRole.entities.Room.get(id).catch(() => null)));
@@ -38,36 +40,29 @@ Deno.serve(async (req) => {
         const roomMap = new Map(rooms.filter(Boolean).map(r => [r.id, r]));
         const branchMap = new Map(branches.filter(Boolean).map(b => [b.id, b]));
         
-        const results = failedPayments.map(p => {
+        // Determine which ones actually failed (because they have invalid line IDs but were marked sent)
+        const actuallyFailed = sentToday.filter(p => {
+            const tenant = tenantMap.get(p.tenant_id);
+            if (!tenant) return true;
+            // The error was: The property, 'to', in the request body is invalid
+            // This happens if line_user_id is invalid (e.g. not a UUID-like string starting with U)
+            // Or if it's empty
+            if (!tenant.line_user_id || typeof tenant.line_user_id !== 'string' || !tenant.line_user_id.startsWith('U')) {
+                return true;
+            }
+            return false;
+        });
+        
+        const results = actuallyFailed.map(p => {
             const tenant = tenantMap.get(p.tenant_id);
             const room = roomMap.get(p.room_id);
             const branch = branchMap.get(p.branch_id);
             
-            let issues = [];
-            let validLine = true;
-            let validFb = true;
-            
-            if (!tenant) {
-                issues.push("ไม่มีข้อมูลผู้เช่า");
-                validLine = false;
-                validFb = false;
-            } else {
-                if (!tenant.line_user_id || typeof tenant.line_user_id !== 'string' || tenant.line_user_id.trim() === '') {
-                    issues.push("ไม่มี/Invalid LINE ID");
-                    validLine = false;
-                }
-                if (!tenant.facebook_user_id || typeof tenant.facebook_user_id !== 'string' || tenant.facebook_user_id.trim() === '') {
-                    issues.push("ไม่มี/Invalid Facebook ID");
-                    validFb = false;
-                }
-            }
-            
             return {
-                payment_id: p.id,
                 branch: branch?.branch_name || p.branch_id,
                 room: room?.room_number || "N/A",
                 tenant_name: tenant?.full_name || "N/A",
-                issues: issues.join(", ")
+                line_id: tenant?.line_user_id || "N/A"
             };
         });
 
@@ -83,10 +78,8 @@ Deno.serve(async (req) => {
         });
 
         return Response.json({
-            pendingCount: pendingPayments.length,
-            todaysCount: todaysPayments.length,
-            failedCount: failedPayments.length,
-            uniqueFailed: uniqueResults.length,
+            markedAsSentToday: sentToday.length,
+            actuallyFailedCount: uniqueResults.length,
             details: uniqueResults.slice(0, 35)
         });
         
