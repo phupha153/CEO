@@ -352,32 +352,49 @@ export default function ContractTemplate() {
       <div ref={printRef} className="contract-print">
         <style>{`
           @media print {
-            .no-print { display: none !important; }
+            /* ซ่อนทุกอย่างบนหน้าเว็บ */
+            body * {
+              visibility: hidden;
+            }
             
-            /* Override CSS rules from Layout.js that lock height and hide overflow */
-            html, body, #root, main, div[class*="flex"], div[class*="overflow-hidden"], div[class*="h-screen"], div[class*="overflow-y-auto"] {
-              display: block !important;
+            /* แสดงผลเฉพาะส่วนที่ต้องการพิมพ์ */
+            .contract-print, .contract-print * {
+              visibility: visible;
+            }
+            
+            /* ย้ายส่วนพิมพ์ไปที่มุมซ้ายบนของหน้ากระดาษ */
+            .contract-print {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 21cm;
+              margin: 0;
+              padding: 0;
+              background: white;
+            }
+
+            /* *** หัวใจสำคัญ: ปลดล็อค Container แม่ทุกชั้นที่ครอบอยู่ให้ยืดความสูงได้และไม่ถูกตัด *** */
+            html, body, #root, 
+            #root > div,
+            main,
+            main > div,
+            .min-h-screen,
+            .h-screen,
+            .overflow-hidden,
+            .overflow-y-auto {
               height: auto !important;
               min-height: auto !important;
               max-height: none !important;
               overflow: visible !important;
               position: static !important;
-            }
-            
-            /* Hide the sidebar explicitly in print mode */
-            [data-sidebar="sidebar"] {
-              display: none !important;
+              display: block !important;
             }
 
-            .contract-print {
-              display: block !important;
-              width: 21cm;
-              margin: 0 auto;
-              background: white;
+            .no-print { 
+              display: none !important; 
             }
             
             .page {
-              page-break-inside: avoid;
               page-break-after: always;
               padding: 2.5cm 2cm 2.5cm 3cm;
               min-height: 29.7cm;
