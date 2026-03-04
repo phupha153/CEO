@@ -767,6 +767,12 @@ export default function ContractTemplate() {
           <div className="page-number">หน้า 3/3</div>
         </div>
       </div>
+
+      <PrintDialog 
+        open={showPrintDialog} 
+        onOpenChange={setShowPrintDialog} 
+        onPrint={executePrint} 
+      />
     </div>
   );
 }
