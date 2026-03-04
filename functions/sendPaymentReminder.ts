@@ -216,10 +216,10 @@ Deno.serve(async (req) => {
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: 'กรุณาไปตั้งค่าข้อมูลธนาคารก่อน',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
                     details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
-                }, { status: 200 });
+                }, { status: 400 });
             }
 
             // ⭐ ดึง pending และ overdue ที่ยังไม่ส่ง (bill_sent_date = null)
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
             return Response.json({
                 success: false,
                 message: 'กรุณาระบุ branch_id หรือ paymentId'
-            }, { status: 200 });
+            }, { status: 400 });
         }
 
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
@@ -403,10 +403,10 @@ Deno.serve(async (req) => {
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: 'กรุณาไปตั้งค่าข้อมูลธนาคารก่อน',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
                     details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
-                }, { status: 200 });
+                }, { status: 400 });
             }
 
             const bankAccountNumber = accNumConf.value;
@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
                     details: `ระบบไม่สามารถส่งข้อความ LINE ได้ เนื่องจากยังไม่มีการตั้งค่า LINE Channel Access Token\n\nกรุณาไปที่:\nSettings → แท็บ "ช่องทางสื่อสาร" → LINE → กรอก Channel Access Token`,
                     action: 'กรุณาตั้งค่า LINE ก่อนส่ง reminder',
                     recipients_affected: lineRecipients.length
-                }, { status: 200 });
+                }, { status: 400 });
             }
         }
 
