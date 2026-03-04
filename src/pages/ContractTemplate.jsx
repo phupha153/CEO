@@ -12,7 +12,6 @@ import { Save, Printer, Mail, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
-import PrintDialog from '../components/contract/PrintDialog';
 
 export default function ContractTemplate() {
   const [searchParams] = useSearchParams();
@@ -149,19 +148,8 @@ export default function ContractTemplate() {
     saveMutation.mutate(formData);
   };
 
-  const [printMode, setPrintMode] = useState('all');
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
-
   const handlePrint = () => {
-    setShowPrintDialog(true);
-  };
-
-  const executePrint = (mode) => {
-    setPrintMode(mode);
-    setShowPrintDialog(false);
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    window.print();
   };
 
   const handleTenantChange = (tenantId) => {
@@ -219,9 +207,9 @@ export default function ContractTemplate() {
               <span className="hidden md:inline">บันทึกสัญญา</span>
               <span className="md:hidden">บันทึก</span>
             </Button>
-            <Button onClick={handlePrint} variant="outline" size="sm" className="text-xs md:text-sm border-slate-400 text-slate-700 hover:bg-slate-50">
+            <Button onClick={handlePrint} variant="outline" size="sm" className="text-xs md:text-sm">
               <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-              สั่งพิมพ์
+              พิมพ์
             </Button>
             <Button variant="outline" disabled size="sm" className="text-xs md:text-sm">
               <Mail className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
@@ -363,11 +351,6 @@ export default function ContractTemplate() {
       {/* Printable Contract - A4 Format */}
       <div ref={printRef} className="contract-print">
         <style>{`
-          /* Control visibility based on selected mode (Screen & Print) */
-          ${printMode === 'page1' ? '.page2, .page3 { display: none !important; }' : ''}
-          ${printMode === 'page2' ? '.page1, .page3 { display: none !important; }' : ''}
-          ${printMode === 'page3' ? '.page1, .page2 { display: none !important; }' : ''}
-
           @media print {
             /* 1. ใช้ display: none ซ่อนส่วนที่ไม่ต้องการแทน visibility: hidden */
             .no-print,
@@ -404,19 +387,17 @@ export default function ContractTemplate() {
             .contract-print {
               display: block !important;
               position: static !important;
-              width: auto !important;
+              width: 21cm !important;
               margin: 0 auto !important;
               padding: 0 !important;
               background: white !important;
             }
             
             .page {
-              page-break-after: always !important;
-              padding: 1.5cm 1.5cm 2cm 1.5cm !important;
-              box-sizing: border-box !important;
-              background: white !important;
-              height: auto !important;
-              min-height: auto !important;
+              page-break-after: always;
+              padding: 2cm 2cm 2cm 2.5cm !important;
+              box-sizing: border-box;
+              background: white;
             }
             
             .page:last-child {
@@ -569,7 +550,7 @@ export default function ContractTemplate() {
         `}</style>
 
         {/* หน้า 1 */}
-        <div className="page page1">
+        <div className="page">
           <div className="header-title">แบบสัญญาเช่าที่พักอาศัย</div>
           <div className="header-subtitle">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</div>
           <div className="date-line">
@@ -642,7 +623,7 @@ export default function ContractTemplate() {
         </div>
 
         {/* หน้า 2 */}
-        <div className="page page2">
+        <div className="page">
           <div className="content">
             <div className="clause-title">ข้อ 6. ค่าสาธารณูปโภค</div>
             <p className="indent">ผู้เช่าตกลงชำระค่าสาธารณูปโภคต่างๆ ดังนี้</p>
@@ -707,7 +688,7 @@ export default function ContractTemplate() {
         </div>
 
         {/* หน้า 3 */}
-        <div className="page page3">
+        <div className="page">
           <div className="content">
             <p className="indent">
               สัญญานี้ทำขึ้นเป็นสองฉบับมีข้อความถูกต้องตรงกัน คู่สัญญาทั้งสองฝ่ายได้อ่านและเข้าใจข้อความในสัญญาโดยตลอดแล้ว 
@@ -769,12 +750,6 @@ export default function ContractTemplate() {
           <div className="page-number">หน้า 3/3</div>
         </div>
       </div>
-
-      <PrintDialog 
-        open={showPrintDialog} 
-        onOpenChange={setShowPrintDialog} 
-        onPrint={executePrint} 
-      />
     </div>
   );
 }

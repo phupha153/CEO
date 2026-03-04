@@ -19,13 +19,6 @@ import 'react-quill/dist/quill.snow.css';
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import SignatureDialog from '../components/contract/SignatureDialog';
-import OtpDialog from '../components/contract/OtpDialog';
-import AIConfirmDialog from '../components/contract/AIConfirmDialog';
-import AIHelperDialog from '../components/contract/AIHelperDialog';
-import ClausesEditor from '../components/contract/ClausesEditor';
-import PrintDialog from '../components/contract/PrintDialog';
-import ContractPrint from '../components/contract/ContractPrint';
 
 export default function ContractEditor() {
   const [searchParams] = useSearchParams();
@@ -60,8 +53,6 @@ export default function ContractEditor() {
   const [aiEditQuery, setAiEditQuery] = useState('');
   const [aiPendingChanges, setAiPendingChanges] = useState(null);
   const [showAiConfirmDialog, setShowAiConfirmDialog] = useState(false);
-  const [printMode, setPrintMode] = useState('all');
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const activeContractId = contractId || tempContractId;
 
@@ -399,16 +390,7 @@ export default function ContractEditor() {
   };
 
   const handlePrint = () => {
-    console.log("Printing contract");
-    setShowPrintDialog(true);
-  };
-
-  const executePrint = (mode) => {
-    setPrintMode(mode);
-    setShowPrintDialog(false);
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    window.print();
   };
 
   const handleTenantChange = (tenantId) => {
@@ -1399,10 +1381,9 @@ export default function ContractEditor() {
               <Save className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
               {isSaving || saveMutation.isPending ? 'บันทึก...' : 'บันทึก'}
             </Button>
-            
-            <Button onClick={handlePrint} variant="outline" size="sm" className="text-xs md:text-sm border-slate-400 text-slate-700 hover:bg-slate-50">
+            <Button onClick={handlePrint} variant="outline" size="sm" className="text-xs md:text-sm">
               <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-              สั่งพิมพ์
+              พิมพ์
             </Button>
           </div>
         </div>
@@ -1655,14 +1636,72 @@ export default function ContractEditor() {
           </div>
 
           {showClausesEditor && (
-            <ClausesEditor
-              formData={formData}
-              handleAddClause={handleAddClause}
-              handleRemoveClause={handleRemoveClause}
-              handleUpdateClause={handleUpdateClause}
-              generateTemplate={generateTemplate}
-              toast={toast}
-            />
+            <Card className="mb-4 border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <List className="w-5 h-5 text-blue-600" />
+                    แก้ไขข้อสัญญา ({formData.contract_clauses.length} ข้อ)
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAddClause}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      เพิ่มข้อใหม่
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        generateTemplate();
+                        toast.success('บันทึกการแก้ไขข้อสัญญาสำเร็จ');
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      บันทึกการแก้ไข
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
+                {formData.contract_clauses.map((clause, index) => (
+                  <div key={index} className="bg-white p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="font-semibold text-blue-900">ข้อ {clause.clause_number}</Label>
+                      {formData.contract_clauses.length > 1 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRemoveClause(index)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <Input
+                      placeholder="หัวข้อข้อสัญญา (ถ้ามี)"
+                      value={clause.title || ''}
+                      onChange={(e) => handleUpdateClause(index, 'title', e.target.value)}
+                      className="mb-2"
+                    />
+                    <ReactQuill
+                      theme="snow"
+                      value={clause.content}
+                      onChange={(value) => handleUpdateClause(index, 'content', value)}
+                      modules={{ toolbar: [['bold', 'italic', 'underline']] }}
+                      style={{ backgroundColor: 'white' }}
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           )}
 
           {showEditor && (
@@ -1894,89 +1933,493 @@ export default function ContractEditor() {
       </div>
 
       {/* AI Confirm Dialog */}
-      <AIConfirmDialog 
-        open={showAiConfirmDialog}
-        onOpenChange={setShowAiConfirmDialog}
-        aiPendingChanges={aiPendingChanges}
-        onCancel={handleCancelAiChanges}
-        onConfirm={handleConfirmAiChanges}
-      />
+      <Dialog open={showAiConfirmDialog} onOpenChange={setShowAiConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              ยืนยันการเปลี่ยนแปลง
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {aiPendingChanges && (
+              <>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-sm text-purple-800 font-medium mb-2">
+                    {aiPendingChanges.explanation}
+                  </p>
+                </div>
 
-      <OtpDialog 
-        open={showOtpDialog}
-        onOpenChange={(open) => {
-          setShowOtpDialog(open);
-          if (!open) {
-            setOtp('');
-            setOtpError('');
-            setOtpSent(false);
-            setOtpExpiresIn(300);
-            if (otpTimerRef.current) {
-              clearInterval(otpTimerRef.current);
+                {aiPendingChanges.new_rules && aiPendingChanges.new_rules.length > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-green-800 mb-2">กฎที่จะเพิ่ม:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {aiPendingChanges.new_rules.map((rule, idx) => (
+                        <li key={idx} className="text-sm text-green-700">{rule}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {aiPendingChanges.updated_data && Object.keys(aiPendingChanges.updated_data).length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-blue-800 mb-2">ข้อมูลที่จะแก้ไข:</p>
+                    <ul className="space-y-1">
+                      {Object.entries(aiPendingChanges.updated_data).map(([key, value]) => (
+                        <li key={key} className="text-sm text-blue-700">
+                          <span className="font-medium">{key}:</span> {String(value)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {aiPendingChanges.new_clauses && aiPendingChanges.new_clauses.length > 0 && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-indigo-800 mb-2">ข้อสัญญาที่จะเพิ่ม:</p>
+                    <ul className="space-y-2">
+                      {aiPendingChanges.new_clauses.map((clause, idx) => (
+                        <li key={idx} className="text-sm text-indigo-700 border-l-2 border-indigo-300 pl-3">
+                          <span className="font-bold">ข้อ {clause.clause_number}.</span>
+                          {clause.title && <span className="font-medium"> {clause.title}:</span>}
+                          <p className="text-indigo-600 mt-1">{clause.content}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleCancelAiChanges}>
+                ยกเลิก
+              </Button>
+              <Button 
+                onClick={handleConfirmAiChanges}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                ยืนยัน
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showOtpDialog} onOpenChange={(open) => {
+        setShowOtpDialog(open);
+        if (!open) {
+          setOtp('');
+          setOtpError('');
+          setOtpSent(false);
+          setOtpExpiresIn(300);
+          if (otpTimerRef.current) {
+            clearInterval(otpTimerRef.current);
+          }
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-600" />
+              ยืนยันตัวตนก่อนลงนาม
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800 leading-relaxed">
+                📱 เพื่อความปลอดภัย กรุณายืนยันตัวตนด้วยรหัส OTP ที่ส่งไปยังเบอร์โทรศัพท์
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                เบอร์: <strong>{formData.lessee_phone || 'ไม่ระบุ'}</strong>
+              </p>
+            </div>
+
+            {!otpSent && (
+              <Button
+                onClick={handleSendOtp}
+                disabled={sendingOtp || !formData.lessee_phone || !activeContractId}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                {sendingOtp ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    กำลังส่ง OTP...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    ส่งรหัส OTP
+                  </>
+                )}
+              </Button>
+            )}
+
+            {otpSent && (
+              <div className="space-y-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-green-800">
+                      ✅ ส่งรหัส OTP แล้ว
+                    </p>
+                    <Badge className="bg-green-600 text-white">
+                      {Math.floor(otpExpiresIn / 60)}:{String(otpExpiresIn % 60).padStart(2, '0')}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>กรอกรหัส OTP 6 หลัก</Label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setOtp(value);
+                      setOtpError('');
+                    }}
+                    placeholder="000000"
+                    className="text-center text-2xl tracking-widest font-bold"
+                    autoFocus
+                  />
+                </div>
+
+                {otpError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-800">
+                      ❌ {otpError}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp || otpExpiresIn > 295 || !activeContractId}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    ส่งรหัสใหม่
+                  </Button>
+                  <Button
+                    onClick={handleVerifyOtp}
+                    disabled={verifyingOtp || otp.length !== 6 || !activeContractId}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    {verifyingOtp ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        กำลังตรวจสอบ...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        ยืนยัน
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-800">
+                💡 <strong>หมายเหตุ:</strong> รหัส OTP จะหมดอายุใน 5 นาที กรุณากรอกภายในเวลาที่กำหนด
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-purple-700">
+              <Sparkles className="w-5 h-5" />
+              AI ผู้ช่วยสัญญาเช่า
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+              <Button 
+                variant={aiMode === 'generate' ? 'default' : 'ghost'}
+                onClick={() => { setAiMode('generate'); setAiResult(null); }}
+                className="flex-1"
+              >
+                <FileSignature className="w-4 h-4 mr-2" /> สร้างร่างสัญญา
+              </Button>
+              <Button 
+                variant={aiMode === 'review' ? 'default' : 'ghost'}
+                onClick={() => { setAiMode('review'); setAiResult(null); }}
+                className="flex-1"
+              >
+                <ShieldCheck className="w-4 h-4 mr-2" /> ตรวจสอบ
+              </Button>
+              <Button 
+                variant={aiMode === 'suggest' ? 'default' : 'ghost'}
+                onClick={() => { setAiMode('suggest'); setAiResult(null); }}
+                className="flex-1"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" /> แนะนำเงื่อนไข
+              </Button>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-lg border">
+              {aiMode === 'generate' && (
+                <p className="text-sm text-slate-600">สร้างร่างสัญญาเช่าฉบับใหม่จากข้อมูลผู้เช่าและห้องพักที่เลือกไว้ โดยเน้นความรัดกุมและครอบคลุมตามกฎหมาย</p>
+              )}
+              {aiMode === 'review' && (
+                <p className="text-sm text-slate-600">ตรวจสอบเนื้อหาสัญญาปัจจุบันเพื่อหาช่องโหว่ หรือเงื่อนไขที่อาจเสียเปรียบ พร้อมคำแนะนำในการแก้ไข</p>
+              )}
+              {aiMode === 'suggest' && (
+                <p className="text-sm text-slate-600">แนะนำข้อสัญญาหรือกฎระเบียบเพิ่มเติมที่เหมาะสมกับประเภทห้องพักและผู้เช่ารายนี้</p>
+              )}
+            </div>
+
+            {!aiResult && (
+              <Button 
+                onClick={handleAIRequest} 
+                disabled={aiLoading} 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                {aiLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังประมวลผล...</> : 'เริ่มทำงาน'}
+              </Button>
+            )}
+
+            {aiResult && (
+              <div className="space-y-4">
+                <div className="bg-white border rounded-lg p-4 shadow-sm max-h-60 overflow-y-auto text-sm">
+                  {aiMode === 'generate' ? (
+                    <div dangerouslySetInnerHTML={{ __html: aiResult }} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{aiResult}</div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setAiResult(null)}>
+                    ลองใหม่
+                  </Button>
+                  {aiMode === 'generate' && (
+                    <Button 
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, contract_content: aiResult }));
+                        setShowAIDialog(false);
+                        toast.success("นำร่างสัญญาไปใช้เรียบร้อยแล้ว");
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      ใช้ร่างสัญญานี้
+                    </Button>
+                  )}
+                  {aiMode === 'suggest' && (
+                    <Button 
+                      onClick={() => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          additional_rules: [...prev.additional_rules, ...aiResult.split('\n').filter(line => line.trim().length > 0)]
+                        }));
+                        setShowAIDialog(false);
+                        toast.success("เพิ่มข้อแนะนำลงในกฎเพิ่มเติมแล้ว");
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      เพิ่มในกฎเพิ่มเติม
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSignatureDialog} onOpenChange={(open) => {
+        setShowSignatureDialog(open);
+        if (!open) setHasReadContract(false);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              ลงลายเซ็น {currentSignatureType === 'tenant' ? 'ผู้เช่า' : 
+                         currentSignatureType === 'landlord' ? 'ผู้ให้เช่า' : 
+                         currentSignatureType === 'witness1' ? 'พยาน ๑' : 'พยาน ๒'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-amber-900 text-base mb-2">
+                    คำเตือนสำคัญ: กรุณาอ่านสัญญาก่อนลงนาม
+                  </h4>
+                  <p className="text-sm text-amber-800 mb-3 leading-relaxed">
+                    โปรดอ่านและทำความเข้าใจข้อตกลงและเงื่อนไขทั้งหมดในสัญญาเช่านี้อย่างละเอียด 
+                    ก่อนลงลายมือชื่อ การลงลายมือชื่อถือเป็นการยืนยันว่าท่านได้อ่าน เข้าใจ 
+                    และตกลงยินยอมปฏิบัติตามข้อกำหนดทั้งหมดในสัญญาฉบับนี้
+                  </p>
+                  
+                  <div className="flex items-start gap-2 p-3 bg-white rounded-lg border border-amber-300">
+                    <Checkbox
+                      id="confirm-read"
+                      checked={hasReadContract}
+                      onCheckedChange={setHasReadContract}
+                      className="mt-0.5"
+                    />
+                    <label 
+                      htmlFor="confirm-read" 
+                      className="text-sm font-medium text-slate-800 cursor-pointer leading-relaxed"
+                    >
+                      ข้าพเจ้าได้อ่านและทำความเข้าใจข้อตกลงและเงื่อนไขทั้งหมดในสัญญาเช่าฉบับนี้แล้ว 
+                      และยินยอมที่จะปฏิบัติตามข้อกำหนดดังกล่าว
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                💡 วาดลายเซ็นของคุณในกรอบด้านล่าง ลายเซ็นจะถูกวางในตำแหน่งที่ถูกต้องบนสัญญาโดยอัตโนมัติ
+              </p>
+            </div>
+            
+            <div className="w-full h-64 border-2 border-slate-300 rounded-lg bg-white">
+              <SignaturePad ref={signaturePadRef} className="w-full h-full" />
+            </div>
+            
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => signaturePadRef.current?.clear()}
+              >
+                <X className="w-4 h-4 mr-2" />
+                ล้าง
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveSignature}
+                disabled={!hasReadContract}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!hasReadContract ? 'กรุณายืนยันว่าได้อ่านสัญญาแล้ว' : ''}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                บันทึกลายเซ็น
+              </Button>
+            </div>
+            
+            {!hasReadContract && (
+              <p className="text-xs text-amber-600 text-center">
+                ⚠️ กรุณาติ๊กยืนยันว่าได้อ่านและเข้าใจสัญญาแล้ว เพื่อดำเนินการลงลายเซ็น
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="contract-print">
+        <style>{`
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          
+          @media print {
+            * { 
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            html, body { 
+              margin: 0 !important; 
+              padding: 0 !important;
+              width: 100% !important;
+            }
+            
+            .no-print,
+            aside, 
+            nav, 
+            [role="navigation"], 
+            [data-sidebar], 
+            .sidebar, 
+            header {
+              display: none !important;
+            }
+            
+            .ql-toolbar,
+            .ql-container .ql-tooltip { 
+              display: none !important; 
+            }
+            
+            #root, main { 
+              display: block !important;
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white !important;
+              width: 100% !important;
+              height: auto !important;
+            }
+            
+            .contract-print {
+              display: block !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+            
+            .contract-page {
+              page-break-after: always !important;
+              page-break-inside: avoid !important;
+              display: block !important;
+              width: 100% !important;
+              height: 29.7cm !important;
+              margin: 0 !important;
+              padding: 1.5cm 1.5cm 2cm 1.5cm !important;
+              background: white !important;
+              box-sizing: border-box !important;
+              overflow: visible !important;
+            }
+            
+            .contract-page:last-child {
+              page-break-after: avoid !important;
             }
           }
-        }}
-        lesseePhone={formData.lessee_phone}
-        otpSent={otpSent}
-        sendingOtp={sendingOtp}
-        handleSendOtp={handleSendOtp}
-        otpExpiresIn={otpExpiresIn}
-        otp={otp}
-        setOtp={setOtp}
-        setOtpError={setOtpError}
-        otpError={otpError}
-        handleVerifyOtp={handleVerifyOtp}
-        verifyingOtp={verifyingOtp}
-        activeContractId={activeContractId}
-      />
+          
+          .contract-print {
+            font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
+            background: white;
+            width: 21cm;
+            margin: 20px auto;
+          }
+          
+          .contract-page {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+          }
 
-      <PrintDialog 
-        open={showPrintDialog} 
-        onOpenChange={setShowPrintDialog} 
-        onPrint={executePrint} 
-      />
+          .contract-print p,
+          .contract-print div {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: keep-all;
+          }
+        `}</style>
 
-      <AIHelperDialog 
-        open={showAIDialog}
-        onOpenChange={setShowAIDialog}
-        aiMode={aiMode}
-        setAiMode={setAiMode}
-        aiResult={aiResult}
-        setAiResult={setAiResult}
-        aiLoading={aiLoading}
-        handleAIRequest={handleAIRequest}
-        onUseTemplate={(result) => {
-          setFormData(prev => ({ ...prev, contract_content: result }));
-          setShowAIDialog(false);
-          toast.success("นำร่างสัญญาไปใช้เรียบร้อยแล้ว");
-        }}
-        onAddSuggestions={(result) => {
-          setFormData(prev => ({ 
-            ...prev, 
-            additional_rules: [...prev.additional_rules, ...result.split('\n').filter(line => line.trim().length > 0)]
-          }));
-          setShowAIDialog(false);
-          toast.success("เพิ่มข้อแนะนำลงในกฎเพิ่มเติมแล้ว");
-        }}
-      />
-
-      <SignatureDialog 
-        open={showSignatureDialog}
-        onOpenChange={(open) => {
-          setShowSignatureDialog(open);
-          if (!open) setHasReadContract(false);
-        }}
-        currentSignatureType={currentSignatureType}
-        hasReadContract={hasReadContract}
-        setHasReadContract={setHasReadContract}
-        signaturePadRef={signaturePadRef}
-        onSave={handleSaveSignature}
-      />
-
-      <ContractPrint 
-        printMode={printMode} 
-        content={replacePlaceholders(formData.contract_content)} 
-      />
+        <div 
+          dangerouslySetInnerHTML={{ __html: replacePlaceholders(formData.contract_content) }}
+        />
+      </div>
     </div>
   );
 }
