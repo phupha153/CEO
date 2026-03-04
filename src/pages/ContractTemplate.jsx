@@ -212,9 +212,21 @@ export default function ContractTemplate() {
               <span className="hidden md:inline">บันทึกสัญญา</span>
               <span className="md:hidden">บันทึก</span>
             </Button>
-            <Button onClick={handlePrint} variant="outline" size="sm" className="text-xs md:text-sm">
+            <Button onClick={() => handlePrint('all')} variant="outline" size="sm" className="text-xs md:text-sm">
               <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-              พิมพ์
+              พิมพ์ทั้งหมด
+            </Button>
+            <Button onClick={() => handlePrint('page1')} variant="outline" size="sm" className="text-xs md:text-sm">
+              <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              พิมพ์หน้า 1
+            </Button>
+            <Button onClick={() => handlePrint('page2')} variant="outline" size="sm" className="text-xs md:text-sm">
+              <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              พิมพ์หน้า 2
+            </Button>
+            <Button onClick={() => handlePrint('page3')} variant="outline" size="sm" className="text-xs md:text-sm">
+              <Printer className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              พิมพ์หน้า 3
             </Button>
             <Button variant="outline" disabled size="sm" className="text-xs md:text-sm">
               <Mail className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
@@ -408,6 +420,9 @@ export default function ContractTemplate() {
             .page:last-child {
               page-break-after: auto;
             }
+            ${printMode === 'page1' ? '.page2, .page3 { display: none !important; }' : ''}
+            ${printMode === 'page2' ? '.page1, .page3 { display: none !important; }' : ''}
+            ${printMode === 'page3' ? '.page1, .page2 { display: none !important; }' : ''}
           }
           
           .contract-print {
@@ -555,7 +570,7 @@ export default function ContractTemplate() {
         `}</style>
 
         {/* หน้า 1 */}
-        <div className="page">
+        <div className="page page1">
           <div className="header-title">แบบสัญญาเช่าที่พักอาศัย</div>
           <div className="header-subtitle">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</div>
           <div className="date-line">
@@ -628,7 +643,7 @@ export default function ContractTemplate() {
         </div>
 
         {/* หน้า 2 */}
-        <div className="page">
+        <div className="page page2">
           <div className="content">
             <div className="clause-title">ข้อ 6. ค่าสาธารณูปโภค</div>
             <p className="indent">ผู้เช่าตกลงชำระค่าสาธารณูปโภคต่างๆ ดังนี้</p>
@@ -693,7 +708,7 @@ export default function ContractTemplate() {
         </div>
 
         {/* หน้า 3 */}
-        <div className="page">
+        <div className="page page3">
           <div className="content">
             <p className="indent">
               สัญญานี้ทำขึ้นเป็นสองฉบับมีข้อความถูกต้องตรงกัน คู่สัญญาทั้งสองฝ่ายได้อ่านและเข้าใจข้อความในสัญญาโดยตลอดแล้ว 
