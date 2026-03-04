@@ -4734,7 +4734,7 @@ const tenantSchema = {
                     <p className="font-semibold text-slate-800">{record.tenant_data?.full_name}</p>
                     <p className="text-sm text-slate-600">{record.tenant_data?.phone}</p>
                     <p className="text-xs text-slate-500">
-                      ลบเมื่อ: {record.deleted_date && !isNaN(new Date(record.deleted_date).getTime()) ? format(parseISO(record.deleted_date), 'd MMM yy HH:mm', { locale: th }) : '-'}
+                      ลบเมื่อ: {(() => { try { return record.deleted_date && !isNaN(new Date(record.deleted_date).getTime()) ? format(parseISO(record.deleted_date), 'd MMM yy HH:mm', { locale: th }) : '-'; } catch (e) { return '-'; } })()}
                       {record.deleted_by && ` โดย ${record.deleted_by}`}
                     </p>
                   </div>
