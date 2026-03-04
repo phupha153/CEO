@@ -17,17 +17,13 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // Fetch payments sent today
-        const todaysDateStr = new Date().toISOString().split('T')[0];
+        // Fetch payments with due_date 2026-03-05
         const sentPayments = await fetchAll(base44.asServiceRole.entities.Payment, {
             due_date: "2026-03-05"
         });
         
-        // Filter those marked as sent today
-        const sentToday = sentPayments.filter(p => 
-            p.due_date_reminder_sent_date && 
-            p.due_date_reminder_sent_date.includes(todaysDateStr)
-        );
+        // Filter those marked as sent
+        const sentToday = sentPayments.filter(p => p.due_date_reminder_sent_date != null);
         
         const tenantIds = [...new Set(sentToday.map(p => p.tenant_id))];
         const roomIds = [...new Set(sentToday.map(p => p.room_id))];
@@ -44,9 +40,6 @@ Deno.serve(async (req) => {
         const actuallyFailed = sentToday.filter(p => {
             const tenant = tenantMap.get(p.tenant_id);
             if (!tenant) return true;
-            // The error was: The property, 'to', in the request body is invalid
-            // This happens if line_user_id is invalid (e.g. not a UUID-like string starting with U)
-            // Or if it's empty
             if (!tenant.line_user_id || typeof tenant.line_user_id !== 'string' || !tenant.line_user_id.startsWith('U')) {
                 return true;
             }
@@ -78,7 +71,7 @@ Deno.serve(async (req) => {
         });
 
         return Response.json({
-            markedAsSentToday: sentToday.length,
+            markedAsSent: sentToday.length,
             actuallyFailedCount: uniqueResults.length,
             details: uniqueResults.slice(0, 35)
         });
