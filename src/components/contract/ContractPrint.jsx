@@ -52,7 +52,7 @@ export default function ContractPrint({ printMode, content }) {
           
           .contract-print {
             display: block !important;
-            width: 100% !important;
+            width: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
@@ -62,8 +62,8 @@ export default function ContractPrint({ printMode, content }) {
             page-break-after: always !important;
             page-break-inside: avoid !important;
             display: block !important;
-            width: 100% !important;
-            height: 29.7cm !important;
+            width: auto !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 1.5cm 1.5cm 2cm 1.5cm !important;
             background: white !important;
