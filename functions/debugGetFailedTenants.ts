@@ -17,20 +17,15 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        const payments = await fetchAll(base44.asServiceRole.entities.Payment, {
-            due_date: "2026-03-05",
+        // Fetch all pending payments
+        const pendingPayments = await fetchAll(base44.asServiceRole.entities.Payment, {
             status: "pending"
         });
         
-        const overduePayments = await fetchAll(base44.asServiceRole.entities.Payment, {
-            due_date: "2026-03-05",
-            status: "overdue"
-        });
+        // Filter by due_date containing 2026-03-05
+        const todaysPayments = pendingPayments.filter(p => p.due_date && p.due_date.includes("2026-03-05"));
         
-        const allPayments = [...payments, ...overduePayments];
-        
-        // Those that failed didn't get their date updated
-        const failedPayments = allPayments.filter(p => !p.due_date_reminder_sent_date);
+        const failedPayments = todaysPayments.filter(p => !p.due_date_reminder_sent_date);
         
         const tenantIds = [...new Set(failedPayments.map(p => p.tenant_id))];
         const roomIds = [...new Set(failedPayments.map(p => p.room_id))];
@@ -68,11 +63,10 @@ Deno.serve(async (req) => {
             }
             
             return {
+                payment_id: p.id,
                 branch: branch?.branch_name || p.branch_id,
                 room: room?.room_number || "N/A",
                 tenant_name: tenant?.full_name || "N/A",
-                line_id: tenant?.line_user_id || "N/A",
-                facebook_id: tenant?.facebook_user_id || "N/A",
                 issues: issues.join(", ")
             };
         });
@@ -89,7 +83,10 @@ Deno.serve(async (req) => {
         });
 
         return Response.json({
-            totalFound: uniqueResults.length,
+            pendingCount: pendingPayments.length,
+            todaysCount: todaysPayments.length,
+            failedCount: failedPayments.length,
+            uniqueFailed: uniqueResults.length,
             details: uniqueResults.slice(0, 35)
         });
         
