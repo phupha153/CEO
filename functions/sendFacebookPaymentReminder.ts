@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
                     console.log(`✅ Sent to Facebook ${facebookUserId}`);
                 } else {
                     results.failed++;
-                    results.errors.push({ paymentId: recipient.metadata?.paymentId, error: sendResult.error });
+                    results.errors.push({ paymentId: recipient.metadata?.paymentId, facebookUserId: facebookUserId, error: sendResult.error });
                     console.log(`❌ Failed to send to ${facebookUserId}:`, sendResult.error);
                 }
 
