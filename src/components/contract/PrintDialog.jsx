@@ -6,7 +6,7 @@ import { Printer, FileText } from "lucide-react";
 export default function PrintDialog({ open, onOpenChange, onPrint }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-white sm:rounded-xl shadow-2xl border-0 z-[9999]">
+      <DialogContent className="max-w-sm bg-white sm:rounded-xl shadow-2xl border border-slate-200 z-[99999]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-blue-600" />
