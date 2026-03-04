@@ -93,6 +93,7 @@ import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
+import SystemAssistant from './pages/SystemAssistant';
 import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
 import TestLine from './pages/TestLine';
@@ -106,7 +107,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import SystemAssistant from './pages/SystemAssistant';
 import __Layout from './Layout.jsx';
 
 
@@ -157,6 +157,7 @@ export const PAGES = {
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
+    "SystemAssistant": SystemAssistant,
     "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
     "TestLine": TestLine,
@@ -170,7 +171,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "SystemAssistant": SystemAssistant,
 }
 
 export const pagesConfig = {
