@@ -21,6 +21,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import SignatureDialog from '../components/contract/SignatureDialog';
 import OtpDialog from '../components/contract/OtpDialog';
+import AIConfirmDialog from '../components/contract/AIConfirmDialog';
+import AIHelperDialog from '../components/contract/AIHelperDialog';
+import ClausesEditor from '../components/contract/ClausesEditor';
+import PrintDialog from '../components/contract/PrintDialog';
+import ContractPrint from '../components/contract/ContractPrint';
 
 export default function ContractEditor() {
   const [searchParams] = useSearchParams();
