@@ -341,9 +341,12 @@ Deno.serve(async (req) => {
                         });
                     }
                     
-                    // เพิ่ม payment IDs ที่ส่งสำเร็จ
-                    lineRecipientsCleaned.slice(0, result.success || 0).forEach(r => {
-                        successfulPaymentIds.add(r.metadata.paymentId);
+                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
+                    const failedLineUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
+                    lineRecipientsCleaned.forEach(r => {
+                        if (!failedLineUserIds.includes(r.lineUserId)) {
+                            successfulPaymentIds.add(r.metadata.paymentId);
+                        }
                     });
 
                     console.log(`✅ LINE: ${result.success}/${lineRecipientsCleaned.length} sent`);
@@ -369,8 +372,12 @@ Deno.serve(async (req) => {
                         });
                     }
                     
-                    facebookRecipients.slice(0, result.success || 0).forEach(r => {
-                        successfulPaymentIds.add(r.metadata.paymentId);
+                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
+                    const failedFbUserIds = (result.errors || []).map(err => err.facebookUserId || err.recipientId || err.id).filter(Boolean);
+                    facebookRecipients.forEach(r => {
+                        if (!failedFbUserIds.includes(r.facebookUserId)) {
+                            successfulPaymentIds.add(r.metadata.paymentId);
+                        }
                     });
 
                     console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
