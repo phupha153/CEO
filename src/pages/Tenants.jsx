@@ -3531,7 +3531,7 @@ const tenantSchema = {
                                               <Label className="text-slate-600">วันสิ้นสุดสัญญา</Label>
                                               <p className={`font-semibold flex items-center gap-1 ${isExpired ? 'text-red-600' : ''}`}>
                                                 <Calendar className="w-3 h-3 text-red-600" />
-                                                {typeof booking.check_out_date === 'string' ? (
+                                                {typeof booking.check_out_date === 'string' && !isNaN(parseISO(booking.check_out_date).getTime()) ? (
                                                   <>
                                                     {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })} {parseInt(booking.check_out_date.split('-')[0]) + 543}
                                                   </>
