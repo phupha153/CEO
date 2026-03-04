@@ -149,9 +149,18 @@ export default function ContractTemplate() {
   };
 
   const [printMode, setPrintMode] = useState('all');
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
+  };
+
+  const executePrint = (mode) => {
+    setPrintMode(mode);
+    setShowPrintDialog(false);
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   const handleTenantChange = (tenantId) => {
