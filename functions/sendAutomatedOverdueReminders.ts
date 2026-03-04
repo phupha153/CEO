@@ -355,39 +355,48 @@ Deno.serve(async (req) => {
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
         console.log(`⏭️ Skipped (disabled branches or sent today): ${skippedCount}`);
 
-        // ⭐ ดึง tenant และ room แบบ BATCH (ป้องกัน N+1 queries)
-        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        // ⭐ ดึง tenant และ room แบบ Batch ทีละสาขา (ลด N+1 Queries)
+        const uniqueBranchIds = [...new Set(paymentsToProcess.map(p => p.branch_id).filter(id => id))];
+        console.log(`📥 Fetching tenants and rooms for ${uniqueBranchIds.length} branches...`);
         
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms (BATCH MODE)...`);
-        
-        // ⚡ OPTIMIZED: ใช้ filter ครั้งเดียว แทนการ loop (ลด queries จาก N → 1)
-        const BATCH_CHUNK_SIZE = 100;
-        const tenantsBatch = [];
-        const roomsBatch = [];
-        
-        // Fetch tenants in chunks
-        for (let i = 0; i < uniqueTenantIds.length; i += BATCH_CHUNK_SIZE) {
-            const chunk = uniqueTenantIds.slice(i, i + BATCH_CHUNK_SIZE);
-            const results = await base44.asServiceRole.entities.Tenant.filter({
-                id: { $in: chunk }
-            }).catch(() => []);
-            tenantsBatch.push(...results);
-        }
-        
-        // Fetch rooms in chunks
-        for (let i = 0; i < uniqueRoomIds.length; i += BATCH_CHUNK_SIZE) {
-            const chunk = uniqueRoomIds.slice(i, i + BATCH_CHUNK_SIZE);
-            const results = await base44.asServiceRole.entities.Room.filter({
-                id: { $in: chunk }
-            }).catch(() => []);
-            roomsBatch.push(...results);
+        const allTenants = [];
+        const allRooms = [];
+        const CACHE_CHUNK = 500;
+
+        for (const bId of uniqueBranchIds) {
+            // ดึง Tenant
+            let tOffset = 0;
+            while (true) {
+                const chunk = await base44.asServiceRole.entities.Tenant.filter({ branch_id: bId }, '-id', CACHE_CHUNK, tOffset);
+                if (chunk.length === 0) break;
+                allTenants.push(...chunk.map(t => ({
+                    id: t.id,
+                    full_name: t.full_name,
+                    line_user_id: t.line_user_id,
+                    facebook_user_id: t.facebook_user_id
+                })));
+                tOffset += CACHE_CHUNK;
+                if (chunk.length < CACHE_CHUNK) break;
+            }
+
+            // ดึง Room
+            let rOffset = 0;
+            while (true) {
+                const chunk = await base44.asServiceRole.entities.Room.filter({ branch_id: bId }, '-id', CACHE_CHUNK, rOffset);
+                if (chunk.length === 0) break;
+                allRooms.push(...chunk.map(r => ({
+                    id: r.id,
+                    room_number: r.room_number
+                })));
+                rOffset += CACHE_CHUNK;
+                if (chunk.length < CACHE_CHUNK) break;
+            }
         }
 
-        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
-        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
+        const roomMap = new Map(allRooms.map(r => [r.id, r]));
         
-        console.log(`✅ Loaded ${paymentsToProcess.length} relevant payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
+        console.log(`✅ Loaded ${paymentsToProcess.length} relevant payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
 
         if (paymentsToProcess.length === 0) {
             return Response.json({
@@ -709,8 +718,12 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                         });
                     }
                     
-                    lineRecipientsCleaned.slice(0, result.success || 0).forEach(r => {
-                        successfulPaymentIds.add(r.metadata.paymentId);
+                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
+                    const failedLineUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
+                    lineRecipientsCleaned.forEach(r => {
+                        if (!failedLineUserIds.includes(r.lineUserId)) {
+                            successfulPaymentIds.add(r.metadata.paymentId);
+                        }
                     });
 
                     console.log(`✅ LINE: ${result.success}/${lineRecipientsCleaned.length} sent`);
@@ -736,8 +749,12 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                         });
                     }
                     
-                    facebookRecipients.slice(0, result.success || 0).forEach(r => {
-                        successfulPaymentIds.add(r.metadata.paymentId);
+                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
+                    const failedFbUserIds = (result.errors || []).map(err => err.facebookUserId || err.recipientId || err.id).filter(Boolean);
+                    facebookRecipients.forEach(r => {
+                        if (!failedFbUserIds.includes(r.facebookUserId)) {
+                            successfulPaymentIds.add(r.metadata.paymentId);
+                        }
                     });
 
                     console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
