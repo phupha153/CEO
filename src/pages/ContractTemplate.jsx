@@ -404,17 +404,19 @@ export default function ContractTemplate() {
             .contract-print {
               display: block !important;
               position: static !important;
-              width: 21cm !important;
+              width: auto !important;
               margin: 0 auto !important;
               padding: 0 !important;
               background: white !important;
             }
             
             .page {
-              page-break-after: always;
-              padding: 2cm 2cm 2cm 2.5cm !important;
-              box-sizing: border-box;
-              background: white;
+              page-break-after: always !important;
+              padding: 1.5cm 1.5cm 2cm 1.5cm !important;
+              box-sizing: border-box !important;
+              background: white !important;
+              height: auto !important;
+              min-height: auto !important;
             }
             
             .page:last-child {
