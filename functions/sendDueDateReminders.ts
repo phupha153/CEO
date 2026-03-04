@@ -220,7 +220,8 @@ Deno.serve(async (req) => {
 
                 if (!tenant) continue;
 
-                const hasLine = tenant.line_user_id && tenant.line_user_id.trim() !== '';
+                // กรองเฉพาะ LINE User ID ที่ถูกต้อง (ขึ้นต้นด้วย U และยาว 33 ตัวอักษร) เพื่อป้องกัน error จาก LINE API
+                const hasLine = tenant.line_user_id && typeof tenant.line_user_id === 'string' && tenant.line_user_id.trim().startsWith('U') && tenant.line_user_id.trim().length === 33;
                 const hasFacebook = tenant.facebook_user_id && tenant.facebook_user_id.trim() !== '';
                 
                 if (!hasLine && !hasFacebook) continue;
