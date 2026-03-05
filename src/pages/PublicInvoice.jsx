@@ -275,8 +275,6 @@ export default function PublicInvoice() {
       <style>{`
         @media print {
           body, html {
-            width: 9.5in !important;
-            height: 11in !important;
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -298,22 +296,18 @@ export default function PublicInvoice() {
           }
           
           .invoice-container {
-            width: 9.5in !important;
-            height: 11in !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0.25in 0.5in !important;
             background: white !important;
             box-sizing: border-box !important;
-            overflow: hidden !important;
-            page-break-after: avoid !important;
-            page-break-before: avoid !important;
           }
           
           .invoice-card {
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            height: 100% !important;
           }
         }
         
