@@ -925,35 +925,9 @@ export default function PrintReceipts() {
           }
           
           ${paperSize === 'A4' ? `
-            /* ขนาด font ที่พอดีสำหรับ A4 */
-            .receipt-card { padding: 12mm 10mm !important; }
-            h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
-            h3 { font-size: 13px !important; line-height: 1.3 !important; }
-            p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
-            .text-xs { font-size: 9px !important; }
-            .text-sm { font-size: 10px !important; }
-            .text-lg { font-size: 13px !important; }
-            
-            .mb-2 { margin-bottom: 6mm !important; }
-            .mb-4 { margin-bottom: 8mm !important; }
-            .mb-5 { margin-bottom: 10mm !important; }
-            .mt-2 { margin-top: 6mm !important; }
-            .mt-5 { margin-top: 10mm !important; }
-            .pt-2 { padding-top: 6mm !important; }
-            .pt-3 { padding-top: 8mm !important; }
-            .pb-2 { padding-bottom: 6mm !important; }
-            .pb-3 { padding-bottom: 8mm !important; }
-            .p-2, .p-3 { padding: 4mm !important; }
-            .gap-2 { gap: 4mm !important; }
-            .gap-3 { gap: 6mm !important; }
-            
+            .receipt-card { padding: 10mm 15mm !important; }
             table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { padding: 3mm 2mm !important; }
-            
-            img { max-width: 100% !important; height: auto !important; }
-            .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
-            .h-12 { height: 10mm !important; }
-            
+            th, td { padding: 2mm 2mm !important; }
             .receipt-card > div { padding: 0 !important; }
           ` : ''}
 
