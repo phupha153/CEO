@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Loader2, CheckCircle, Printer, ArrowLeft, AlertTriangle, RefreshCw, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
