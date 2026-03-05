@@ -472,13 +472,26 @@ export default function PrintReceipts() {
               <p className="text-xs text-slate-500">กดปุ่มด้านขวาเพื่อพิมพ์หรือบันทึกเป็น PDF</p>
             </div>
           </div>
-          <Button
-            onClick={handlePrint}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          >
-            <Printer className="w-4 h-4" />
-            พิมพ์ / บันทึก PDF (Ctrl+P)
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={paperSize} onValueChange={setPaperSize}>
+              <SelectTrigger className="w-[180px] bg-white h-9">
+                <SelectValue placeholder="ขนาดกระดาษ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">ขนาด A4 (มาตรฐาน)</SelectItem>
+                <SelectItem value="A5">ขนาด A5 (Laser/Inkjet)</SelectItem>
+                <SelectItem value="Thermal80">สลิป 80mm (Thermal)</SelectItem>
+                <SelectItem value="DotMatrix">ครึ่งหน้า 9.5"x5.5" (Dot Matrix)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handlePrint}
+              className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-9"
+            >
+              <Printer className="w-4 h-4" />
+              พิมพ์ / PDF
+            </Button>
+          </div>
         </div>
       </div>
 
