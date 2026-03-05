@@ -443,7 +443,7 @@ export default function PrintReceipts() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 print:bg-white">
       {/* Print Button (Hidden when printing) */}
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
