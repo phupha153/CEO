@@ -557,7 +557,7 @@ export default function PrintReceipts() {
       )}
 
       {/* All Receipts */}
-      <div className="max-w-4xl mx-auto p-4 space-y-8 print:space-y-0 print:p-0">
+      <div className={`mx-auto p-4 space-y-8 print:space-y-0 print:p-0 receipt-preview-${paperSize} ${paperSize === 'A4' ? 'max-w-4xl' : ''}`}>
         {receiptsData.map((receiptData, index) => {
           const receiptNumber = `REC-${receiptData.id.slice(0, 8).toUpperCase()}`;
           const paymentDate = receiptData.payment_date 
