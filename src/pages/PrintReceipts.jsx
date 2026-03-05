@@ -908,6 +908,7 @@ export default function PrintReceipts() {
             margin: 0; /* ลบ margin เพื่อไม่ให้มีพื้นที่สำหรับ Header/Footer */
           }
           
+          /* @page settings are handled above, but redefining specific sizes here */
           @page {
             ${paperSize === 'A5' ? 'size: 148mm 210mm; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
