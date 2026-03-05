@@ -280,19 +280,17 @@ export default function Invoice() {
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
-      {/* Print Styles */}
+      {/* Print Styles - ปรับปรุงสำหรับ A4 */}
       <style>{`
         @media print {
           body, html {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
           }
           
           @page {
-            size: 9.5in 11in;
+            size: A4;
             margin: 0;
           }
           
@@ -301,10 +299,10 @@ export default function Invoice() {
           }
           
           .invoice-container {
-            width: 100% !important;
             max-width: 100% !important;
+            width: 100% !important;
             margin: 0 !important;
-            padding: 0.25in 0.5in !important;
+            padding: 12mm 10mm !important;
             background: white !important;
             box-sizing: border-box !important;
           }
@@ -313,12 +311,55 @@ export default function Invoice() {
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
           
-          * {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+          .invoice-card > div {
+            padding: 0 !important;
           }
+          
+          /* ขนาด font ที่พอดี */
+          h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
+          h3 { font-size: 13px !important; line-height: 1.3 !important; }
+          p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
+          .text-xs { font-size: 9px !important; }
+          .text-sm { font-size: 10px !important; }
+          .text-lg { font-size: 13px !important; }
+          
+          /* ระยะห่างที่กำลังดี */
+          .mb-2 { margin-bottom: 6mm !important; }
+          .mb-4 { margin-bottom: 8mm !important; }
+          .mb-5 { margin-bottom: 10mm !important; }
+          .mt-2 { margin-top: 6mm !important; }
+          .mt-5 { margin-top: 10mm !important; }
+          .pt-2 { padding-top: 6mm !important; }
+          .pt-3 { padding-top: 8mm !important; }
+          .pb-2 { padding-bottom: 6mm !important; }
+          .pb-3 { padding-bottom: 8mm !important; }
+          .p-2, .p-3 { padding: 4mm !important; }
+          .gap-2 { gap: 4mm !important; }
+          .gap-3 { gap: 6mm !important; }
+          
+          /* ตาราง */
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { padding: 3mm 2mm !important; }
+          
+          /* โลโก้และรูป */
+          img { max-width: 100% !important; height: auto !important; }
+          .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
+          .h-12 { height: 10mm !important; }
+          
+          /* ลบเงาและขอบ */
+          * {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
+          
+          /* ขอบตารางให้เห็นชัด */
+          .border { border-width: 0.5pt !important; border-color: #888 !important; }
+          .border-b { border-bottom-width: 0.5pt !important; }
+          .border-t-2 { border-top-width: 1pt !important; }
           
           /* ซ่อน notifications ขณะปริ้น */
           .sonner-toaster { display: none !important; }
@@ -326,9 +367,8 @@ export default function Invoice() {
         
         @media screen {
           .invoice-container {
-            width: 9.5in;
-            min-height: 11in;
-            max-width: 100%;
+            width: 210mm;
+            min-height: 297mm;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
           }
         }
@@ -383,7 +423,7 @@ export default function Invoice() {
       </div>
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0">
+      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
         <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
           <div className="p-3 md:p-8 print:p-5">
             {/* Header Section */}

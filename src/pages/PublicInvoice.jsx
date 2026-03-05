@@ -278,13 +278,12 @@ export default function PublicInvoice() {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            font-size: 11px !important;
           }
           
           @page {
-            size: 9.5in 11in;
-            margin: 0;
+            size: A4;
+            margin: 8mm;
           }
           
           .print\\:hidden {
@@ -296,26 +295,49 @@ export default function PublicInvoice() {
           }
           
           .invoice-container {
-            width: 100% !important;
             max-width: 100% !important;
+            width: 100% !important;
             margin: 0 !important;
-            padding: 0.25in 0.5in !important;
+            padding: 0 !important;
             background: white !important;
-            box-sizing: border-box !important;
           }
           
           .invoice-card {
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            padding: 0 !important;
           }
+          
+          .invoice-card > div {
+            padding: 10px !important;
+          }
+          
+          h1, h2, h3 { font-size: 14px !important; }
+          p, span, td, th { font-size: 10px !important; }
+          .text-lg { font-size: 12px !important; }
+          .text-xl { font-size: 14px !important; }
+          .text-2xl { font-size: 16px !important; }
+          .text-xs { font-size: 9px !important; }
+          .text-sm { font-size: 10px !important; }
+          
+          .mb-4, .mb-5 { margin-bottom: 8px !important; }
+          .mb-3 { margin-bottom: 6px !important; }
+          .p-3 { padding: 6px !important; }
+          .p-2 { padding: 4px !important; }
+          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+          .gap-3 { gap: 6px !important; }
+          .gap-4 { gap: 8px !important; }
+          
+          .w-10 { width: 28px !important; }
+          .h-10 { height: 28px !important; }
+          .h-12 { height: 32px !important; }
         }
         
         @media screen {
           .invoice-container {
-            width: 9.5in;
-            min-height: 11in;
-            max-width: 100%;
+            width: 210mm;
+            min-height: 297mm;
           }
         }
       `}</style>
@@ -339,7 +361,7 @@ export default function PublicInvoice() {
         </div>
       </div>
 
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0">
+      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
         {/* Summary Cards - Payments Style */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 print:hidden">
           <motion.div
