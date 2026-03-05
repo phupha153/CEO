@@ -903,6 +903,11 @@ export default function PrintReceipts() {
             padding: 0 !important;
           }
           
+          /* ซ่อน Header และ Footer ที่เป็นลิงก์และเวลาของ Browser */
+          @page {
+            margin: 0; /* ลบ margin เพื่อไม่ให้มีพื้นที่สำหรับ Header/Footer */
+          }
+          
           @page {
             ${paperSize === 'A5' ? 'size: 148mm 210mm; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
