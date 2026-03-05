@@ -797,7 +797,7 @@ export default function PrintReceipts() {
                 </div>
 
                 {/* Signature Section */}
-                <div className="grid grid-cols-3 gap-4 mt-5 pt-3 border-t border-slate-200">
+                <div className="signature-section grid grid-cols-3 gap-4 mt-5 pt-3 border-t border-slate-200">
                   <div className="text-center">
                     <div className="h-12 border-b border-slate-300 mb-1"></div>
                     <p className="text-xs text-slate-600">ผู้จัดทำ</p>
