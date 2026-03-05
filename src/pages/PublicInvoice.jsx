@@ -282,8 +282,8 @@ export default function PublicInvoice() {
           }
           
           @page {
-            size: A4;
-            margin: 8mm;
+            size: A5;
+            margin: 5mm;
           }
           
           .print\\:hidden {
@@ -336,8 +336,8 @@ export default function PublicInvoice() {
         
         @media screen {
           .invoice-container {
-            width: 210mm;
-            min-height: 297mm;
+            width: 148mm;
+            min-height: 210mm;
           }
         }
       `}</style>
@@ -361,7 +361,7 @@ export default function PublicInvoice() {
         </div>
       </div>
 
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+      <div className="invoice-container mx-auto p-2 md:p-6 print:p-0 max-w-[380px] md:max-w-[600px]">
         {/* Summary Cards - Payments Style */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 print:hidden">
           <motion.div

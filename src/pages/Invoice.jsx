@@ -290,7 +290,7 @@ export default function Invoice() {
           }
           
           @page {
-            size: A4;
+            size: A5;
             margin: 0;
           }
           
@@ -367,8 +367,8 @@ export default function Invoice() {
         
         @media screen {
           .invoice-container {
-            width: 210mm;
-            min-height: 297mm;
+            width: 148mm;
+            min-height: 210mm;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
           }
         }
@@ -423,7 +423,7 @@ export default function Invoice() {
       </div>
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+      <div className="invoice-container mx-auto p-2 md:p-6 print:p-0 max-w-[380px] md:max-w-[600px]">
         <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
           <div className="p-3 md:p-8 print:p-5">
             {/* Header Section */}

@@ -177,38 +177,38 @@ Deno.serve(async (req) => {
             <style>
                 * { box-sizing: border-box; }
                 body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
-                .container { max-width: 800px; margin: 0 auto; background: white; }
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-                .logo-section { display: flex; gap: 15px; width: 75%; }
-                .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
-                .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-                .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
-                .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
+                .container { max-width: 600px; margin: 0 auto; background: white; padding: 15px; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+                .logo-section { display: flex; gap: 12px; width: 75%; }
+                .logo { width: 45px; height: 45px; object-fit: contain; margin-top: 5px; }
+                .brand-info h1 { font-size: 16px; font-weight: bold; margin: 0 0 6px 0; color: #1e293b; }
+                .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 11px; margin-bottom: 2px; }
+                .brand-info .company-details { font-size: 10px; color: #475569; line-height: 1.4; }
                 .invoice-label { text-align: right; width: 25%; }
-                .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
-                .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
-                .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-                .meta-item { font-size: 12px; }
+                .invoice-label h2 { font-size: 18px; color: #2563eb; font-weight: bold; margin: 0; }
+                .invoice-label span { font-size: 11px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
+                .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+                .meta-item { font-size: 11px; }
                 .meta-item strong { color: #64748b; margin-right: 5px; }
                 .meta-item span { font-weight: 600; color: #1e293b; }
                 .due-date { color: #dc2626 !important; }
-                .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
-                .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
-                .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-                .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-                .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
-                th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
-                td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
+                .info-grid { display: flex; gap: 15px; margin-bottom: 20px; }
+                .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #fff; }
+                .box-header { font-size: 10px; color: #64748b; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+                .box-content .name { font-size: 12px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+                .box-content p { font-size: 11px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px; }
+                th { text-align: left; padding: 8px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+                td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
                 .text-right { text-align: right; }
                 .text-center { text-align: center; }
                 .col-total { font-weight: 600; }
-                .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
-                .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
-                .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
-                .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
-                .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
-                .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
+                .total-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+                .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 8px; min-width: 200px; }
+                .total-label { font-size: 12px; font-weight: bold; color: #1e293b; margin-right: 15px; }
+                .total-amount { font-size: 20px; font-weight: bold; color: #2563eb; }
+                .thai-baht { font-size: 11px; color: #64748b; font-style: italic; margin-top: 5px; }
+                .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 11px; display: flex; align-items: center; gap: 10px; }
                 .payment-icon { font-size: 18px; }
                 .payment-info span { margin-right: 15px; color: #334155; }
                 .payment-info strong { color: #1e293b; font-weight: 600; }
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 html: htmlContent,
-                viewport: { width: 800, height: 1000 },
+                viewport: { width: 600, height: 848 },
                 options: { type: 'png', fullPage: true, omitBackground: true }
             })
         });
