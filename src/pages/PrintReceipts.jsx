@@ -110,6 +110,7 @@ export default function PrintReceipts() {
   const [failedPayments, setFailedPayments] = useState([]);
   const [retrying, setRetrying] = useState(false);
   const [showFailedList, setShowFailedList] = useState(false);
+  const [paperSize, setPaperSize] = useState('A4');
 
   useEffect(() => {
     const fetchReceipts = async () => {
