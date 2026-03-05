@@ -1,7 +1,73 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
-import { calculateLateFee } from './utils/calculateLateFee.js';
+import { parseISO, differenceInDays } from 'npm:date-fns';
 
 // --- Helper Functions ---
+function calculateLateFee(payment, configs, branchId, calculationDate = null) {
+    if (!payment || !payment.due_date) return 0;
+    if (payment.status === 'paid') return payment.late_fee_amount || 0;
+    if (payment.late_fee_locked === true) return payment.late_fee_amount || 0;
+    
+    const calcDate = calculationDate || new Date();
+    
+    if (payment.late_fee_last_calculated) {
+        const lastCalcDate = new Date(payment.late_fee_last_calculated);
+        lastCalcDate.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        if (lastCalcDate.getTime() === today.getTime()) {
+            return payment.late_fee_amount || 0;
+        }
+    }
+
+    try {
+        const dueDate = parseISO(payment.due_date);
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const calcDateStart = new Date(calcDate.getFullYear(), calcDate.getMonth(), calcDate.getDate());
+        const daysOverdue = differenceInDays(calcDateStart, dueDateStart);
+
+        if (daysOverdue <= 0) return 0;
+
+        const getConfigValue = (key, defaultValue = null) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+        };
+
+        const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
+
+        if (tiersEnabled) {
+            const tiersConfigValue = getConfigValue('late_fee_tiers');
+            if (tiersConfigValue) {
+                try {
+                    const tiers = JSON.parse(tiersConfigValue);
+                    let totalFee = 0;
+                    for (const tier of tiers) {
+                        const daysFrom = tier.days_from || 1;
+                        const daysTo = tier.days_to || 999;
+                        const feePerDay = parseFloat(tier.fee_per_day || 0);
+                        if (daysOverdue >= daysFrom) {
+                            const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                            if (daysInThisTier > 0) totalFee += daysInThisTier * feePerDay;
+                        }
+                        if (daysOverdue <= daysTo) break;
+                    }
+                    return totalFee;
+                } catch (e) {
+                    console.error('Error parsing late fee tiers:', e);
+                }
+            }
+        }
+
+        const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
+        if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return 0;
+
+        return daysOverdue * lateFeePerDay;
+    } catch (error) {
+        return 0;
+    }
+}
 function getThaiMidnight(dateInput = new Date()) {
     const thaiTimeString = dateInput.toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
     const thaiDate = new Date(thaiTimeString);
