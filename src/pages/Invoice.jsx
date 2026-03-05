@@ -290,8 +290,8 @@ export default function Invoice() {
           }
           
           @page {
-            size: A4;
-            margin: 0;
+            size: 9.5in 11in;
+            margin: 0.5in;
           }
           
           .print\\:hidden {
@@ -367,8 +367,8 @@ export default function Invoice() {
         
         @media screen {
           .invoice-container {
-            width: 210mm;
-            min-height: 297mm;
+            width: 9.5in;
+            min-height: 11in;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
           }
         }
