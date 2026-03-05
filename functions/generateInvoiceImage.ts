@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
         else {
             finalLateFee = calculateLateFee(payment, configs, branchId);
             console.log(`✅ Calculated Late Fee: ${finalLateFee}`);
+        }
 
         // --- ส่วนสร้างรูปตามปกติ ---
         const dbLateFee = Number(payment.late_fee_amount || 0);
