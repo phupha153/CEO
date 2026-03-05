@@ -823,8 +823,79 @@ export default function PrintReceipts() {
         })}
       </div>
 
-      {/* Print Styles */}
+      {/* Preview & Print Styles */}
       <style>{`
+        /* --- Screen Preview Styles --- */
+        
+        /* A5 (148mm x 210mm) */
+        ${paperSize === 'A5' ? `
+          .receipt-preview-A5 .receipt-card {
+            width: 148mm;
+            min-height: 209mm;
+            margin: 0 auto;
+          }
+          .receipt-preview-A5 .receipt-card > div { padding: 10mm 8mm; }
+          .receipt-preview-A5 h1, .receipt-preview-A5 h2 { font-size: 14px; line-height: 1.2; }
+          .receipt-preview-A5 h3 { font-size: 12px; }
+          .receipt-preview-A5 p, .receipt-preview-A5 span, .receipt-preview-A5 td, .receipt-preview-A5 th { font-size: 10px; line-height: 1.3; }
+          .receipt-preview-A5 .mb-5 { margin-bottom: 5mm; }
+          .receipt-preview-A5 .mt-5 { margin-top: 5mm; }
+        ` : ''}
+        
+        /* Thermal 80mm */
+        ${paperSize === 'Thermal80' ? `
+          .receipt-preview-Thermal80 .receipt-card {
+            width: 80mm;
+            margin: 0 auto;
+          }
+          .receipt-preview-Thermal80 .receipt-card > div { padding: 4mm; }
+          .receipt-preview-Thermal80 .grid { display: block !important; }
+          .receipt-preview-Thermal80 .grid > div { margin-bottom: 3mm; width: 100%; }
+          .receipt-preview-Thermal80 .text-right { text-align: left !important; }
+          
+          .receipt-preview-Thermal80 .flex.items-start.justify-between { flex-direction: column; align-items: center; text-align: center; }
+          .receipt-preview-Thermal80 .flex.items-center.gap-2 { flex-direction: column; align-items: center; }
+          .receipt-preview-Thermal80 .text-right { text-align: center !important; width: 100%; margin-top: 2mm; }
+          
+          .receipt-preview-Thermal80 h1 { font-size: 12px; text-align: center; width: 100%; margin-top: 1mm; }
+          .receipt-preview-Thermal80 h2 { font-size: 12px; text-align: center; }
+          .receipt-preview-Thermal80 h3 { font-size: 10px; }
+          .receipt-preview-Thermal80 p, .receipt-preview-Thermal80 span { font-size: 9px; line-height: 1.3; }
+          
+          /* Table adjustments */
+          .receipt-preview-Thermal80 table { width: 100%; table-layout: fixed; }
+          .receipt-preview-Thermal80 th, .receipt-preview-Thermal80 td { font-size: 8px; padding: 1mm 0.5mm; word-wrap: break-word; }
+          .receipt-preview-Thermal80 th:nth-child(1), .receipt-preview-Thermal80 td:nth-child(1) { width: 10%; text-align: center; } /* No. */
+          .receipt-preview-Thermal80 th:nth-child(2), .receipt-preview-Thermal80 td:nth-child(2) { width: 50%; } /* Item */
+          .receipt-preview-Thermal80 th:nth-child(3), .receipt-preview-Thermal80 td:nth-child(3) { width: 10%; text-align: center; } /* Qty */
+          .receipt-preview-Thermal80 th:nth-child(4), .receipt-preview-Thermal80 td:nth-child(4) { display: none; } /* Price hide */
+          .receipt-preview-Thermal80 th:nth-child(5), .receipt-preview-Thermal80 td:nth-child(5) { width: 30%; text-align: right; } /* Total */
+          
+          .receipt-preview-Thermal80 .flex.justify-between.items-center { flex-direction: column; align-items: flex-end; gap: 2mm; }
+          .receipt-preview-Thermal80 .transform.rotate-\\[-3deg\\] { position: relative; margin-top: 2mm; transform: none; }
+          
+          /* Signatures */
+          .receipt-preview-Thermal80 .signature-section { display: none; }
+        ` : ''}
+        
+        /* Dot Matrix 9.5" x 5.5" */
+        ${paperSize === 'DotMatrix' ? `
+          .receipt-preview-DotMatrix .receipt-card {
+            width: 8.5in;
+            min-height: 5.4in;
+            margin: 0 auto;
+          }
+          .receipt-preview-DotMatrix .receipt-card > div { padding: 0.25in; }
+          .receipt-preview-DotMatrix h1, .receipt-preview-DotMatrix h2 { font-size: 14px; line-height: 1.2; }
+          .receipt-preview-DotMatrix h3 { font-size: 12px; }
+          .receipt-preview-DotMatrix p, .receipt-preview-DotMatrix span, .receipt-preview-DotMatrix td, .receipt-preview-DotMatrix th { font-size: 11px; line-height: 1.3; }
+          .receipt-preview-DotMatrix .mb-5 { margin-bottom: 5mm; }
+          .receipt-preview-DotMatrix .mt-5 { margin-top: 5mm; }
+          /* Hide logo on dot matrix to save ink and print faster */
+          .receipt-preview-DotMatrix img { display: none; }
+        ` : ''}
+
+        /* --- Print Styles --- */
         @media print {
           body, html {
             background: white !important;
@@ -843,92 +914,19 @@ export default function PrintReceipts() {
             display: none !important;
           }
           
-          /* พื้นฐาน (A4 Default) */
+          /* พื้นฐาน (A4 Default Print) */
           .receipt-card {
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            padding: 12mm 10mm !important;
             margin: 0 auto !important;
             box-sizing: border-box !important;
             page-break-after: always !important;
           }
           
-          /* A5 (148mm x 210mm) */
-          ${paperSize === 'A5' ? `
-            .receipt-card {
-              width: 148mm !important;
-              min-height: 209mm !important;
-              padding: 10mm 8mm !important;
-            }
-            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
-            h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
-            .mb-5 { margin-bottom: 5mm !important; }
-            .mt-5 { margin-top: 5mm !important; }
-          ` : ''}
-          
-          /* Thermal 80mm */
-          ${paperSize === 'Thermal80' ? `
-            .receipt-card {
-              width: 72mm !important;
-              margin: 0 auto !important;
-              padding: 4mm 0 !important;
-              height: auto !important;
-              page-break-after: always !important;
-            }
-            .grid { display: block !important; }
-            .grid > div { margin-bottom: 3mm !important; width: 100% !important; }
-            .text-right { text-align: left !important; }
-            
-            .flex.items-start.justify-between { flex-direction: column !important; align-items: center !important; text-align: center !important; }
-            .flex.items-center.gap-2 { flex-direction: column !important; align-items: center !important; }
-            .text-right { text-align: center !important; width: 100% !important; margin-top: 2mm !important; }
-            
-            h1 { font-size: 12px !important; text-align: center !important; width: 100%; margin-top: 1mm !important; }
-            h2 { font-size: 12px !important; text-align: center !important; }
-            h3 { font-size: 10px !important; }
-            p, span { font-size: 9px !important; line-height: 1.3 !important; }
-            
-            /* Table adjustments */
-            table { width: 100% !important; table-layout: fixed; }
-            th, td { font-size: 8px !important; padding: 1mm 0.5mm !important; word-wrap: break-word; }
-            th:nth-child(1), td:nth-child(1) { width: 10%; text-align: center !important; } /* No. */
-            th:nth-child(2), td:nth-child(2) { width: 50%; } /* Item */
-            th:nth-child(3), td:nth-child(3) { width: 10%; text-align: center !important; } /* Qty */
-            th:nth-child(4), td:nth-child(4) { display: none !important; } /* Price hide */
-            th:nth-child(5), td:nth-child(5) { width: 30%; text-align: right !important; } /* Total */
-            
-            .flex.justify-between.items-center { flex-direction: column !important; align-items: flex-end !important; gap: 2mm !important; }
-            .transform.rotate-\\[-3deg\\] { position: relative !important; margin-top: 2mm !important; }
-            
-            /* Signatures */
-            .signature-section { display: none !important; }
-          ` : ''}
-          
-          /* Dot Matrix 9.5" x 5.5" */
-          ${paperSize === 'DotMatrix' ? `
-            .receipt-card {
-              width: 8.5in !important;
-              min-height: 5.4in !important;
-              margin: 0 auto !important;
-              padding: 0.25in 0 !important;
-              margin-left: 0.5in !important;
-              margin-right: 0.5in !important;
-            }
-            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
-            h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
-            .mb-5 { margin-bottom: 5mm !important; }
-            .mt-5 { margin-top: 5mm !important; }
-            .p-8 { padding: 4mm 0 !important; }
-            /* Hide logo on dot matrix to save ink and print faster */
-            img { display: none !important; }
-          ` : ''}
-
-          /* A4 defaults */
           ${paperSize === 'A4' ? `
-            /* ขนาด font ที่พอดี */
+            /* ขนาด font ที่พอดีสำหรับ A4 */
+            .receipt-card { padding: 12mm 10mm !important; }
             h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
             h3 { font-size: 13px !important; line-height: 1.3 !important; }
             p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
@@ -936,7 +934,6 @@ export default function PrintReceipts() {
             .text-sm { font-size: 10px !important; }
             .text-lg { font-size: 13px !important; }
             
-            /* ระยะห่างที่กำลังดี */
             .mb-2 { margin-bottom: 6mm !important; }
             .mb-4 { margin-bottom: 8mm !important; }
             .mb-5 { margin-bottom: 10mm !important; }
@@ -950,36 +947,96 @@ export default function PrintReceipts() {
             .gap-2 { gap: 4mm !important; }
             .gap-3 { gap: 6mm !important; }
             
-            /* ตาราง */
             table { width: 100% !important; border-collapse: collapse !important; }
             th, td { padding: 3mm 2mm !important; }
             
-            /* โลโก้และรูป */
             img { max-width: 100% !important; height: auto !important; }
             .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
             .h-12 { height: 10mm !important; }
+            
+            .receipt-card > div { padding: 0 !important; }
           ` : ''}
 
-          .receipt-card > div {
-            padding: 0 !important;
-          }
-          
+          ${paperSize === 'A5' ? `
+            .receipt-card {
+              width: 148mm !important;
+              min-height: 209mm !important;
+              padding: 10mm 8mm !important;
+            }
+            .receipt-card > div { padding: 0 !important; }
+            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
+            h3 { font-size: 12px !important; }
+            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
+            .mb-5 { margin-bottom: 5mm !important; }
+            .mt-5 { margin-top: 5mm !important; }
+          ` : ''}
+
+          ${paperSize === 'Thermal80' ? `
+            .receipt-card {
+              width: 72mm !important;
+              margin: 0 auto !important;
+              padding: 4mm 0 !important;
+              height: auto !important;
+            }
+            .receipt-card > div { padding: 0 !important; }
+            .grid { display: block !important; }
+            .grid > div { margin-bottom: 3mm !important; width: 100% !important; }
+            .text-right { text-align: left !important; }
+            
+            .flex.items-start.justify-between { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+            .flex.items-center.gap-2 { flex-direction: column !important; align-items: center !important; }
+            .text-right { text-align: center !important; width: 100% !important; margin-top: 2mm !important; }
+            
+            h1 { font-size: 12px !important; text-align: center !important; width: 100%; margin-top: 1mm !important; }
+            h2 { font-size: 12px !important; text-align: center !important; }
+            h3 { font-size: 10px !important; }
+            p, span { font-size: 9px !important; line-height: 1.3 !important; }
+            
+            table { width: 100% !important; table-layout: fixed; }
+            th, td { font-size: 8px !important; padding: 1mm 0.5mm !important; word-wrap: break-word; }
+            th:nth-child(1), td:nth-child(1) { width: 10%; text-align: center !important; }
+            th:nth-child(2), td:nth-child(2) { width: 50%; }
+            th:nth-child(3), td:nth-child(3) { width: 10%; text-align: center !important; }
+            th:nth-child(4), td:nth-child(4) { display: none !important; }
+            th:nth-child(5), td:nth-child(5) { width: 30%; text-align: right !important; }
+            
+            .flex.justify-between.items-center { flex-direction: column !important; align-items: flex-end !important; gap: 2mm !important; }
+            .transform.rotate-\\[-3deg\\] { position: relative !important; margin-top: 2mm !important; transform: none !important; }
+            
+            .signature-section { display: none !important; }
+          ` : ''}
+
+          ${paperSize === 'DotMatrix' ? `
+            .receipt-card {
+              width: 8.5in !important;
+              min-height: 5.4in !important;
+              margin: 0 auto !important;
+              padding: 0.25in 0 !important;
+              margin-left: 0.5in !important;
+              margin-right: 0.5in !important;
+            }
+            .receipt-card > div { padding: 0 !important; }
+            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
+            h3 { font-size: 12px !important; }
+            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
+            .mb-5 { margin-bottom: 5mm !important; }
+            .mt-5 { margin-top: 5mm !important; }
+            img { display: none !important; }
+          ` : ''}
+
           .print\\:break-after-page {
             page-break-after: always !important;
           }
           
-          /* ลบเงาและขอบมน */
           * {
             box-shadow: none !important;
             border-radius: 0 !important;
           }
           
-          /* ขอบตารางให้เห็นชัด */
           .border { border-width: 0.5pt !important; border-color: #888 !important; }
           .border-b { border-bottom-width: 0.5pt !important; }
           .border-t-2 { border-top-width: 1pt !important; }
           
-          /* ซ่อน notifications ขณะปริ้น */
           .sonner-toaster { display: none !important; }
         }
       `}</style>
