@@ -823,7 +823,7 @@ export default function PrintReceipts() {
         })}
       </div>
 
-      {/* Print Styles - ปรับขนาดให้พอดี A4 */}
+      {/* Print Styles */}
       <style>{`
         @media print {
           body, html {
@@ -833,24 +833,133 @@ export default function PrintReceipts() {
           }
           
           @page {
-            size: A4;
-            margin: 0;
+            ${paperSize === 'A5' ? 'size: 148mm 210mm; margin: 0;' : 
+              paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
+              paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
+              'size: A4; margin: 0;'}
           }
           
           .print\\:hidden {
             display: none !important;
           }
           
+          /* พื้นฐาน (A4 Default) */
           .receipt-card {
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             padding: 12mm 10mm !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             box-sizing: border-box !important;
             page-break-after: always !important;
           }
           
+          /* A5 (148mm x 210mm) */
+          ${paperSize === 'A5' ? `
+            .receipt-card {
+              width: 148mm !important;
+              min-height: 209mm !important;
+              padding: 10mm 8mm !important;
+            }
+            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
+            h3 { font-size: 12px !important; }
+            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
+            .mb-5 { margin-bottom: 5mm !important; }
+            .mt-5 { margin-top: 5mm !important; }
+          ` : ''}
+          
+          /* Thermal 80mm */
+          ${paperSize === 'Thermal80' ? `
+            .receipt-card {
+              width: 72mm !important;
+              margin: 0 auto !important;
+              padding: 4mm 0 !important;
+              height: auto !important;
+              page-break-after: always !important;
+            }
+            .grid { display: block !important; }
+            .grid > div { margin-bottom: 3mm !important; width: 100% !important; }
+            .text-right { text-align: left !important; }
+            
+            .flex.items-start.justify-between { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+            .flex.items-center.gap-2 { flex-direction: column !important; align-items: center !important; }
+            .text-right { text-align: center !important; width: 100% !important; margin-top: 2mm !important; }
+            
+            h1 { font-size: 12px !important; text-align: center !important; width: 100%; margin-top: 1mm !important; }
+            h2 { font-size: 12px !important; text-align: center !important; }
+            h3 { font-size: 10px !important; }
+            p, span { font-size: 9px !important; line-height: 1.3 !important; }
+            
+            /* Table adjustments */
+            table { width: 100% !important; table-layout: fixed; }
+            th, td { font-size: 8px !important; padding: 1mm 0.5mm !important; word-wrap: break-word; }
+            th:nth-child(1), td:nth-child(1) { width: 10%; text-align: center !important; } /* No. */
+            th:nth-child(2), td:nth-child(2) { width: 50%; } /* Item */
+            th:nth-child(3), td:nth-child(3) { width: 10%; text-align: center !important; } /* Qty */
+            th:nth-child(4), td:nth-child(4) { display: none !important; } /* Price hide */
+            th:nth-child(5), td:nth-child(5) { width: 30%; text-align: right !important; } /* Total */
+            
+            .flex.justify-between.items-center { flex-direction: column !important; align-items: flex-end !important; gap: 2mm !important; }
+            .transform.rotate-\\[-3deg\\] { position: relative !important; margin-top: 2mm !important; }
+            
+            /* Signatures */
+            .signature-section { display: none !important; }
+          ` : ''}
+          
+          /* Dot Matrix 9.5" x 5.5" */
+          ${paperSize === 'DotMatrix' ? `
+            .receipt-card {
+              width: 8.5in !important;
+              min-height: 5.4in !important;
+              margin: 0 auto !important;
+              padding: 0.25in 0 !important;
+              margin-left: 0.5in !important;
+              margin-right: 0.5in !important;
+            }
+            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
+            h3 { font-size: 12px !important; }
+            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
+            .mb-5 { margin-bottom: 5mm !important; }
+            .mt-5 { margin-top: 5mm !important; }
+            .p-8 { padding: 4mm 0 !important; }
+            /* Hide logo on dot matrix to save ink and print faster */
+            img { display: none !important; }
+          ` : ''}
+
+          /* A4 defaults */
+          ${paperSize === 'A4' ? `
+            /* ขนาด font ที่พอดี */
+            h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
+            h3 { font-size: 13px !important; line-height: 1.3 !important; }
+            p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
+            .text-xs { font-size: 9px !important; }
+            .text-sm { font-size: 10px !important; }
+            .text-lg { font-size: 13px !important; }
+            
+            /* ระยะห่างที่กำลังดี */
+            .mb-2 { margin-bottom: 6mm !important; }
+            .mb-4 { margin-bottom: 8mm !important; }
+            .mb-5 { margin-bottom: 10mm !important; }
+            .mt-2 { margin-top: 6mm !important; }
+            .mt-5 { margin-top: 10mm !important; }
+            .pt-2 { padding-top: 6mm !important; }
+            .pt-3 { padding-top: 8mm !important; }
+            .pb-2 { padding-bottom: 6mm !important; }
+            .pb-3 { padding-bottom: 8mm !important; }
+            .p-2, .p-3 { padding: 4mm !important; }
+            .gap-2 { gap: 4mm !important; }
+            .gap-3 { gap: 6mm !important; }
+            
+            /* ตาราง */
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { padding: 3mm 2mm !important; }
+            
+            /* โลโก้และรูป */
+            img { max-width: 100% !important; height: auto !important; }
+            .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
+            .h-12 { height: 10mm !important; }
+          ` : ''}
+
           .receipt-card > div {
             padding: 0 !important;
           }
@@ -858,37 +967,6 @@ export default function PrintReceipts() {
           .print\\:break-after-page {
             page-break-after: always !important;
           }
-          
-          /* ขนาด font ที่พอดี */
-          h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
-          h3 { font-size: 13px !important; line-height: 1.3 !important; }
-          p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
-          .text-xs { font-size: 9px !important; }
-          .text-sm { font-size: 10px !important; }
-          .text-lg { font-size: 13px !important; }
-          
-          /* ระยะห่างที่กำลังดี */
-          .mb-2 { margin-bottom: 6mm !important; }
-          .mb-4 { margin-bottom: 8mm !important; }
-          .mb-5 { margin-bottom: 10mm !important; }
-          .mt-2 { margin-top: 6mm !important; }
-          .mt-5 { margin-top: 10mm !important; }
-          .pt-2 { padding-top: 6mm !important; }
-          .pt-3 { padding-top: 8mm !important; }
-          .pb-2 { padding-bottom: 6mm !important; }
-          .pb-3 { padding-bottom: 8mm !important; }
-          .p-2, .p-3 { padding: 4mm !important; }
-          .gap-2 { gap: 4mm !important; }
-          .gap-3 { gap: 6mm !important; }
-          
-          /* ตาราง */
-          table { width: 100% !important; border-collapse: collapse !important; }
-          th, td { padding: 3mm 2mm !important; }
-          
-          /* โลโก้และรูป */
-          img { max-width: 100% !important; height: auto !important; }
-          .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
-          .h-12 { height: 10mm !important; }
           
           /* ลบเงาและขอบมน */
           * {
