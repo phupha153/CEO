@@ -1007,10 +1007,6 @@ export default function PrintReceipts() {
             border-radius: 0 !important;
           }
           
-          .border { border-width: 0.5pt !important; border-color: #888 !important; }
-          .border-b { border-bottom-width: 0.5pt !important; }
-          .border-t-2 { border-top-width: 1pt !important; }
-          
           .sonner-toaster { display: none !important; }
         }
       `}</style>
