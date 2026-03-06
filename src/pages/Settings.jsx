@@ -1335,47 +1335,35 @@ export default function Settings() {
       return;
     }
     
-    // Validation
-    if (!lineSettings.line_channel_access_token.trim()) {
-      toast.error('กรุณากรอก LINE Channel Access Token');
-      setIsSavingLineSettings(false);
-      return;
+    if (defaultCommunicationBranch === 'none' && (!lineSettings.line_channel_access_token || !lineSettings.line_channel_access_token.trim())) {
+      toast.error('กรุณากรอก LINE Channel Access Token'); setIsSavingLineSettings(false); return;
     }
-    
     try {
-      // ✅ Bulk save using Promise.all (แก้ N+1 Query Problem)
       const savePromises = targetBranchIds.map(async (branchId) => {
         const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
-        
         const toArr = (d) => Array.isArray(d) ? d : (d ? [d] : []);
-        const t = await base44.entities.Config.filter({ key: 'line_channel_access_token', branch_id: branchId }, '', 1);
-        const existingTokenConfig = toArr(t)[0];
-        const tokenPromise = existingTokenConfig
-          ? base44.entities.Config.update(existingTokenConfig.id, { value: lineSettings.line_channel_access_token.trim() })
-          : base44.entities.Config.create({ key: 'line_channel_access_token', value: lineSettings.line_channel_access_token.trim(), branch_id: branchId, category: 'notification', description: `LINE Token สำหรับสาขา ${branchName}` });
-
-        let secretPromise = Promise.resolve();
+        let tokenPromise = Promise.resolve(), secretPromise = Promise.resolve();
+        if (lineSettings.line_channel_access_token?.trim()) {
+          const t = await base44.entities.Config.filter({ key: 'line_channel_access_token', branch_id: branchId }, '', 1);
+          tokenPromise = toArr(t)[0] ? base44.entities.Config.update(toArr(t)[0].id, { value: lineSettings.line_channel_access_token.trim() }) : base44.entities.Config.create({ key: 'line_channel_access_token', value: lineSettings.line_channel_access_token.trim(), branch_id: branchId, category: 'notification', description: `LINE Token สำหรับสาขา ${branchName}` });
+        }
         if (lineSettings.line_channel_secret?.trim()) {
           const s = await base44.entities.Config.filter({ key: 'line_channel_secret', branch_id: branchId }, '', 1);
-          const existingSecretConfig = toArr(s)[0];
-          secretPromise = existingSecretConfig
-            ? base44.entities.Config.update(existingSecretConfig.id, {
-                value: lineSettings.line_channel_secret.trim()
-              })
-            : base44.entities.Config.create({
-                key: 'line_channel_secret',
-                value: lineSettings.line_channel_secret.trim(),
-                branch_id: branchId,
-                category: 'notification',
-                description: `LINE Secret สำหรับสาขา ${branchName}`
-              });
+          secretPromise = toArr(s)[0] ? base44.entities.Config.update(toArr(s)[0].id, { value: lineSettings.line_channel_secret.trim() }) : base44.entities.Config.create({ key: 'line_channel_secret', value: lineSettings.line_channel_secret.trim(), branch_id: branchId, category: 'notification', description: `LINE Secret สำหรับสาขา ${branchName}` });
         }
-
         await Promise.all([tokenPromise, secretPromise]); return { branchId, branchName, tokenSaved: true };
       });
+      const oe = branchOwnerStatus?.owner_email || currentUser?.email;
+      if (oe) {
+        const defKey = 'default_communication_branch_' + oe;
+        const eCfg = await base44.entities.Config.filter({ key: defKey }, '', 1);
+        const e = Array.isArray(eCfg) ? eCfg[0] : (eCfg || null);
+        if (e) await base44.entities.Config.update(e.id, { value: defaultCommunicationBranch });
+        else await base44.entities.Config.create({ key: defKey, value: defaultCommunicationBranch, category: 'notification', description: `สาขาหลักสำหรับการสื่อสารของ ${oe}` });
+      }
       const savedResults = await Promise.all(savePromises);
       await queryClient.refetchQueries({ queryKey: ['configs'], type: 'active' });
-      toast.success(`บันทึก LINE Token สำเร็จ - ${targetBranchIds.length} สาขา`, { description: savedResults.map(r => `✅ ${r.branchName}`).join('\n') });
+      toast.success(`บันทึกการตั้งค่า LINE สำเร็จ`, { description: savedResults.map(r => `✅ ${r.branchName}`).join('\n') });
     } catch (error) { toast.error('ไม่สามารถบันทึกได้: ' + (error?.message || 'กรุณาลองใหม่')); } finally { setIsSavingLineSettings(false); }
   };
 
