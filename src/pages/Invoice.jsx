@@ -78,7 +78,7 @@ export default function Invoice() {
   const [configs, setConfigs] = useState([]);
   const [configsLoaded, setConfigsLoaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [printFormat, setPrintFormat] = useState('A4');
+  const [printFormat, setPrintFormat] = useState('A4'); // Format for printing
 
   useEffect(() => {
     if (!paymentId) {
