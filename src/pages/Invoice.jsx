@@ -3,11 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle, Printer } from "lucide-react";
+import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import html2canvas from "html2canvas";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 // ⭐ Note: ใช้ค่าปรับจาก backend (late_fee_amount) แทนการคำนวณเอง
@@ -78,7 +77,6 @@ export default function Invoice() {
   const [configs, setConfigs] = useState([]);
   const [configsLoaded, setConfigsLoaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [printFormat, setPrintFormat] = useState('A4'); // Format for printing
 
   useEffect(() => {
     if (!paymentId) {
@@ -317,21 +315,6 @@ export default function Invoice() {
             margin: 0 !important;
           }
           
-          .format-a5-dual .invoice-container {
-            padding: 0 !important;
-          }
-          
-          .format-a5-dual .invoice-card {
-            height: 148mm !important;
-            padding: 8mm 10mm !important;
-            overflow: hidden !important;
-            border-bottom: 1px dashed #ccc !important;
-          }
-          
-          .format-a5-dual .invoice-card:last-child {
-            border-bottom: none !important;
-          }
-          
           .invoice-card > div {
             padding: 0 !important;
           }
@@ -403,52 +386,47 @@ export default function Invoice() {
             <ArrowLeft className="w-4 h-4" />
             ย้อนกลับ
           </Button>
-          <div className="flex items-center gap-2">
-            <Select value={printFormat} onValueChange={setPrintFormat}>
-              <SelectTrigger className="w-[180px] bg-white h-9">
-                <SelectValue placeholder="รูปแบบการพิมพ์" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="A4">A4 (เต็มหน้า 1 ใบ)</SelectItem>
-                <SelectItem value="A5_dual">A4 (ครึ่งหน้า 2 ใบ/แผ่น)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={() => window.print()}
-              size="sm"
-              className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-9 hidden md:flex"
-            >
-              <Printer className="w-4 h-4" />
-              พิมพ์ / PDF
-            </Button>
+          <div className="flex gap-2">
             {invoiceData?.invoice_image_url && (
               <a 
                 href={invoiceData.invoice_image_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 download
-                className="hidden md:block"
               >
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50 h-9"
+                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50"
                 >
                   <Download className="w-3 h-3" />
                   ดาวน์โหลดรูปภาพ
                 </Button>
               </a>
             )}
+            <Button
+              onClick={handleDownloadImage}
+              size="sm"
+              variant="default"
+              className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
+              disabled={downloading}
+            >
+              {downloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
-      <div className={`invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px] ${printFormat === 'A5_dual' ? 'format-a5-dual' : ''}`} ref={invoiceRef}>
-        {[...Array(printFormat === 'A5_dual' ? 2 : 1)].map((_, idx) => (
-          <div key={idx} className={`invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden ${idx > 0 ? 'mt-8 pt-8 border-t-2 border-dashed border-slate-300 print:border-t-[1px] print:border-slate-400 print:mt-0 print:pt-0' : ''}`}>
-            <div className="p-3 md:p-8 print:p-5">
-              {/* Header Section */}
+      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+        <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
+          <div className="p-3 md:p-8 print:p-5">
+            {/* Header Section */}
             <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-1.5 md:gap-2">
@@ -637,7 +615,6 @@ export default function Invoice() {
             </div>
           </div>
         </div>
-        ))}
       </div>
     </div>
   );

@@ -827,21 +827,19 @@ export default function PrintReceipts() {
       <style>{`
         /* --- Screen Preview Styles --- */
         
-        /* A5 Landscape (210mm x 148.5mm - ครึ่ง A4 บนล่าง) */
+        /* A5 (148mm x 210mm) */
         ${paperSize === 'A5' ? `
           .receipt-preview-A5 .receipt-card {
-            width: 210mm;
-            min-height: 148mm;
+            width: 148mm;
+            min-height: 209mm;
             margin: 0 auto;
-            border-bottom: 1px dashed #ccc !important;
           }
-          .receipt-preview-A5 .receipt-card > div { padding: 5mm 15mm; }
-          .receipt-preview-A5 h1, .receipt-preview-A5 h2 { font-size: 15px; line-height: 1.2; }
+          .receipt-preview-A5 .receipt-card > div { padding: 10mm 8mm; }
+          .receipt-preview-A5 h1, .receipt-preview-A5 h2 { font-size: 14px; line-height: 1.2; }
           .receipt-preview-A5 h3 { font-size: 12px; }
-          .receipt-preview-A5 p, .receipt-preview-A5 span, .receipt-preview-A5 td, .receipt-preview-A5 th { font-size: 11px; line-height: 1.3; }
+          .receipt-preview-A5 p, .receipt-preview-A5 span, .receipt-preview-A5 td, .receipt-preview-A5 th { font-size: 10px; line-height: 1.3; }
           .receipt-preview-A5 .mb-5 { margin-bottom: 5mm; }
           .receipt-preview-A5 .mt-5 { margin-top: 5mm; }
-          .receipt-preview-A5 .pt-4 { padding-top: 2mm; }
         ` : ''}
         
         /* Thermal 80mm */
@@ -912,10 +910,10 @@ export default function PrintReceipts() {
           
           /* @page settings are handled above, but redefining specific sizes here */
           @page {
-            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : 
+            ${paperSize === 'A5' ? 'size: 148mm 210mm; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
               paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
-              'size: A4 portrait; margin: 0;'}
+              'size: A4; margin: 0;'}
           }
           
           .print\\:hidden {
@@ -941,21 +939,14 @@ export default function PrintReceipts() {
 
           ${paperSize === 'A5' ? `
             .receipt-card {
-              width: 210mm !important;
-              min-height: 148mm !important;
-              padding: 5mm 15mm !important;
-              border-bottom: 1px dashed #ccc !important;
-              page-break-after: auto !important;
-              page-break-inside: avoid !important;
-            }
-            .receipt-card:nth-child(even) {
-              border-bottom: none !important;
-              page-break-after: always !important;
+              width: 148mm !important;
+              min-height: 209mm !important;
+              padding: 10mm 8mm !important;
             }
             .receipt-card > div { padding: 0 !important; }
-            h1, h2 { font-size: 15px !important; line-height: 1.2 !important; }
+            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
             h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
+            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
             .mb-5 { margin-bottom: 5mm !important; }
             .mt-5 { margin-top: 5mm !important; }
           ` : ''}
