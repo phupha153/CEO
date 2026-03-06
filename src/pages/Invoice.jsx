@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
+import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle, Printer } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import html2canvas from "html2canvas";
@@ -397,7 +397,7 @@ export default function Invoice() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50 hidden md:flex"
                 >
                   <Download className="w-3 h-3" />
                   ดาวน์โหลดรูปภาพ
@@ -407,8 +407,8 @@ export default function Invoice() {
             <Button
               onClick={handleDownloadImage}
               size="sm"
-              variant="default"
-              className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
+              variant="outline"
+              className="gap-2 text-sm border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 active:scale-95 transition-transform"
               disabled={downloading}
             >
               {downloading ? (
@@ -416,7 +416,16 @@ export default function Invoice() {
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
+              <span className="hidden md:inline">{downloading ? 'กำลังสร้าง...' : 'ดาวน์โหลดรูปภาพ'}</span>
+            </Button>
+            <Button
+              onClick={() => window.print()}
+              size="sm"
+              variant="default"
+              className="gap-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-4 py-2 active:scale-95 transition-transform"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden md:inline">พิมพ์ / PDF</span>
             </Button>
           </div>
         </div>
