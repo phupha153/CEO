@@ -429,10 +429,11 @@ export default function Invoice() {
       </div>
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
-        <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
-          <div className="p-3 md:p-8 print:p-5">
-            {/* Header Section */}
+      <div className={`invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px] ${printFormat === 'A5_dual' ? 'format-a5-dual' : ''}`} ref={invoiceRef}>
+        {[...Array(printFormat === 'A5_dual' ? 2 : 1)].map((_, idx) => (
+          <div key={idx} className={`invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden ${idx > 0 ? 'mt-8 pt-8 border-t-2 border-dashed border-slate-300 print:border-t-[1px] print:border-slate-400 print:mt-0 print:pt-0' : ''}`}>
+            <div className="p-3 md:p-8 print:p-5">
+              {/* Header Section */}
             <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-1.5 md:gap-2">
