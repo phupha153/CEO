@@ -7,7 +7,7 @@ import BillingTab from "../components/settings/BillingTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil, Trash2, Link } from "lucide-react";
 import { motion } from "framer-motion";
 import SignaturePad from "../components/shared/SignaturePad";
 import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
