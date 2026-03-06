@@ -388,38 +388,42 @@ export default function Invoice() {
             <ArrowLeft className="w-4 h-4" />
             ย้อนกลับ
           </Button>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Select value={printFormat} onValueChange={setPrintFormat}>
+              <SelectTrigger className="w-[180px] bg-white h-9">
+                <SelectValue placeholder="รูปแบบการพิมพ์" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">A4 (เต็มหน้า 1 ใบ)</SelectItem>
+                <SelectItem value="A5_dual">A4 (ครึ่งหน้า 2 ใบ/แผ่น)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => window.print()}
+              size="sm"
+              className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-9 hidden md:flex"
+            >
+              <Printer className="w-4 h-4" />
+              พิมพ์ / PDF
+            </Button>
             {invoiceData?.invoice_image_url && (
               <a 
                 href={invoiceData.invoice_image_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 download
+                className="hidden md:block"
               >
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="gap-2 text-xs border-blue-600 text-blue-600 hover:bg-blue-50 h-9"
                 >
                   <Download className="w-3 h-3" />
                   ดาวน์โหลดรูปภาพ
                 </Button>
               </a>
             )}
-            <Button
-              onClick={handleDownloadImage}
-              size="sm"
-              variant="default"
-              className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
-              disabled={downloading}
-            >
-              {downloading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
-            </Button>
           </div>
         </div>
       </div>
