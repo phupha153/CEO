@@ -622,6 +622,7 @@ export default function Invoice() {
             </div>
           </div>
         </div>
+        ))}
       </div>
     </div>
   );
