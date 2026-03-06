@@ -941,14 +941,21 @@ export default function PrintReceipts() {
 
           ${paperSize === 'A5' ? `
             .receipt-card {
-              width: 148mm !important;
-              min-height: 209mm !important;
-              padding: 10mm 8mm !important;
+              width: 210mm !important;
+              min-height: 148mm !important;
+              padding: 5mm 15mm !important;
+              border-bottom: 1px dashed #ccc !important;
+              page-break-after: auto !important;
+              page-break-inside: avoid !important;
+            }
+            .receipt-card:nth-child(even) {
+              border-bottom: none !important;
+              page-break-after: always !important;
             }
             .receipt-card > div { padding: 0 !important; }
-            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
+            h1, h2 { font-size: 15px !important; line-height: 1.2 !important; }
             h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
+            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
             .mb-5 { margin-bottom: 5mm !important; }
             .mt-5 { margin-top: 5mm !important; }
           ` : ''}
