@@ -1296,7 +1296,7 @@ export default function Settings() {
   const handleLineSettingsSubmit = async (e) => {
     e.preventDefault();
     
-    if (!lineSettings.line_channel_access_token || !lineSettings.line_channel_access_token.trim()) {
+    if (defaultCommunicationBranch === 'none' && (!lineSettings.line_channel_access_token || !lineSettings.line_channel_access_token.trim())) {
       toast.error('กรุณากรอก LINE Channel Access Token');
       return;
     }
