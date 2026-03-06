@@ -947,20 +947,27 @@ export default function PrintReceipts() {
             .receipt-card {
               width: 210mm !important;
               height: 148mm !important;
-              padding: 5mm 15mm !important;
+              padding: 4mm 10mm !important; /* ลด padding เพื่อเพิ่มพื้นที่แนวตั้งและแนวนอน */
               border-bottom: none !important;
               page-break-inside: avoid !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
             }
             .receipt-card > div { padding: 0 !important; }
-            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
-            h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 11px !important; line-height: 1.3 !important; }
-            .mb-5 { margin-bottom: 2mm !important; }
-            .mt-5 { margin-top: 2mm !important; }
-            .pb-3 { padding-bottom: 2mm !important; }
-            .pt-3 { padding-top: 2mm !important; }
+            h1, h2 { font-size: 13px !important; line-height: 1.1 !important; } /* ลดขนาด font header */
+            h3 { font-size: 11px !important; }
+            p, span, td, th { font-size: 10px !important; line-height: 1.2 !important; } /* ลดขนาด font เนื้อหา */
+            .mb-5 { margin-bottom: 1.5mm !important; } /* ลด margin */
+            .mt-5 { margin-top: 1.5mm !important; } /* ลด margin */
+            .pb-3 { padding-bottom: 1mm !important; } /* ลด padding */
+            .pt-3 { padding-top: 1mm !important; } /* ลด padding */
+            
+            /* ปรับตารางให้กะทัดรัดขึ้น */
+            th, td { padding: 1mm 1mm !important; }
+            
+            /* ลดระยะห่างส่วนลายเซ็น */
+            .signature-section { margin-top: 2mm !important; }
+            .signature-section > div { padding-top: 1mm !important; }
           ` : ''}
 
           ${paperSize === 'Thermal80' ? `
