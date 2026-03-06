@@ -641,13 +641,8 @@ export default function PrintReceipts() {
           const buildingLogo = receiptData?.recipient?.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
           const buildingName = receiptData?.recipient?.building_name || 'W RESIDENTS';
 
-          // Logic for page breaks: A5 = break every 2 items, others = break every item
-          const pageBreakClass = paperSize === 'A5' 
-            ? ((index + 1) % 2 === 0 ? 'print:break-after-page' : '') 
-            : 'print:break-after-page';
-
           return (
-            <div key={receiptData.id} className={`receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden ${pageBreakClass}`}>
+            <div key={receiptData.id} className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden print:break-after-page">
               <div className="p-8 print:p-5">
                 {/* Header Section */}
                 <div className="mb-4 pb-3 border-b border-slate-200">
@@ -916,10 +911,10 @@ export default function PrintReceipts() {
           
           /* @page settings are handled above, but redefining specific sizes here */
           @page {
-            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : 
+            ${paperSize === 'A5' ? 'size: A5 landscape; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
               paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
-              'size: A4; margin: 0;'}
+              'size: A4 portrait; margin: 0;'}
           }
           
           .print\\:hidden {
@@ -946,16 +941,18 @@ export default function PrintReceipts() {
           ${paperSize === 'A5' ? `
             .receipt-card {
               width: 210mm !important;
-              height: 148mm !important;
-              padding: 8mm 15mm !important;
-              border-bottom: 1px dashed #ccc !important;
+              height: 148.5mm !important;
+              padding: 10mm 15mm !important;
+              border-bottom: none !important;
+              page-break-after: always !important;
+              page-break-inside: avoid !important;
             }
             .receipt-card > div { padding: 0 !important; }
-            h1, h2 { font-size: 14px !important; line-height: 1.2 !important; }
-            h3 { font-size: 12px !important; }
-            p, span, td, th { font-size: 10px !important; line-height: 1.3 !important; }
-            .mb-5 { margin-bottom: 3mm !important; }
-            .mt-5 { margin-top: 3mm !important; }
+            h1, h2 { font-size: 16px !important; line-height: 1.2 !important; }
+            h3 { font-size: 14px !important; }
+            p, span, td, th { font-size: 12px !important; line-height: 1.4 !important; }
+            .mb-5 { margin-bottom: 5mm !important; }
+            .mt-5 { margin-top: 5mm !important; }
           ` : ''}
 
           ${paperSize === 'Thermal80' ? `
