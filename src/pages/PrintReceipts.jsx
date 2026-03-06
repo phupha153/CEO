@@ -912,10 +912,10 @@ export default function PrintReceipts() {
           
           /* @page settings are handled above, but redefining specific sizes here */
           @page {
-            ${paperSize === 'A5' ? 'size: 148mm 210mm; margin: 0;' : 
+            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
               paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
-              'size: A4; margin: 0;'}
+              'size: A4 portrait; margin: 0;'}
           }
           
           .print\\:hidden {
