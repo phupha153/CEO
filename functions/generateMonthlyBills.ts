@@ -581,62 +581,25 @@ Deno.serve(async (req) => {
                 const carFee = parseFloat(getConfigValue('car_parking_fee', '0', roomBranchId));
                 const motoFee = parseFloat(getConfigValue('motorcycle_parking_fee', '0', roomBranchId));
 
+                const originalWaterUnits = waterUnits;
+                const originalElecUnits = elecUnits;
+                
+                let waterFlatRateApplied = false;
+                let electricityFlatRateApplied = false;
                 let waterMinimumApplied = false;
                 let electricityMinimumApplied = false;
                 let waterMinimumCharge = 0;
                 let electricityMinimumCharge = 0;
-                const originalWaterUnits = waterUnits;
-                const originalElecUnits = elecUnits;
+                let waterMinimumUnits = 0;
+                let electricityMinimumUnits = 0;
 
-                // 🔄 NEW: เช็คค่าเหมาก่อน (ถ้าเป็นเหมาจะไม่คำนวณตามหน่วย)
-                let waterFlatRateApplied = false;
-                let electricityFlatRateApplied = false;
-
-                // ⭐ ค่าขั้นต่ำน้ำ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
-                if (room.min_water_units !== null && room.min_water_units !== undefined && 
-                    room.min_water_charge !== null && room.min_water_charge !== undefined) {
-                    // ใช้ค่าห้อง
-                    const minUnits = parseFloat(room.min_water_units);
-                    const minCharge = parseFloat(room.min_water_charge);
-                    if (waterUnits <= minUnits && minCharge > 0) {
-                        waterMinimumCharge = minCharge;
-                        waterMinimumApplied = true;
-                    }
-                } else {
-                    // ใช้ค่าสาขา
-                    const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
-                    if (waterMinEnabled) {
-                        const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
-                        const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
-                        if (waterUnits <= minUnits && minCharge > 0) {
-                            waterMinimumCharge = minCharge;
-                            waterMinimumApplied = true;
-                        }
-                    }
-                }
-
-                // ⭐ ค่าขั้นต่ำไฟ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
-                if (room.min_electricity_units !== null && room.min_electricity_units !== undefined && 
-                    room.min_electricity_charge !== null && room.min_electricity_charge !== undefined) {
-                    // ใช้ค่าห้อง
-                    const minUnits = parseFloat(room.min_electricity_units);
-                    const minCharge = parseFloat(room.min_electricity_charge);
-                    if (elecUnits <= minUnits && minCharge > 0) {
-                        electricityMinimumCharge = minCharge;
-                        electricityMinimumApplied = true;
-                    }
-                } else {
-                    // ใช้ค่าสาขา
-                    const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
-                    if (elecMinEnabled) {
-                        const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
-                        const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
-                        if (elecUnits <= minUnits && minCharge > 0) {
-                            electricityMinimumCharge = minCharge;
-                            electricityMinimumApplied = true;
-                        }
-                    }
-                }
+                const wMinOn = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
+                const wMinU = room.min_water_units ?? (wMinOn ? parseFloat(getConfigValue('water_minimum_units', '0', roomBranchId)) : 0);
+                const wMinC = room.min_water_charge ?? (wMinOn ? parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId)) : 0);
+                
+                const eMinOn = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
+                const eMinU = room.min_electricity_units ?? (eMinOn ? parseFloat(getConfigValue('electricity_minimum_units', '0', roomBranchId)) : 0);
+                const eMinC = room.min_electricity_charge ?? (eMinOn ? parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId)) : 0);
 
                 // ⭐ CRITICAL FIX: Check if booking.tenant_id is valid + use cached tenant
                 if (!activeBooking.tenant_id) {
