@@ -739,39 +739,23 @@ export default function PaymentsPage() {
         toast.info('ยังไม่มีการบันทึกมิเตอร์สำหรับห้องนี้ กรุณากรอกค่าเอง');
       }
 
-      let notesAddition = '';
-      
-      const getStringConfigValue = (key) => {
-        const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranchId);
-        if (branchConfig) return branchConfig.value;
-        const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-        return globalConfig?.value || '';
-      };
-      
-      const waterMinEnabled = getStringConfigValue('water_minimum_enabled') === 'true';
-      if (waterMinEnabled && waterUnits > 0) {
-        const minUnits = parseFloat(getStringConfigValue('water_minimum_units') || '3');
-        const minCharge = parseFloat(getStringConfigValue('water_minimum_charge') || '0');
-        
-        if (waterUnits < minUnits && minCharge > 0) {
-          waterUnits = minUnits;
-          notesAddition += `💧 ใช้น้ำ ${actualWaterUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${minUnits} หน่วย\n`;
-        }
-      }
-      
-      const elecMinEnabled = getStringConfigValue('electricity_minimum_enabled') === 'true';
-      if (elecMinEnabled && electricityUnits > 0) {
-        const minUnits = parseFloat(getStringConfigValue('electricity_minimum_units') || '3');
-        const minCharge = parseFloat(getStringConfigValue('electricity_minimum_charge') || '0');
-        
-        if (electricityUnits < minUnits && minCharge > 0) {
-          electricityUnits = minUnits;
-          notesAddition += `⚡ ใช้ไฟ ${actualElectricityUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${minUnits} หน่วย\n`;
-        }
-      }
+      const gC = (key) => configs.find(c => c.key === key && c.branch_id === selectedBranchId)?.value || configs.find(c => c.key === key && !c.branch_id)?.value || '';
+      let notesAddition = '', waterAmount = waterUnits * waterRate, electricityAmount = electricityUnits * electricityRate;
 
-      const waterAmount = waterUnits * waterRate;
-      const electricityAmount = electricityUnits * electricityRate;
+      if (room.is_flat_rate_water) {
+        waterAmount = room.flat_rate_water_amount || 0; waterUnits = 0;
+        notesAddition += `💧 ค่าน้ำแบบเหมาจ่าย\n`;
+      } else if (gC('water_minimum_enabled') === 'true' || room.min_water_units > 0) {
+        const mu = room.min_water_units || parseFloat(gC('water_minimum_units') || '0'), mc = room.min_water_charge || parseFloat(gC('water_minimum_charge') || '0');
+        if (waterUnits <= mu && mc > 0) { waterUnits = mu; waterAmount = mc; notesAddition += `💧 ใช้น้ำ ${actualWaterUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${mc} บาท\n`; }
+      }
+      if (room.is_flat_rate_electricity) {
+        electricityAmount = room.flat_rate_electricity_amount || 0; electricityUnits = 0;
+        notesAddition += `⚡ ค่าไฟแบบเหมาจ่าย\n`;
+      } else if (gC('electricity_minimum_enabled') === 'true' || room.min_electricity_units > 0) {
+        const mu = room.min_electricity_units || parseFloat(gC('electricity_minimum_units') || '0'), mc = room.min_electricity_charge || parseFloat(gC('electricity_minimum_charge') || '0');
+        if (electricityUnits <= mu && mc > 0) { electricityUnits = mu; electricityAmount = mc; notesAddition += `⚡ ใช้ไฟ ${actualElectricityUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${mc} บาท\n`; }
+      }
       const rentAmount = room.price || 0;
 
       const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
