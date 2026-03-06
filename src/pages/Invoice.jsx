@@ -287,6 +287,8 @@ export default function Invoice() {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           @page {
@@ -302,7 +304,7 @@ export default function Invoice() {
             max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 12mm 10mm !important;
+            padding: 10mm 15mm !important;
             background: white !important;
             box-sizing: border-box !important;
           }
@@ -310,58 +312,9 @@ export default function Invoice() {
           .invoice-card {
             border: none !important;
             box-shadow: none !important;
-            border-radius: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
           }
           
-          .invoice-card > div {
-            padding: 0 !important;
-          }
-          
-          /* ขนาด font ที่พอดี */
-          h1, h2 { font-size: 16px !important; line-height: 1.3 !important; }
-          h3 { font-size: 13px !important; line-height: 1.3 !important; }
-          p, span, td, th { font-size: 11px !important; line-height: 1.4 !important; }
-          .text-xs { font-size: 9px !important; }
-          .text-sm { font-size: 10px !important; }
-          .text-lg { font-size: 13px !important; }
-          
-          /* ระยะห่างที่กำลังดี */
-          .mb-2 { margin-bottom: 6mm !important; }
-          .mb-4 { margin-bottom: 8mm !important; }
-          .mb-5 { margin-bottom: 10mm !important; }
-          .mt-2 { margin-top: 6mm !important; }
-          .mt-5 { margin-top: 10mm !important; }
-          .pt-2 { padding-top: 6mm !important; }
-          .pt-3 { padding-top: 8mm !important; }
-          .pb-2 { padding-bottom: 6mm !important; }
-          .pb-3 { padding-bottom: 8mm !important; }
-          .p-2, .p-3 { padding: 4mm !important; }
-          .gap-2 { gap: 4mm !important; }
-          .gap-3 { gap: 6mm !important; }
-          
-          /* ตาราง */
-          table { width: 100% !important; border-collapse: collapse !important; }
-          th, td { padding: 3mm 2mm !important; }
-          
-          /* โลโก้และรูป */
-          img { max-width: 100% !important; height: auto !important; }
-          .w-10, .h-10 { width: 25mm !important; height: 25mm !important; }
-          .h-12 { height: 10mm !important; }
-          
-          /* ลบเงาและขอบ */
-          * {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-          }
-          
-          /* ขอบตารางให้เห็นชัด */
-          .border { border-width: 0.5pt !important; border-color: #888 !important; }
-          .border-b { border-bottom-width: 0.5pt !important; }
-          .border-t-2 { border-top-width: 1pt !important; }
-          
-          /* ซ่อน notifications ขณะปริ้น */
           .sonner-toaster { display: none !important; }
         }
         
