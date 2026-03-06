@@ -916,7 +916,7 @@ export default function PrintReceipts() {
           
           /* @page settings are handled above, but redefining specific sizes here */
           @page {
-            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : /* เปลี่ยนเป็น A4 portrait เพื่อบังคับให้วาง 2 ใบต่อ 1 หน้ากระดาษ A4 จริงๆ จะได้ไม่โดนย่อและไม่มี Header/Footer */
+            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : 
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
               paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
               'size: A4 portrait; margin: 0;'}
@@ -946,27 +946,28 @@ export default function PrintReceipts() {
           ${paperSize === 'A5' ? `
             .receipt-card {
               width: 210mm !important;
-              height: 148.5mm !important; /* ครึ่งหนึ่งของ A4 พอดี (297/2) */
-              padding: 10mm 15mm !important; /* ใช้ padding ปกติได้เลยเพราะปริ้นขนาด 100% แล้ว */
-              border-bottom: 1px dashed #ccc !important; /* เส้นประสำหรับตัดครึ่ง */
+              height: 148mm !important;
+              padding: 4mm 10mm !important; /* ลด padding เพื่อเพิ่มพื้นที่แนวตั้งและแนวนอน */
+              border-bottom: none !important;
               page-break-inside: avoid !important;
-              page-break-after: auto !important; /* สำคัญมาก: เพื่อให้ 2 ใบต่อกันใน 1 หน้า A4 */
               box-sizing: border-box !important;
               overflow: hidden !important;
-              float: left !important;
-            }
-            .receipt-card:nth-child(even) {
-              page-break-after: always !important; /* บังคับขึ้นหน้าใหม่หลังใบที่ 2, 4, 6... */
-              border-bottom: none !important; /* ใบที่อยู่ด้านล่างสุดไม่ต้องมีเส้นตัด */
             }
             .receipt-card > div { padding: 0 !important; }
-            h1, h2 { font-size: 16px !important; line-height: 1.2 !important; }
-            h3 { font-size: 14px !important; }
-            p, span, td, th { font-size: 12px !important; line-height: 1.4 !important; }
-            .mb-5 { margin-bottom: 4mm !important; }
-            .mt-5 { margin-top: 4mm !important; }
-            th, td { padding: 2mm 2mm !important; }
-            .signature-section { margin-top: 6mm !important; }
+            h1, h2 { font-size: 13px !important; line-height: 1.1 !important; } /* ลดขนาด font header */
+            h3 { font-size: 11px !important; }
+            p, span, td, th { font-size: 10px !important; line-height: 1.2 !important; } /* ลดขนาด font เนื้อหา */
+            .mb-5 { margin-bottom: 1.5mm !important; } /* ลด margin */
+            .mt-5 { margin-top: 1.5mm !important; } /* ลด margin */
+            .pb-3 { padding-bottom: 1mm !important; } /* ลด padding */
+            .pt-3 { padding-top: 1mm !important; } /* ลด padding */
+            
+            /* ปรับตารางให้กะทัดรัดขึ้น */
+            th, td { padding: 1mm 1mm !important; }
+            
+            /* ลดระยะห่างส่วนลายเซ็น */
+            .signature-section { margin-top: 2mm !important; }
+            .signature-section > div { padding-top: 1mm !important; }
           ` : ''}
 
           ${paperSize === 'Thermal80' ? `
