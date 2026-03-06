@@ -827,19 +827,21 @@ export default function PrintReceipts() {
       <style>{`
         /* --- Screen Preview Styles --- */
         
-        /* A5 (148mm x 210mm) */
+        /* A5 Landscape (210mm x 148.5mm - ครึ่ง A4 บนล่าง) */
         ${paperSize === 'A5' ? `
           .receipt-preview-A5 .receipt-card {
-            width: 148mm;
-            min-height: 209mm;
+            width: 210mm;
+            min-height: 148mm;
             margin: 0 auto;
+            border-bottom: 1px dashed #ccc !important;
           }
-          .receipt-preview-A5 .receipt-card > div { padding: 10mm 8mm; }
-          .receipt-preview-A5 h1, .receipt-preview-A5 h2 { font-size: 14px; line-height: 1.2; }
+          .receipt-preview-A5 .receipt-card > div { padding: 5mm 15mm; }
+          .receipt-preview-A5 h1, .receipt-preview-A5 h2 { font-size: 15px; line-height: 1.2; }
           .receipt-preview-A5 h3 { font-size: 12px; }
-          .receipt-preview-A5 p, .receipt-preview-A5 span, .receipt-preview-A5 td, .receipt-preview-A5 th { font-size: 10px; line-height: 1.3; }
+          .receipt-preview-A5 p, .receipt-preview-A5 span, .receipt-preview-A5 td, .receipt-preview-A5 th { font-size: 11px; line-height: 1.3; }
           .receipt-preview-A5 .mb-5 { margin-bottom: 5mm; }
           .receipt-preview-A5 .mt-5 { margin-top: 5mm; }
+          .receipt-preview-A5 .pt-4 { padding-top: 2mm; }
         ` : ''}
         
         /* Thermal 80mm */
