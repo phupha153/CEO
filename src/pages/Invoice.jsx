@@ -317,6 +317,21 @@ export default function Invoice() {
             margin: 0 !important;
           }
           
+          .format-a5-dual .invoice-container {
+            padding: 0 !important;
+          }
+          
+          .format-a5-dual .invoice-card {
+            height: 148mm !important;
+            padding: 8mm 10mm !important;
+            overflow: hidden !important;
+            border-bottom: 1px dashed #ccc !important;
+          }
+          
+          .format-a5-dual .invoice-card:last-child {
+            border-bottom: none !important;
+          }
+          
           .invoice-card > div {
             padding: 0 !important;
           }
