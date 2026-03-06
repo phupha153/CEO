@@ -916,7 +916,7 @@ export default function PrintReceipts() {
           
           /* @page settings are handled above, but redefining specific sizes here */
           @page {
-            ${paperSize === 'A5' ? 'size: A5 landscape; margin: 0;' : 
+            ${paperSize === 'A5' ? 'size: A4 portrait; margin: 0;' : /* เปลี่ยนเป็น A4 portrait เพื่อบังคับให้วาง 2 ใบต่อ 1 หน้ากระดาษ A4 จริงๆ จะได้ไม่โดนย่อและไม่มี Header/Footer */
               paperSize === 'Thermal80' ? 'size: 80mm auto; margin: 0;' : 
               paperSize === 'DotMatrix' ? 'size: 9.5in 5.5in; margin: 0;' : 
               'size: A4 portrait; margin: 0;'}
