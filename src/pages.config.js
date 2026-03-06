@@ -84,13 +84,13 @@ import OwnerAI from './pages/OwnerAI';
 import PackagePaymentPage from './pages/PackagePaymentPage';
 import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
+import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicBooking from './pages/PublicBooking';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
-import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
 import SystemAssistant from './pages/SystemAssistant';
 import Tenants from './pages/Tenants';
@@ -106,7 +106,7 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import PrintReceipts from './pages/PrintReceipts';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -148,13 +148,13 @@ export const PAGES = {
     "PackagePaymentPage": PackagePaymentPage,
     "PackageSelection": PackageSelection,
     "Payments": Payments,
+    "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicBooking": PublicBooking,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
     "Rooms": Rooms,
-    "Settings": Settings,
     "SupportTickets": SupportTickets,
     "SystemAssistant": SystemAssistant,
     "Tenants": Tenants,
@@ -170,7 +170,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "PrintReceipts": PrintReceipts,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
