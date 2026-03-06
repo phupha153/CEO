@@ -182,7 +182,8 @@ const navigationItems = [
     url: createPageUrl("SystemAssistant"),
     icon: Sparkles,
     requiredPermission: "dashboard_view",
-    requiredFeature: "dashboard_view"
+    requiredFeature: "dashboard_view",
+    showOnlyForDeveloper: true
   },
   {
     title: "ตั้งค่า",
