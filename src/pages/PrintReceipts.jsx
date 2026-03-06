@@ -946,12 +946,12 @@ export default function PrintReceipts() {
           ${paperSize === 'A5' ? `
             .receipt-card {
               width: 210mm !important;
-              min-height: 140mm !important;
-              height: auto !important;
+              height: 148mm !important;
               padding: 4mm 10mm !important; /* ลด padding เพื่อเพิ่มพื้นที่แนวตั้งและแนวนอน */
               border-bottom: none !important;
               page-break-inside: avoid !important;
               box-sizing: border-box !important;
+              overflow: hidden !important;
             }
             .receipt-card > div { padding: 0 !important; }
             h1, h2 { font-size: 13px !important; line-height: 1.1 !important; } /* ลดขนาด font header */
