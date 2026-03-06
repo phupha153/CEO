@@ -643,25 +643,43 @@ Deno.serve(async (req) => {
                 }
 
                 // 🔄 คำนวณค่าน้ำ: เหมา > ขั้นต่ำ > ตามหน่วย
-                let waterAmount;
+                let waterAmount = 0;
                 if ((room.is_flat_rate_water === true || room.is_flat_rate_water === 'true') && room.flat_rate_water_amount) {
                     waterAmount = parseFloat(room.flat_rate_water_amount);
                     waterFlatRateApplied = true;
-                } else if (waterMinimumApplied) {
-                    waterAmount = waterMinimumCharge;
                 } else {
                     waterAmount = waterUnits * waterRate;
+                    if (waterUnits > 0 && wMinU > 0 && waterUnits < wMinU) {
+                        waterAmount = wMinC > 0 ? wMinC : wMinU * waterRate;
+                        waterMinimumApplied = true;
+                        waterMinimumCharge = waterAmount;
+                        waterMinimumUnits = wMinU;
+                        waterUnits = wMinU;
+                    } else if (waterAmount > 0 && wMinC > 0 && waterAmount < wMinC) {
+                        waterAmount = wMinC;
+                        waterMinimumApplied = true;
+                        waterMinimumCharge = wMinC;
+                    }
                 }
 
                 // 🔄 คำนวณค่าไฟ: เหมา > ขั้นต่ำ > ตามหน่วย
-                let electricityAmount;
+                let electricityAmount = 0;
                 if ((room.is_flat_rate_electricity === true || room.is_flat_rate_electricity === 'true') && room.flat_rate_electricity_amount) {
                     electricityAmount = parseFloat(room.flat_rate_electricity_amount);
                     electricityFlatRateApplied = true;
-                } else if (electricityMinimumApplied) {
-                    electricityAmount = electricityMinimumCharge;
                 } else {
                     electricityAmount = elecUnits * elecRate;
+                    if (elecUnits > 0 && eMinU > 0 && elecUnits < eMinU) {
+                        electricityAmount = eMinC > 0 ? eMinC : eMinU * elecRate;
+                        electricityMinimumApplied = true;
+                        electricityMinimumCharge = electricityAmount;
+                        electricityMinimumUnits = eMinU;
+                        elecUnits = eMinU;
+                    } else if (electricityAmount > 0 && eMinC > 0 && electricityAmount < eMinC) {
+                        electricityAmount = eMinC;
+                        electricityMinimumApplied = true;
+                        electricityMinimumCharge = eMinC;
+                    }
                 }
 
                 // ⭐ SAFE PARSING: Default to 0 if missing/invalid (ไม่ throw error)
