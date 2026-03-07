@@ -2560,7 +2560,7 @@ Return JSON.`;
 
           {(() => {
             const paymentsForReview = viewMode === 'room' ? roomViewPayments : payments;
-            const needReviewPayments = paymentsForReview.filter(p => p.status !== 'paid' && typeof p.notes === 'string' && p.notes.includes('⚠️ รอตรวจสอบ') && !p.notes.includes('✅ ยืนยันชำระแล้ว'));
+            const needReviewPayments = paymentsForReview.filter(p => p.status !== 'paid' && p.notes?.includes('⚠️ รอตรวจสอบ') && !p.notes?.includes('✅ ยืนยันชำระแล้ว'));
             const isLoadingReview = viewMode === 'room' ? roomViewFetching : paymentsLoading;
             if (needReviewPayments.length === 0 || isLoadingReview) return null;
 
@@ -3154,7 +3154,7 @@ Return JSON.`;
                       const isPaid = effectiveStatus === 'paid';
                       const hasSlip = payment.payment_slip_url && payment.payment_slip_url.trim() !== '';
                       const isExpanded = expandedPayments.has(payment.id);
-                      const needsManualReview = payment.status !== 'paid' && typeof payment.notes === 'string' && payment.notes.includes('⚠️ รอตรวจสอบ') && !payment.notes.includes('✅ ยืนยันชำระแล้ว');
+                      const needsManualReview = payment.status !== 'paid' && payment.notes?.includes('⚠️ รอตรวจสอบ') && !payment.notes?.includes('✅ ยืนยันชำระแล้ว');
                       const isSelected = selectedPaymentIds.includes(payment.id);
 
                       return (
@@ -3241,13 +3241,58 @@ Return JSON.`;
                                   </div>
                                   {needsManualReview && (
                                   <div className="bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex items-start gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" /><span className="text-amber-800 text-xs font-medium flex-1">{typeof payment.notes === 'string' ? payment.notes.split('\n\n').find(n => n.includes('⚠️')) : ''}</span></div>
-                                    {hasSlip && (<button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setSlipPreview({ open: true, url: payment.payment_slip_url, title: `สลิป ห้อง ${room?.room_number || 'N/A'}` }); }} className="w-full mb-2"><img src={payment.payment_slip_url} alt="สลิป" className="w-full max-h-32 object-contain rounded-lg border border-amber-200 bg-white hover:opacity-80 transition-opacity" /></button>)}
-                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                                      <button type="button" className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setConfirmPaymentDialog({ open: true, payment }); }} disabled={updateStatusMutation.isPending}>
-                                        {updateStatusMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}<span>ยืนยันชำระ</span>
+                                    <div className="flex items-start gap-2 mb-2">
+                                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                      <span className="text-amber-800 text-xs font-medium flex-1">{payment.notes.split('\n\n').find(n => n.includes('⚠️'))}</span>
+                                    </div>
+                                    {hasSlip && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          setSlipPreview({ open: true, url: payment.payment_slip_url, title: `สลิป ห้อง ${room?.room_number || 'N/A'}` });
+                                        }}
+                                        className="w-full mb-2"
+                                      >
+                                        <img 
+                                          src={payment.payment_slip_url} 
+                                          alt="สลิป" 
+                                          className="w-full max-h-32 object-contain rounded-lg border border-amber-200 bg-white hover:opacity-80 transition-opacity"
+                                        />
                                       </button>
-                                      <button type="button" className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-sm font-medium transition-colors" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setSelectedPayment(payment); setShowDetailDialog(true); }}>ดูรายละเอียด</button>
+                                    )}
+                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          setConfirmPaymentDialog({ open: true, payment });
+                                        }}
+                                        disabled={updateStatusMutation.isPending}
+                                      >
+                                        {updateStatusMutation.isPending ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Check className="w-4 h-4" />
+                                        )}
+                                        <span>ยืนยันชำระ</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-sm font-medium transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          console.log('🔘 Card View: Details clicked');
+                                          setSelectedPayment(p);
+                                          setShowDetailDialog(true);
+                                        }}
+                                      >
+                                        ดูรายละเอียด
+                                      </button>
                                     </div>
                                   </div>
                                   )}
