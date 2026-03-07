@@ -2560,7 +2560,7 @@ Return JSON.`;
 
           {(() => {
             const paymentsForReview = viewMode === 'room' ? roomViewPayments : payments;
-            const needReviewPayments = paymentsForReview.filter(p => p.status !== 'paid' && p.notes?.includes('⚠️ รอตรวจสอบ') && !p.notes?.includes('✅ ยืนยันชำระแล้ว'));
+            const needReviewPayments = paymentsForReview.filter(p => p.status !== 'paid' && typeof p.notes === 'string' && p.notes.includes('⚠️ รอตรวจสอบ') && !p.notes.includes('✅ ยืนยันชำระแล้ว'));
             const isLoadingReview = viewMode === 'room' ? roomViewFetching : paymentsLoading;
             if (needReviewPayments.length === 0 || isLoadingReview) return null;
 
