@@ -595,6 +595,16 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
+                // ทำความสะอาด notes โดยเอา "รอตรวจสอบ" ออก
+                let cleanedNotes = payment.notes || '';
+                if (cleanedNotes.includes('⚠️ รอตรวจสอบ')) {
+                    cleanedNotes = cleanedNotes
+                        .split('\n\n')
+                        .filter(line => !line.includes('⚠️ รอตรวจสอบ') && !line.includes('⚠️ โอนเงินไปผิดบัญชี'))
+                        .join('\n\n')
+                        .trim();
+                }
+
                 // ✅ ทุกอย่างถูกต้อง - อัปเดตเป็น paid
                 await entityService.Payment.update(payment.id, {
                     status: 'paid',
@@ -602,7 +612,7 @@ Deno.serve(async (req) => {
                     late_fee_amount: lateFeeAmount,
                     total_amount: expectedAmount,
                     paid_amount: expectedAmount,
-                    notes: `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติสำเร็จ (Cron): ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่ม ${currentPaid.toLocaleString()} บาท)` : ''}`
+                    notes: `${cleanedNotes ? cleanedNotes + '\n\n' : ''}✅ ตรวจสอบสลิปอัตโนมัติสำเร็จ (Cron): ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่ม ${currentPaid.toLocaleString()} บาท)` : ''}\n✅ ยืนยันชำระแล้ว`
                 });
 
                 console.log(`   ✅ Payment updated to PAID`);
