@@ -3154,7 +3154,7 @@ Return JSON.`;
                       const isPaid = effectiveStatus === 'paid';
                       const hasSlip = payment.payment_slip_url && payment.payment_slip_url.trim() !== '';
                       const isExpanded = expandedPayments.has(payment.id);
-                      const needsManualReview = payment.status !== 'paid' && payment.notes?.includes('⚠️ รอตรวจสอบ') && !payment.notes?.includes('✅ ยืนยันชำระแล้ว');
+                      const needsManualReview = payment.status !== 'paid' && typeof payment.notes === 'string' && payment.notes.includes('⚠️ รอตรวจสอบ') && !payment.notes.includes('✅ ยืนยันชำระแล้ว');
                       const isSelected = selectedPaymentIds.includes(payment.id);
 
                       return (
