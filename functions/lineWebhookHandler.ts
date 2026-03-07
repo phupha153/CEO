@@ -1435,16 +1435,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             remainingSlipAmount -= payAmount;
             processedIds.push({ id: p.id, status });
 
-            const isExact = isExactCombo ? ' (ตรงตามยอดบิล)' : '';
-            const note = status === 'paid'
-                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿ (จากยอดรวม ${slipAmount.toLocaleString()}฿)${isExact}${p.lateFeeAmount > 0 ? ` (รวมค่าปรับ ${p.lateFeeAmount.toLocaleString()}฿ ${p.daysLate}วัน)` : ''}`
-                : `\n\n💰 ชำระบางส่วน: ${payAmount.toLocaleString()}฿ (รวม ${newTotalPaid.toLocaleString()}/${p.expectedAmount.toLocaleString()}฿)`;
-
+            let nts = (p.notes || '').replace(/⚠️ รอตรวจสอบ:.*$/gm, '').trim();
+            const nt = status === 'paid'
+                ? `\n\n✅ Auto-verify: ${senderName} โอน ${payAmount.toLocaleString()}฿${isExactCombo ? ' (ตรงตามบิล)' : ''}${p.lateFeeAmount > 0 ? ` (+ปรับ ${p.lateFeeAmount}฿)` : ''}\n✅ ยืนยันชำระแล้ว`
+                : `\n\n💰 ชำระบางส่วน: ${payAmount.toLocaleString()}฿ (รวม ${newTotalPaid}/${p.expectedAmount}฿)`;
             await base44.asServiceRole.entities.Payment.update(p.id, {
                 status, paid_amount: newTotalPaid, payment_slip_url: slipImageUrl,
                 late_fee_amount: p.lateFeeAmount, total_amount: p.expectedAmount,
                 ...(status === 'paid' ? { payment_date: transDate.split('T')[0] } : {}),
-                notes: `${p.notes || ''}${note}`
+                notes: nts + nt
             });
 
             await base44.asServiceRole.entities.WebhookLog.create({
