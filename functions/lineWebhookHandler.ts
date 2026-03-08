@@ -1421,7 +1421,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const payAmount = Math.min(p.remainingToPay, remainingSlipAmount);
             const newTotalPaid = p.currentPaid + payAmount;
             const status = newTotalPaid >= p.expectedAmount * 0.95 ? 'paid' : 'partial_paid';
-            if (status !== 'paid') partialInfo = { expected: p.expectedAmount, paidNow: newTotalPaid, shortfall: p.expectedAmount - newTotalPaid, lateFee: p.lateFeeAmount, daysLate: p.daysLate };
+            if (status !== 'paid') partialInfo = { expected: p.expectedAmount, paidNow: newTotalPaid, shortfall: p.expectedAmount - newTotalPaid, lateFee: p.lateFeeAmount, daysLate: p.daysLate, room_id: p.room_id, branch_id: p.branch_id };
 
             remainingSlipAmount -= payAmount;
             processedIds.push({ id: p.id, status });
