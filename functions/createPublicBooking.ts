@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
 ${check_out_date ? `📅 วันเช็คเอาท์: ${check_out_date}` : ''}
 📝 ประเภท: ${booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
 
+${payload.line_user_id ? '📱 (ลูกค้าระบุตัวตนผ่าน LINE แล้ว)' : ''}
 กรุณาติดต่อผู้จองเพื่อยืนยันและดำเนินการต่อ
         `.trim()
       });
