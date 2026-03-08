@@ -499,6 +499,23 @@ Deno.serve(async (req) => {
                         `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
                 });
 
+                const branches = await base44.asServiceRole.entities.Branch.list();
+                const branch = branches.find(b => b.id === payment.branch_id);
+                const ownerEmail = branch?.owner_id;
+
+                if (ownerEmail) {
+                    try {
+                        await base44.asServiceRole.integrations.Core.SendEmail({
+                            to: ownerEmail,
+                            subject: `แจ้งเตือน: ตรวจพบการโอนผิดบัญชี (ห้อง ${roomNumber})`,
+                            body: `เรียนเจ้าของหอพัก,\n\nระบบตรวจพบการโอนเงินผิดบัญชีสำหรับห้อง ${roomNumber}\n\n${errorMsg}\n\nกรุณาตรวจสอบสลิปในระบบ`
+                        });
+                        console.log(`✅ Sent wrong account warning email to ${ownerEmail}`);
+                    } catch (emailErr) {
+                        console.error('Failed to send warning email:', emailErr);
+                    }
+                }
+
                 return Response.json({ 
                     success: true,
                     message: `อัปโหลดสลิปสำเร็จ แต่${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
@@ -619,6 +636,23 @@ Deno.serve(async (req) => {
                         `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)` :
                         `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
                 });
+
+                const branches = await base44.asServiceRole.entities.Branch.list();
+                const branch = branches.find(b => b.id === payment.branch_id);
+                const ownerEmail = branch?.owner_id;
+
+                if (ownerEmail) {
+                    try {
+                        await base44.asServiceRole.integrations.Core.SendEmail({
+                            to: ownerEmail,
+                            subject: `แจ้งเตือน: ยอดโอนไม่ครบ (ห้อง ${roomNumber})`,
+                            body: `เรียนเจ้าของหอพัก,\n\nมีการโอนเงินเข้ามาสำหรับห้อง ${roomNumber} แต่มียอดไม่ครบถ้วน\n\nยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท\nยอดที่โอนเข้ามา: ${slipAmount.toLocaleString()} บาท\nขาดอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาตรวจสอบสลิปในระบบ`
+                        });
+                        console.log(`✅ Sent mismatch amount warning email to ${ownerEmail}`);
+                    } catch (emailErr) {
+                        console.error('Failed to send warning email:', emailErr);
+                    }
+                }
 
                 return Response.json({ 
                     success: true,
