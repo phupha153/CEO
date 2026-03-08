@@ -2452,68 +2452,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog เลือกการดำเนินการ Booking */}
-      <Dialog open={bookingActionDialog} onOpenChange={setBookingActionDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              จัดการการจอง
-            </DialogTitle>
-          </DialogHeader>
-          
-          {pendingActionBooking && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <p className="text-sm text-blue-600 mb-2">ห้องหมายเลข</p>
-                <p className="font-bold text-lg text-slate-800">
-                  ห้อง {rooms.find(r => r.id === pendingActionBooking.room_id)?.room_number}
-                </p>
-                <p className="text-sm text-slate-600">{pendingActionBooking.guest_name}</p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-700">เลือกการดำเนินการ:</p>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-blue-300 text-blue-600 hover:bg-blue-50 text-base py-6"
-                  onClick={() => {
-                    setPendingCheckoutBooking(pendingActionBooking);
-                    setBookingActionDialog(false);
-                    setCheckoutBookingDialog(true);
-                  }}
-                >
-                  <CheckCircle2 className="w-5 h-5 mr-3" />
-                  เช็คเอาท์ (ผู้เข้าพักจากไป)
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-red-300 text-red-600 hover:bg-red-50 text-base py-6"
-                  onClick={() => {
-                    setPendingCancelBooking(pendingActionBooking);
-                    setBookingActionDialog(false);
-                    setCancelBookingDialog(true);
-                  }}
-                >
-                  <X className="w-5 h-5 mr-3" />
-                  ยกเลิกการจอง
-                </Button>
-              </div>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setBookingActionDialog(false);
-                  setPendingActionBooking(null);
-                }}
-              >
-                ปิด
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Dialog เลือกการดำเนินการ Booking extracted */}
 
       {/* Dialog เช็คเอาท์ */}
       <Dialog open={checkoutBookingDialog} onOpenChange={setCheckoutBookingDialog}>
