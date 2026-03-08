@@ -1392,24 +1392,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('====================================================\n');
 
         if (!accountMatch) {
-            console.log('❌ Account mismatch - saving for manual review');
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
-            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-            const roomNumber = room?.room_number || 'ไม่ทราบ';
-
+            const rmRes = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
             const errorMsg = `โอนเงินไปผิดบัญชี\n\nควรโอนเข้าบัญชี: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบและส่งสลิปมาใหม่อีกครั้งค่ะ`;
-
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
-            });
-
-            await sendMessage(base44, lineUserId, 
-                `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`,
-                branchId,
-                replyToken
-            );
-            console.log('✅ Sent account mismatch message');
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, { payment_slip_url: slipImageUrl, notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNum} - ${errorMsg}` });
+            try {
+                const b = (await base44.asServiceRole.entities.Branch.list()).find(b => b.id === pendingPayment.branch_id);
+                if (b?.owner_id) await base44.asServiceRole.integrations.Core.SendEmail({ to: b.owner_id, subject: `แจ้งเตือน: ตรวจพบการโอนผิดบัญชี (ห้อง ${roomNum})`, body: `เรียนเจ้าของหอพัก,\n\nระบบตรวจพบการโอนเงินผิดบัญชีสำหรับห้อง ${roomNum} ผ่าน LINE\n\n${errorMsg}\n\nกรุณาตรวจสอบสลิปในระบบ` });
+            } catch (e) {}
+            await sendMessage(base44, lineUserId, `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`, branchId, replyToken);
             return;
         }
 
