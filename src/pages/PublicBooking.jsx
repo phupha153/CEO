@@ -556,8 +556,8 @@ export default function PublicBooking() {
               </p>
             </div>
             
-            {lineProfile && (
-              <div className="flex-shrink-0 ml-auto">
+            <div className="flex-shrink-0 ml-auto">
+              {lineProfile ? (
                 <button 
                   onClick={() => setShowProfileDialog(true)}
                   className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
@@ -572,8 +572,21 @@ export default function PublicBooking() {
                     className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-green-500 object-cover"
                   />
                 </button>
-              </div>
-            )}
+              ) : (
+                <button 
+                  onClick={handleLineLogin}
+                  className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
+                >
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm font-semibold text-slate-800">เข้าสู่ระบบ</p>
+                    <p className="text-xs text-slate-500">เพื่อดูประวัติการจอง</p>
+                  </div>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400">
+                    <User className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
