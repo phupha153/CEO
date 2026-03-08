@@ -80,7 +80,7 @@ export default function PublicBooking() {
   });
 
   // Fetch bank info from configs
-  const { data: configs = [] } = useQuery({
+  const { data: configsData } = useQuery({
     queryKey: ['publicConfigs', branchId],
     queryFn: async () => {
       if (!branchId) return [];
@@ -90,6 +90,8 @@ export default function PublicBooking() {
     enabled: !!branchId,
     staleTime: Infinity
   });
+
+  const configs = configsData || [];
 
   const bankName = configs.find(c => c.key === 'bank_name')?.value || '';
   const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
