@@ -164,6 +164,13 @@ export default function PublicBooking() {
         return;
       }
 
+      // ตรวจสอบว่า LIFF initialize เสร็จหรือยัง
+      try {
+        await window.liff.init({ liffId });
+      } catch (initErr) {
+        console.error('LIFF re-init error', initErr);
+      }
+
       if (!window.liff.isLoggedIn()) {
         // This will redirect to LINE Login page and back
         window.liff.login({ redirectUri: window.location.href });
