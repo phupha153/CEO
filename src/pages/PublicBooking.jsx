@@ -131,7 +131,7 @@ export default function PublicBooking() {
 
     const initLiff = async () => {
       try {
-        if (!window.liff.isLoggedIn() || !window.liff.id) {
+        if (!window.liff.id) {
           await window.liff.init({ liffId });
         }
         
@@ -201,12 +201,12 @@ export default function PublicBooking() {
     }
 
     try {
-      try {
-        if (!window.liff.isLoggedIn() || !window.liff.id) {
+      if (!window.liff.id) {
+        try {
           await window.liff.init({ liffId });
+        } catch (initErr) {
+          console.warn('LIFF init warning:', initErr);
         }
-      } catch (initErr) {
-        console.warn('LIFF init warning:', initErr);
       }
 
       if (!window.liff.isLoggedIn()) {
@@ -235,12 +235,12 @@ export default function PublicBooking() {
         return;
       }
 
-      try {
-        if (!window.liff.isLoggedIn() || !window.liff.id) {
+      if (!window.liff.id) {
+        try {
           await window.liff.init({ liffId });
+        } catch (initErr) {
+          console.warn('LIFF init warning:', initErr);
         }
-      } catch (initErr) {
-        console.warn('LIFF init warning:', initErr);
       }
 
       if (!window.liff.isLoggedIn()) {
