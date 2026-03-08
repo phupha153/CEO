@@ -392,24 +392,7 @@ Deno.serve(async (req) => {
                             continue;
                         }
                         
-                        // ⭐ ถ้าพิมพ์ "ลงทะเบียน" → แสดงขั้นตอนการลงทะเบียน
-                        if (messageText.toLowerCase().includes('ลงทะเบียน') || messageText.toLowerCase().includes('สมัคร')) {
-                            console.log('📝 User asking for registration instructions');
-                            // ⭐ ใช้ destinationBranchId เพื่อหา token ที่ถูกต้อง
-                            await sendMessage(base44, lineUserId, 
-                                '📋 ขั้นตอนการลงทะเบียน\n\n' +
-                                'กรุณาส่งข้อมูลอย่างใดอย่างหนึ่ง:\n\n' +
-                                '1️⃣ เบอร์โทรศัพท์ (10 หลัก)\n' +
-                                '   ตัวอย่าง: 0812345678\n\n' +
-                                '2️⃣ ชื่อ-นามสกุล\n' +
-                                '   ตัวอย่าง: สมชาย ใจดี\n\n' +
-                                '💡 ระบบจะค้นหาข้อมูลของคุณในระบบ\n' +
-                                'และแจ้งยืนยันห้องพักก่อนลงทะเบียนค่ะ',
-                                destinationBranchId,
-                                replyToken
-                            );
-                            continue;
-                        }
+                        // ⭐ ปิดการตอบกลับคำว่า "ลงทะเบียน" หรือ "สมัคร" ตามคำขอ (ให้บอทเงียบ)
 
                         if (messageText.includes('แจ้งซ่อม') || messageText.includes('เเจ้งซ่อม')) {
                             console.log('🔧 Detected maintenance request keyword');
