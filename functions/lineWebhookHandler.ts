@@ -393,7 +393,7 @@ Deno.serve(async (req) => {
                         }
                         
                         // ⭐ ถ้าพิมพ์ "ลงทะเบียน" → แสดงขั้นตอนการลงทะเบียน
-                        if (messageText.toLowerCase().includes('ลงทะเบียน') || messageText.toLowerCase().includes('สมัคร')) {
+                        if (messageText.toLowerCase().includes('ลงทะเบียน')) {
                             console.log('📝 User asking for registration instructions');
                             // ⭐ ใช้ destinationBranchId เพื่อหา token ที่ถูกต้อง
                             await sendMessage(base44, lineUserId, 
