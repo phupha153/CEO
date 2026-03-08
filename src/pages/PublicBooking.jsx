@@ -127,6 +127,9 @@ export default function PublicBooking() {
                   guest_name: prev.guest_name || profile.displayName,
                   line_user_id: profile.userId
                 }));
+              } else {
+                // บังคับล็อกอินเมื่อเข้าหน้าเว็บทันที
+                window.liff.login({ redirectUri: window.location.href });
               }
             }
           } catch (err) {
