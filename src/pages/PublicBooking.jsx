@@ -154,18 +154,34 @@ export default function PublicBooking() {
 
 
   const handleRoomSelect = async (room) => {
-    if (!window.liff) {
-      toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
-      return;
-    }
-
     try {
+      const liffId = configs.find(c => c.key === 'liff_id')?.value;
+
+      // 1. ถ้าไม่มี LIFF ID ในระบบ ให้ข้ามการล็อกอินและเปิดฟอร์มจองเลย
+      if (!liffId) {
+        setSelectedRoom(room);
+        setFormData({ ...formData, check_in_date: searchDate });
+        setIsRoomSelected(true);
+        setShowBookingForm(true);
+        return;
+      }
+
+      if (!window.liff) {
+        toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
+        return;
+      }
+
+      // 2. ต้อง Init ก่อนเรียกใช้คำสั่งใดๆ ของ liff
+      try {
+        await window.liff.init({ liffId });
+      } catch (initErr) {
+        // อาจจะ Init ไปแล้ว ให้ข้ามไปได้
+        console.warn('LIFF init status:', initErr.message);
+      }
+
+      // 3. ตรวจสอบการล็อกอิน
       if (!window.liff.isLoggedIn()) {
         localStorage.setItem('pendingBookingRoomId', room.id);
-        const liffId = configs.find(c => c.key === 'liff_id')?.value;
-        if (liffId) {
-          await window.liff.init({ liffId });
-        }
         window.liff.login({ redirectUri: window.location.href });
       } else {
         setSelectedRoom(room);
@@ -174,8 +190,14 @@ export default function PublicBooking() {
         setShowBookingForm(true);
       }
     } catch (err) {
-      console.error('LINE Login Error', err);
-      toast.error('ไม่สามารถเชื่อมต่อ LINE ได้');
+      console.error('LINE Login Error:', err);
+      toast.error('ไม่สามารถเชื่อมต่อ LINE ได้ แต่คุณสามารถจองต่อได้');
+      
+      // Fallback: ถ้า LINE มีปัญหา ให้ยังจองต่อได้
+      setSelectedRoom(room);
+      setFormData({ ...formData, check_in_date: searchDate });
+      setIsRoomSelected(true);
+      setShowBookingForm(true);
     }
   };
 
