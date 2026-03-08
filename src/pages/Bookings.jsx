@@ -53,6 +53,9 @@ import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
+import BookingConfirmTenantDialog from "../components/bookings/BookingConfirmTenantDialog";
+import CancelBookingDialog from "../components/bookings/CancelBookingDialog";
+import CheckoutBookingDialog from "../components/bookings/CheckoutBookingDialog";
 
 export default function BookingsPage() {
   const navigate = useNavigate();
@@ -2399,114 +2402,26 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       </Dialog>
 
       {/* Dialog ยกเลิก Booking */}
-      <Dialog open={cancelBookingDialog} onOpenChange={setCancelBookingDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <X className="w-5 h-5 text-red-600" />
-              ยกเลิกการจอง
-            </DialogTitle>
-          </DialogHeader>
-          
-          {pendingCancelBooking && (
-            <div className="space-y-4">
-              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                <p className="text-sm text-red-600 mb-2">คุณต้องการยกเลิกการจอง</p>
-                <p className="font-bold text-lg text-slate-800">
-                  ห้อง {rooms.find(r => r.id === pendingCancelBooking.room_id)?.room_number}
-                </p>
-                <p className="text-sm text-slate-600">{pendingCancelBooking.guest_name}</p>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCancelBookingDialog(false);
-                    setPendingCancelBooking(null);
-                  }}
-                  disabled={cancelBookingMutation.isPending}
-                >
-                  ไม่ยกเลิก
-                </Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={() => cancelBookingMutation.mutate(pendingCancelBooking)}
-                  disabled={cancelBookingMutation.isPending}
-                >
-                  {cancelBookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      กำลังยกเลิก...
-                    </>
-                  ) : (
-                    <>
-                      <X className="w-4 h-4 mr-2" />
-                      ยืนยันยกเลิก
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <CancelBookingDialog 
+        isOpen={cancelBookingDialog}
+        setIsOpen={setCancelBookingDialog}
+        pendingCancelBooking={pendingCancelBooking}
+        setPendingCancelBooking={setPendingCancelBooking}
+        cancelBookingMutation={cancelBookingMutation}
+        rooms={rooms}
+      />
 
       {/* Dialog เลือกการดำเนินการ Booking extracted */}
 
       {/* Dialog เช็คเอาท์ */}
-      <Dialog open={checkoutBookingDialog} onOpenChange={setCheckoutBookingDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-blue-600" />
-              ยืนยันการเช็คเอาท์
-            </DialogTitle>
-          </DialogHeader>
-          
-          {pendingCheckoutBooking && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <p className="text-sm text-blue-600 mb-2">คุณต้องการเช็คเอาท์</p>
-                <p className="font-bold text-lg text-slate-800">
-                  ห้อง {rooms.find(r => r.id === pendingCheckoutBooking.room_id)?.room_number}
-                </p>
-                <p className="text-sm text-slate-600">{pendingCheckoutBooking.guest_name}</p>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCheckoutBookingDialog(false);
-                    setPendingCheckoutBooking(null);
-                  }}
-                  disabled={checkoutBookingMutation.isPending}
-                >
-                  ยกเลิก
-                </Button>
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => checkoutBookingMutation.mutate(pendingCheckoutBooking)}
-                  disabled={checkoutBookingMutation.isPending}
-                >
-                  {checkoutBookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      กำลังบันทึก...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      ยืนยันเช็คเอาท์
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <CheckoutBookingDialog 
+        isOpen={checkoutBookingDialog}
+        setIsOpen={setCheckoutBookingDialog}
+        pendingCheckoutBooking={pendingCheckoutBooking}
+        setPendingCheckoutBooking={setPendingCheckoutBooking}
+        checkoutBookingMutation={checkoutBookingMutation}
+        rooms={rooms}
+      />
     </div>
   );
 }
