@@ -219,6 +219,36 @@ export default function PublicBooking() {
     }
   };
 
+  const handleLineLogin = async () => {
+    try {
+      const liffId = configs.find(c => c.key === 'liff_id')?.value;
+      if (!liffId) {
+        toast.error('ยังไม่มีการตั้งค่า LINE Login ในระบบ');
+        return;
+      }
+      
+      if (!window.liff) {
+        toast.error('ระบบ LINE ยังโหลดไม่เสร็จ กรุณารอสักครู่');
+        return;
+      }
+
+      try {
+        if (!window.liff.isLoggedIn() || !window.liff.id) {
+          await window.liff.init({ liffId });
+        }
+      } catch (initErr) {
+        console.warn('LIFF init warning:', initErr);
+      }
+
+      if (!window.liff.isLoggedIn()) {
+        window.liff.login({ redirectUri: window.location.href });
+      }
+    } catch (err) {
+      console.error('LINE Login Action Error', err);
+      toast.error('ไม่สามารถเข้าสู่ระบบด้วย LINE ได้');
+    }
+  };
+
   const { data: bookingsData } = useQuery({
     queryKey: ['publicBookings', branchId, searchDate],
     queryFn: async () => {
