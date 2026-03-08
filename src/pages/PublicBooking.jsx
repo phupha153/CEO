@@ -112,46 +112,72 @@ export default function PublicBooking() {
   const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
   const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
 
-  // Initialize LIFF for getting LINE User ID
+  // Fetch ALL rooms + bookings to check availability (moved up for dependency)
+  const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
+    queryKey: ['publicAllRooms', branchId, searchDate],
+    queryFn: async () => {
+      if (!branchId) return [];
+      const rooms = await base44.entities.Room.filter({ branch_id: branchId });
+      return rooms || [];
+    },
+    enabled: !!branchId && !showInitialDialog,
+    staleTime: 30000
+  });
+
+  // Initialize LIFF and handle login state
   useEffect(() => {
-    if (!document.getElementById('liff-sdk')) {
+    const liffId = configs.find(c => c.key === 'liff_id')?.value;
+    if (!liffId) return; // Wait until config is loaded
+
+    const initLiff = async () => {
+      try {
+        if (!window.liff.isLoggedIn() || !window.liff.id) {
+          await window.liff.init({ liffId });
+        }
+        
+        if (window.liff.isLoggedIn()) {
+          const profile = await window.liff.getProfile();
+          setLineProfile(profile);
+          setFormData(prev => ({
+            ...prev,
+            guest_name: prev.guest_name || profile.displayName,
+            line_user_id: profile.userId
+          }));
+
+          // Handle pending booking here to ensure order of execution
+          const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+          if (pendingRoomId && allRoomsData && allRoomsData.length > 0) {
+            const room = allRoomsData.find(r => r.id === pendingRoomId);
+            if (room) {
+              localStorage.removeItem('pendingBookingRoomId');
+              setSelectedRoom(room);
+              setFormData(prev => ({ 
+                ...prev, 
+                check_in_date: searchDate,
+                guest_name: profile.displayName,
+                line_user_id: profile.userId
+              }));
+              setIsRoomSelected(true);
+              setShowBookingForm(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('LIFF init/profile error:', err);
+      }
+    };
+
+    if (window.liff) {
+      initLiff();
+    } else {
       const script = document.createElement('script');
       script.id = 'liff-sdk';
       script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
       script.async = true;
-      script.onload = () => {
-        const initLiff = async () => {
-          try {
-            const liffId = configs.find(c => c.key === 'liff_id')?.value;
-            
-            if (liffId && window.liff) {
-              await window.liff.init({ liffId });
-              
-              if (window.liff.isLoggedIn()) {
-                const profile = await window.liff.getProfile();
-                setLineProfile(profile);
-                setFormData(prev => ({
-                  ...prev,
-                  guest_name: prev.guest_name || profile.displayName,
-                  line_user_id: profile.userId
-                }));
-              }
-            }
-          } catch (err) {
-            console.error('LIFF init error', err);
-            setLiffError('ไม่สามารถโหลดข้อมูล LINE ได้');
-          }
-        };
-        
-        if (configs.length > 0) {
-          initLiff();
-        }
-      };
+      script.onload = initLiff;
       document.body.appendChild(script);
     }
-  }, [configs]);
-
-
+  }, [configs, allRoomsData, searchDate]);
 
   const handleRoomSelect = async (room) => {
     const proceedToBooking = () => {
@@ -174,9 +200,10 @@ export default function PublicBooking() {
       }
 
       try {
-        await window.liff.init({ liffId });
+        if (!window.liff.isLoggedIn() || !window.liff.id) {
+          await window.liff.init({ liffId });
+        }
       } catch (initErr) {
-        // Ignore if already initialized
         console.warn('LIFF init warning:', initErr);
       }
 
@@ -191,39 +218,6 @@ export default function PublicBooking() {
       proceedToBooking();
     }
   };
-
-
-
-
-
-  // Fetch ALL rooms + bookings to check availability
-  const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
-    queryKey: ['publicAllRooms', branchId, searchDate],
-    queryFn: async () => {
-      if (!branchId) return [];
-      const rooms = await base44.entities.Room.filter({ branch_id: branchId });
-      return rooms || [];
-    },
-    enabled: !!branchId && !showInitialDialog,
-    staleTime: 30000
-  });
-
-  // Handle pending booking after rooms and line profile are loaded
-  useEffect(() => {
-    if (allRoomsData && lineProfile) {
-      const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
-      if (pendingRoomId) {
-        const room = allRoomsData.find(r => r.id === pendingRoomId);
-        if (room) {
-          localStorage.removeItem('pendingBookingRoomId');
-          setSelectedRoom(room);
-          setFormData(prev => ({ ...prev, check_in_date: searchDate }));
-          setIsRoomSelected(true);
-          setShowBookingForm(true);
-        }
-      }
-    }
-  }, [allRoomsData, lineProfile, searchDate]);
 
   const { data: bookingsData } = useQuery({
     queryKey: ['publicBookings', branchId, searchDate],
