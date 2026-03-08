@@ -154,28 +154,41 @@ export default function PublicBooking() {
 
 
   const handleRoomSelect = async (room) => {
+    const proceedToBooking = () => {
+      setSelectedRoom(room);
+      setFormData(prev => ({ ...prev, check_in_date: searchDate }));
+      setIsRoomSelected(true);
+      setShowBookingForm(true);
+    };
+
     if (!window.liff) {
-      toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
+      proceedToBooking();
       return;
     }
 
     try {
+      const liffId = configs.find(c => c.key === 'liff_id')?.value;
+      if (!liffId) {
+        proceedToBooking();
+        return;
+      }
+
+      try {
+        await window.liff.init({ liffId });
+      } catch (initErr) {
+        // Ignore if already initialized
+        console.warn('LIFF init warning:', initErr);
+      }
+
       if (!window.liff.isLoggedIn()) {
         localStorage.setItem('pendingBookingRoomId', room.id);
-        const liffId = configs.find(c => c.key === 'liff_id')?.value;
-        if (liffId) {
-          await window.liff.init({ liffId });
-        }
         window.liff.login({ redirectUri: window.location.href });
       } else {
-        setSelectedRoom(room);
-        setFormData({ ...formData, check_in_date: searchDate });
-        setIsRoomSelected(true);
-        setShowBookingForm(true);
+        proceedToBooking();
       }
     } catch (err) {
       console.error('LINE Login Error', err);
-      toast.error('ไม่สามารถเชื่อมต่อ LINE ได้');
+      proceedToBooking();
     }
   };
 
