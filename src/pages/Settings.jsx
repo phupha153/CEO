@@ -93,7 +93,7 @@ export default function Settings() {
   });
   const [translatingName, setTranslatingName] = useState(false);
 
-  const [lineSettings, setLineSettings] = useState({ line_channel_access_token: '', line_channel_secret: '' });
+  const [lineSettings, setLineSettings] = useState({ line_channel_access_token: '', line_channel_secret: '', line_channel_id: '', liff_id: '' });
   const [facebookSettings, setFacebookSettings] = useState({ facebook_page_access_token: '', facebook_verify_token: '' });
   const [defaultCommunicationBranch, setDefaultCommunicationBranch] = useState('none');
   const [applyToAllBranches_line, setApplyToAllBranches_line] = useState(false);
