@@ -187,18 +187,20 @@ export default function PublicBooking() {
       setShowBookingForm(true);
     };
 
-    if (!window.liff) {
+    const liffId = configs.find(c => c.key === 'liff_id')?.value;
+    
+    // ถ้าไม่ได้ตั้งค่า LINE LIFF ไว้เลย อนุญาตให้จองได้เลย (ป้องกันระบบพังถ้าแอดมินลืมใส่ liff_id)
+    if (!liffId) {
       proceedToBooking();
       return;
     }
 
-    try {
-      const liffId = configs.find(c => c.key === 'liff_id')?.value;
-      if (!liffId) {
-        proceedToBooking();
-        return;
-      }
+    if (!window.liff) {
+      toast.error('ระบบ LINE ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองอีกครั้ง');
+      return;
+    }
 
+    try {
       try {
         if (!window.liff.isLoggedIn() || !window.liff.id) {
           await window.liff.init({ liffId });
@@ -208,6 +210,7 @@ export default function PublicBooking() {
       }
 
       if (!window.liff.isLoggedIn()) {
+        // บังคับล็อกอินเท่านั้น ไม่ยอมให้ proceedToBooking
         localStorage.setItem('pendingBookingRoomId', room.id);
         window.liff.login({ redirectUri: window.location.href });
       } else {
@@ -215,7 +218,7 @@ export default function PublicBooking() {
       }
     } catch (err) {
       console.error('LINE Login Error', err);
-      proceedToBooking();
+      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ LINE กรุณาลองใหม่อีกครั้ง');
     }
   };
 
