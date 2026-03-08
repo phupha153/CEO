@@ -135,6 +135,7 @@ export default function PublicBooking() {
           } catch (err) {
             console.error('LIFF init error', err);
             setLiffError('ไม่สามารถโหลดข้อมูล LINE ได้');
+            toast.error('ไม่สามารถเชื่อมต่อ LINE ได้ (URL อาจไม่ตรงกับที่ลงทะเบียนไว้ใน LINE Developers)');
           }
         };
         
