@@ -29,12 +29,24 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import PublicProfileDialog from '@/components/public/PublicProfileDialog';
 
 export default function PublicBooking() {
   const urlParams = new URLSearchParams(window.location.search);
-  const branchId = urlParams.get('branchId');
+  const branchIdParam = urlParams.get('branchId');
+  const [branchId, setBranchId] = useState(branchIdParam || localStorage.getItem('public_booking_branch_id'));
 
+  useEffect(() => {
+    if (branchIdParam) {
+      localStorage.setItem('public_booking_branch_id', branchIdParam);
+      if (branchId !== branchIdParam) {
+        setBranchId(branchIdParam);
+      }
+    }
+  }, [branchIdParam]);
 
+  const [lineProfile, setLineProfile] = useState(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -102,19 +114,14 @@ export default function PublicBooking() {
 
   // Initialize LIFF for getting LINE User ID
   useEffect(() => {
-    // Only load LIFF if not already loaded
     if (!document.getElementById('liff-sdk')) {
       const script = document.createElement('script');
       script.id = 'liff-sdk';
       script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
       script.async = true;
       script.onload = () => {
-        // Find LIFF ID from configs
         const initLiff = async () => {
           try {
-            // Hardcode LIFF ID for this specific app (need to be created in LINE Developers Console)
-            // If you don't have one, this feature won't work in production until configured
-            // We use a placeholder here, assuming the owner will set it up or it's provided via config
             const liffId = configs.find(c => c.key === 'liff_id')?.value;
             
             if (liffId && window.liff) {
@@ -122,20 +129,17 @@ export default function PublicBooking() {
               
               if (window.liff.isLoggedIn()) {
                 const profile = await window.liff.getProfile();
+                setLineProfile(profile);
                 setFormData(prev => ({
                   ...prev,
                   guest_name: prev.guest_name || profile.displayName,
                   line_user_id: profile.userId
                 }));
-              } else {
-                // บังคับล็อกอินเมื่อเข้าหน้าเว็บทันที
-                window.liff.login({ redirectUri: window.location.href });
               }
             }
           } catch (err) {
             console.error('LIFF init error', err);
             setLiffError('ไม่สามารถโหลดข้อมูล LINE ได้');
-            toast.error('ไม่สามารถเชื่อมต่อ LINE ได้ (URL อาจไม่ตรงกับที่ลงทะเบียนไว้ใน LINE Developers)');
           }
         };
         
@@ -147,47 +151,46 @@ export default function PublicBooking() {
     }
   }, [configs]);
 
-  const handleLineLogin = async () => {
-    setIsLineConnecting(true);
+  // Handle pending booking after rooms and line profile are loaded
+  useEffect(() => {
+    if (allRoomsData && lineProfile) {
+      const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+      if (pendingRoomId) {
+        const room = allRoomsData.find(r => r.id === pendingRoomId);
+        if (room) {
+          localStorage.removeItem('pendingBookingRoomId');
+          setSelectedRoom(room);
+          setFormData(prev => ({ ...prev, check_in_date: searchDate }));
+          setIsRoomSelected(true);
+          setShowBookingForm(true);
+        }
+      }
+    }
+  }, [allRoomsData, lineProfile, searchDate]);
+
+  const handleRoomSelect = async (room) => {
+    if (!window.liff) {
+      toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
+      return;
+    }
+
     try {
-      const liffId = configs.find(c => c.key === 'liff_id')?.value;
-      
-      if (!liffId) {
-        toast.error('หอพักยังไม่ได้ตั้งค่าระบบ LINE Login (LIFF ID)');
-        setIsLineConnecting(false);
-        return;
-      }
-
-      if (!window.liff) {
-        toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
-        setIsLineConnecting(false);
-        return;
-      }
-
-      // ตรวจสอบว่า LIFF initialize เสร็จหรือยัง
-      try {
-        await window.liff.init({ liffId });
-      } catch (initErr) {
-        console.error('LIFF re-init error', initErr);
-      }
-
       if (!window.liff.isLoggedIn()) {
-        // This will redirect to LINE Login page and back
+        localStorage.setItem('pendingBookingRoomId', room.id);
+        const liffId = configs.find(c => c.key === 'liff_id')?.value;
+        if (liffId) {
+          await window.liff.init({ liffId });
+        }
         window.liff.login({ redirectUri: window.location.href });
       } else {
-        const profile = await window.liff.getProfile();
-        setFormData(prev => ({
-          ...prev,
-          guest_name: prev.guest_name || profile.displayName,
-          line_user_id: profile.userId
-        }));
-        toast.success('ดึงข้อมูล LINE สำเร็จ');
+        setSelectedRoom(room);
+        setFormData({ ...formData, check_in_date: searchDate });
+        setIsRoomSelected(true);
+        setShowBookingForm(true);
       }
     } catch (err) {
       console.error('LINE Login Error', err);
       toast.error('ไม่สามารถเชื่อมต่อ LINE ได้');
-    } finally {
-      setIsLineConnecting(false);
     }
   };
 
@@ -513,6 +516,25 @@ export default function PublicBooking() {
                 <span className="truncate">{branch.address || 'หอพักคุณภาพ'}</span>
               </p>
             </div>
+            
+            {lineProfile && (
+              <div className="flex-shrink-0 ml-auto">
+                <button 
+                  onClick={() => setShowProfileDialog(true)}
+                  className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
+                >
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm font-semibold text-slate-800">{lineProfile.displayName}</p>
+                    <p className="text-xs text-slate-500">ดูประวัติของฉัน</p>
+                  </div>
+                  <img 
+                    src={lineProfile.pictureUrl} 
+                    alt="Profile" 
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-green-500 object-cover"
+                  />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -727,12 +749,7 @@ export default function PublicBooking() {
                               ดูรายละเอียด
                             </Button>
                             <Button 
-                              onClick={() => {
-                                setSelectedRoom(room);
-                                setFormData({ ...formData, check_in_date: searchDate });
-                                setIsRoomSelected(true);
-                                setShowBookingForm(true);
-                              }}
+                              onClick={() => handleRoomSelect(room)}
                               className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                               disabled={!room.isAvailable}
                             >
@@ -772,32 +789,6 @@ export default function PublicBooking() {
           {bookingStep === 1 ? (
             <form onSubmit={handleNextStep} className="space-y-4 mt-4">
             
-            {/* LINE Login Button for Auto-fill & Connect */}
-            <div className="bg-green-50 rounded-xl p-4 border border-green-200 text-center mb-6">
-              <p className="text-sm text-green-800 font-medium mb-3">
-                เข้าสู่ระบบด้วย LINE เพื่อความสะดวกในการติดต่อและรับแจ้งเตือน
-              </p>
-              {formData.line_user_id ? (
-                <div className="flex items-center justify-center gap-2 text-green-600 bg-green-100 py-2 px-4 rounded-lg font-semibold">
-                  <Check className="w-5 h-5" />
-                  <span>เชื่อมต่อ LINE แล้ว</span>
-                </div>
-              ) : (
-                <Button 
-                  type="button"
-                  onClick={handleLineLogin}
-                  disabled={isLineConnecting}
-                  className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold"
-                >
-                  {isLineConnecting ? (
-                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> กำลังเชื่อมต่อ...</>
-                  ) : (
-                    <><MessageSquare className="w-5 h-5 mr-2" /> เข้าสู่ระบบด้วย LINE</>
-                  )}
-                </Button>
-              )}
-            </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">
                 ประเภทการจอง <span className="text-red-500">*</span>
@@ -1223,11 +1214,8 @@ export default function PublicBooking() {
                   </Button>
                   <Button 
                     onClick={() => {
-                      setSelectedRoom(detailRoom);
-                      setFormData({ ...formData, check_in_date: searchDate });
-                      setIsRoomSelected(true);
                       setShowRoomDetails(false);
-                      setShowBookingForm(true);
+                      handleRoomSelect(detailRoom);
                     }}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 disabled:opacity-50"
                     disabled={!detailRoom.isAvailable}
@@ -1240,6 +1228,12 @@ export default function PublicBooking() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PublicProfileDialog 
+        open={showProfileDialog} 
+        onOpenChange={setShowProfileDialog} 
+        lineProfile={lineProfile} 
+      />
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
