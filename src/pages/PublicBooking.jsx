@@ -79,13 +79,16 @@ export default function PublicBooking() {
     staleTime: Infinity
   });
 
-  // Fetch bank info from configs
+  // Fetch branch and global configs
   const { data: configsData } = useQuery({
     queryKey: ['publicConfigs', branchId],
     queryFn: async () => {
       if (!branchId) return [];
-      const allConfigs = await base44.entities.Config.filter({ branch_id: branchId });
-      return allConfigs || [];
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.Config.filter({ branch_id: branchId }),
+        base44.entities.Config.filter({ branch_id: null }) // ดึง config ส่วนกลาง (Global)
+      ]);
+      return [...(branchConfigs || []), ...(globalConfigs || [])];
     },
     enabled: !!branchId,
     staleTime: Infinity
