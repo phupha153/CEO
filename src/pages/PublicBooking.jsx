@@ -34,6 +34,34 @@ export default function PublicBooking() {
   const urlParams = new URLSearchParams(window.location.search);
   const branchId = urlParams.get('branchId');
 
+  // Fetch branch info
+  const { data: branch, isLoading: branchLoading } = useQuery({
+    queryKey: ['publicBranch', branchId],
+    queryFn: async () => {
+      if (!branchId) return null;
+      const branches = await base44.entities.Branch.filter({ id: branchId });
+      return branches[0] || null;
+    },
+    enabled: !!branchId,
+    staleTime: Infinity
+  });
+
+  // Fetch bank info from configs
+  const { data: configs = [] } = useQuery({
+    queryKey: ['publicConfigs', branchId],
+    queryFn: async () => {
+      if (!branchId) return [];
+      const allConfigs = await base44.entities.Config.filter({ branch_id: branchId });
+      return allConfigs || [];
+    },
+    enabled: !!branchId,
+    staleTime: Infinity
+  });
+
+  const bankName = configs.find(c => c.key === 'bank_name')?.value || '';
+  const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
+  const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
+
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
