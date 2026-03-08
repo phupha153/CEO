@@ -151,22 +151,7 @@ export default function PublicBooking() {
     }
   }, [configs]);
 
-  // Handle pending booking after rooms and line profile are loaded
-  useEffect(() => {
-    if (allRoomsData && lineProfile) {
-      const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
-      if (pendingRoomId) {
-        const room = allRoomsData.find(r => r.id === pendingRoomId);
-        if (room) {
-          localStorage.removeItem('pendingBookingRoomId');
-          setSelectedRoom(room);
-          setFormData(prev => ({ ...prev, check_in_date: searchDate }));
-          setIsRoomSelected(true);
-          setShowBookingForm(true);
-        }
-      }
-    }
-  }, [allRoomsData, lineProfile, searchDate]);
+
 
   const handleRoomSelect = async (room) => {
     if (!window.liff) {
