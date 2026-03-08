@@ -57,8 +57,92 @@ export default function PublicBooking() {
     number_of_guests: 1,
     booking_type: 'monthly',
     check_in_date: new Date().toISOString().split('T')[0],
-    check_out_date: ''
+    check_out_date: '',
+    line_user_id: ''
   });
+
+  const [isLineConnecting, setIsLineConnecting] = useState(false);
+  const [liffError, setLiffError] = useState(null);
+
+  // Initialize LIFF for getting LINE User ID
+  useEffect(() => {
+    // Only load LIFF if not already loaded
+    if (!document.getElementById('liff-sdk')) {
+      const script = document.createElement('script');
+      script.id = 'liff-sdk';
+      script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      script.async = true;
+      script.onload = () => {
+        // Find LIFF ID from configs
+        const initLiff = async () => {
+          try {
+            // Hardcode LIFF ID for this specific app (need to be created in LINE Developers Console)
+            // If you don't have one, this feature won't work in production until configured
+            // We use a placeholder here, assuming the owner will set it up or it's provided via config
+            const liffId = configs.find(c => c.key === 'liff_id')?.value;
+            
+            if (liffId && window.liff) {
+              await window.liff.init({ liffId });
+              
+              if (window.liff.isLoggedIn()) {
+                const profile = await window.liff.getProfile();
+                setFormData(prev => ({
+                  ...prev,
+                  guest_name: prev.guest_name || profile.displayName,
+                  line_user_id: profile.userId
+                }));
+              }
+            }
+          } catch (err) {
+            console.error('LIFF init error', err);
+            setLiffError('ไม่สามารถโหลดข้อมูล LINE ได้');
+          }
+        };
+        
+        if (configs.length > 0) {
+          initLiff();
+        }
+      };
+      document.body.appendChild(script);
+    }
+  }, [configs]);
+
+  const handleLineLogin = async () => {
+    setIsLineConnecting(true);
+    try {
+      const liffId = configs.find(c => c.key === 'liff_id')?.value;
+      
+      if (!liffId) {
+        toast.error('หอพักยังไม่ได้ตั้งค่าระบบ LINE Login (LIFF ID)');
+        setIsLineConnecting(false);
+        return;
+      }
+
+      if (!window.liff) {
+        toast.error('ระบบกำลังโหลด กรุณารอสักครู่');
+        setIsLineConnecting(false);
+        return;
+      }
+
+      if (!window.liff.isLoggedIn()) {
+        // This will redirect to LINE Login page and back
+        window.liff.login({ redirectUri: window.location.href });
+      } else {
+        const profile = await window.liff.getProfile();
+        setFormData(prev => ({
+          ...prev,
+          guest_name: prev.guest_name || profile.displayName,
+          line_user_id: profile.userId
+        }));
+        toast.success('ดึงข้อมูล LINE สำเร็จ');
+      }
+    } catch (err) {
+      console.error('LINE Login Error', err);
+      toast.error('ไม่สามารถเชื่อมต่อ LINE ได้');
+    } finally {
+      setIsLineConnecting(false);
+    }
+  };
 
   // Fetch branch info
   const { data: branch, isLoading: branchLoading } = useQuery({
