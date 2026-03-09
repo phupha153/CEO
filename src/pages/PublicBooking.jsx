@@ -443,12 +443,14 @@ export default function PublicBooking() {
 
   const handleInitialSearch = () => {
     setSearchDate(tempSearchDate);
+    const diffTime = Math.abs(new Date(tempCheckOutDate) - new Date(tempSearchDate));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     setFormData({ 
       ...formData, 
       check_in_date: tempSearchDate,
       check_out_date: tempCheckOutDate,
       number_of_guests: tempNumberOfGuests,
-      booking_type: tempCheckOutDate ? 'daily' : 'monthly'
+      booking_type: diffDays >= 28 ? 'monthly' : 'daily'
     });
     setShowInitialDialog(false);
   };
