@@ -126,6 +126,7 @@ export default function PublicBooking() {
   const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
   const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
   const publicBookingDeposit = parseInt(configs.find(c => c.key === 'public_booking_deposit')?.value) || 200;
+  const buildingLogo = configs.find(c => c.key === 'building_logo')?.value || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
 
   // Fetch ALL rooms + bookings to check availability (moved up for dependency)
   const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
