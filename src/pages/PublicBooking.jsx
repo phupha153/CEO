@@ -32,46 +32,32 @@ import { toast } from 'sonner';
 import PublicProfileDialog from '@/components/public/PublicProfileDialog';
 
 export default function PublicBooking() {
-  const [branchId, setBranchId] = useState(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    let extracted = urlParams.get('branchId');
-    
-    // Handle LINE LIFF redirect state
-    if (!extracted && urlParams.get('liff.state')) {
-      try {
-        const stateStr = urlParams.get('liff.state');
-        const queryStart = stateStr.indexOf('?');
-        const queryStr = queryStart !== -1 ? stateStr.substring(queryStart + 1) : stateStr;
-        const stateParams = new URLSearchParams(queryStr);
-        if (stateParams.get('branchId')) {
-          extracted = stateParams.get('branchId');
-        }
-      } catch (e) {
-        console.error('Error parsing liff.state:', e);
+  const urlParams = new URLSearchParams(window.location.search);
+  let branchIdParam = urlParams.get('branchId');
+
+  // Handle LINE LIFF redirect state
+  if (!branchIdParam && urlParams.get('liff.state')) {
+    try {
+      const stateStr = urlParams.get('liff.state');
+      const stateParams = new URLSearchParams(stateStr.startsWith('?') ? stateStr.substring(1) : stateStr);
+      if (stateParams.get('branchId')) {
+        branchIdParam = stateParams.get('branchId');
+      }
+    } catch (e) {
+      console.error('Error parsing liff.state:', e);
+    }
+  }
+
+  const [branchId, setBranchId] = useState(branchIdParam || localStorage.getItem('public_booking_branch_id'));
+
+  useEffect(() => {
+    if (branchIdParam) {
+      localStorage.setItem('public_booking_branch_id', branchIdParam);
+      if (branchId !== branchIdParam) {
+        setBranchId(branchIdParam);
       }
     }
-
-    // Override with pending branch if returning from LINE login
-    const pendingBranch = localStorage.getItem('pendingBookingBranchId');
-    if (pendingBranch) {
-      extracted = pendingBranch;
-      localStorage.removeItem('pendingBookingBranchId');
-      
-      // Clean up the URL to show the correct branchId
-      try {
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('branchId', extracted);
-        window.history.replaceState({}, '', newUrl.toString());
-      } catch(e) {}
-    }
-
-    if (extracted) {
-      localStorage.setItem('public_booking_branch_id', extracted);
-      return extracted;
-    }
-
-    return localStorage.getItem('public_booking_branch_id');
-  });
+  }, [branchIdParam]);
 
   const [lineProfile, setLineProfile] = useState(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
@@ -127,7 +113,6 @@ export default function PublicBooking() {
 
   const [isLineConnecting, setIsLineConnecting] = useState(false);
   const [liffError, setLiffError] = useState(null);
-  const [isLiffReady, setIsLiffReady] = useState(false);
 
   // Fetch branch info
   const { data: branch, isLoading: branchLoading } = useQuery({
@@ -220,19 +205,10 @@ export default function PublicBooking() {
     staleTime: 30000
   });
 
-  // 1. Initialize LIFF
+  // Initialize LIFF and handle login state
   useEffect(() => {
     const liffId = configs.find(c => c.key === 'liff_id')?.value;
-    if (!liffId) {
-      if (configs.length > 0) setIsLiffReady(true);
-      return; 
-    }
-    
-    // Prevent multiple initializations
-    if (window.liff && window.liff.id) {
-      setIsLiffReady(true);
-      return;
-    }
+    if (!liffId) return; // Wait until config is loaded
 
     const initLiff = async () => {
       try {
@@ -248,11 +224,27 @@ export default function PublicBooking() {
             guest_name: prev.guest_name || profile.displayName,
             line_user_id: profile.userId
           }));
+
+          // Handle pending booking here to ensure order of execution
+          const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+          if (pendingRoomId && allRoomsData && allRoomsData.length > 0) {
+            const room = allRoomsData.find(r => r.id === pendingRoomId);
+            if (room) {
+              localStorage.removeItem('pendingBookingRoomId');
+              setSelectedRoom(room);
+              setFormData(prev => ({ 
+                ...prev, 
+                check_in_date: searchDate,
+                guest_name: profile.displayName,
+                line_user_id: profile.userId
+              }));
+              setIsRoomSelected(true);
+              setShowBookingForm(true);
+            }
+          }
         }
       } catch (err) {
         console.error('LIFF init/profile error:', err);
-      } finally {
-        setIsLiffReady(true);
       }
     };
 
@@ -266,38 +258,7 @@ export default function PublicBooking() {
       script.onload = initLiff;
       document.body.appendChild(script);
     }
-  }, [configs]);
-
-  // 2. Handle Pending Booking
-  useEffect(() => {
-    if (!isLiffReady) return;
-
-    const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
-    if (pendingRoomId) {
-      if (allRoomsData && allRoomsData.length > 0) {
-        const room = allRoomsData.find(r => r.id === pendingRoomId);
-        
-        if (room && lineProfile) {
-          localStorage.removeItem('pendingBookingRoomId');
-          setSelectedRoom(room);
-          setFormData(prev => ({ 
-            ...prev, 
-            check_in_date: searchDate,
-            guest_name: lineProfile.displayName,
-            line_user_id: lineProfile.userId
-          }));
-          setIsRoomSelected(true);
-          setShowBookingForm(true);
-        } else if (room && !lineProfile) {
-          localStorage.removeItem('pendingBookingRoomId');
-          toast.error('ท่านยกเลิกการเข้าสู่ระบบ หรือการเชื่อมต่อ LINE ไม่สำเร็จ');
-        } else if (!room) {
-          localStorage.removeItem('pendingBookingRoomId');
-          toast.error('ไม่พบห้องพักที่ท่านเลือก หรือห้องอาจจะถูกจองไปแล้ว');
-        }
-      }
-    }
-  }, [isLiffReady, allRoomsData, lineProfile, searchDate]);
+  }, [configs, allRoomsData, searchDate]);
 
   const handleRoomSelect = async (room) => {
     const proceedToBooking = () => {
@@ -336,7 +297,6 @@ export default function PublicBooking() {
         // Save current branch to prevent wrong branch redirect
         if (branchId) {
           localStorage.setItem('public_booking_branch_id', branchId);
-          localStorage.setItem('pendingBookingBranchId', branchId);
         }
         
         const redirectUrl = new URL(window.location.href);
@@ -377,7 +337,6 @@ export default function PublicBooking() {
         // Save current branch to prevent wrong branch redirect
         if (branchId) {
           localStorage.setItem('public_booking_branch_id', branchId);
-          localStorage.setItem('pendingBookingBranchId', branchId);
         }
         
         const redirectUrl = new URL(window.location.href);
