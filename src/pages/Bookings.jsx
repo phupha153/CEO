@@ -58,6 +58,7 @@ import BookingConfirmTenantDialog from "../components/bookings/BookingConfirmTen
 import BookingFormDialog from "../components/bookings/BookingFormDialog";
 import CancelBookingDialog from "../components/bookings/CancelBookingDialog";
 import CheckoutBookingDialog from "../components/bookings/CheckoutBookingDialog";
+import PublicBookingSettingsDialog from "../components/bookings/PublicBookingSettingsDialog";
 
 export default function BookingsPage() {
   const navigate = useNavigate();
