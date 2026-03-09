@@ -226,7 +226,10 @@ export default function PublicBooking() {
       if (!window.liff.isLoggedIn()) {
         // บังคับล็อกอินเท่านั้น ไม่ยอมให้ proceedToBooking
         localStorage.setItem('pendingBookingRoomId', room.id);
-        window.liff.login({ redirectUri: window.location.href });
+        const redirectUrl = new URL(window.location.href);
+        redirectUrl.searchParams.delete('liff.state');
+        redirectUrl.searchParams.set('branchId', branchId);
+        window.liff.login({ redirectUri: redirectUrl.toString() });
       } else {
         proceedToBooking();
       }
