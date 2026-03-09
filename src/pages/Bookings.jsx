@@ -209,6 +209,45 @@ export default function BookingsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs', selectedBranchId],
+    queryFn: () => base44.entities.Config.filter({ branch_id: selectedBranchId }),
+    enabled: !!selectedBranchId,
+  });
+
+  useEffect(() => {
+    if (configs.length > 0) {
+      const depositConfig = configs.find(c => c.key === 'public_booking_deposit');
+      if (depositConfig) setDepositSettingAmount(depositConfig.value);
+    }
+  }, [configs]);
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async () => {
+      const depositConfig = configs.find(c => c.key === 'public_booking_deposit');
+      if (depositConfig) {
+        await base44.entities.Config.update(depositConfig.id, { value: depositSettingAmount.toString() });
+      } else {
+        await base44.entities.Config.create({
+          branch_id: selectedBranchId,
+          key: 'public_booking_deposit',
+          value: depositSettingAmount.toString(),
+          value_type: 'number',
+          category: 'billing',
+          description: 'เงินมัดจำสำหรับการจองผ่านหน้า Public'
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['configs', selectedBranchId]);
+      setShowSettingsDialog(false);
+      toast.success('บันทึกการตั้งค่าสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  });
+
   const selectedBranchName = useMemo(() => {
     return branches.find(branch => branch.id === selectedBranchId)?.name || 'ไม่ระบุสาขา';
   }, [branches, selectedBranchId]);
