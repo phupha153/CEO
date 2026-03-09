@@ -1905,40 +1905,12 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-slate-600" />
-              ตั้งค่าเงินมัดจำ (Public Booking)
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <Label>จำนวนเงินมัดจำ (บาท) *</Label>
-              <Input
-                type="number"
-                value={depositSettingAmount}
-                onChange={(e) => setDepositSettingAmount(e.target.value)}
-                placeholder="200"
-              />
-              <p className="text-xs text-slate-500 mt-2">ยอดเงินนี้จะถูกนำไปแสดงในหน้า Public Booking เพื่อให้ลูกค้าโอนเงินมัดจำ</p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
-                ยกเลิก
-              </Button>
-              <Button 
-                onClick={() => saveSettingsMutation.mutate()} 
-                disabled={saveSettingsMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {saveSettingsMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PublicBookingSettingsDialog 
+        isOpen={showSettingsDialog} 
+        setIsOpen={setShowSettingsDialog} 
+        configs={configs} 
+        selectedBranchId={selectedBranchId} 
+      />
 
       {/* Dialog ยกเลิก Booking */}
       <CancelBookingDialog 
