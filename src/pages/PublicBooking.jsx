@@ -355,13 +355,13 @@ export default function PublicBooking() {
       }
     });
 
-    if (!isOccupied && room.room_type === 'monthly' && room.status !== 'available') {
-      isOccupied = true;
-    }
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (!isOccupied && room.room_type === 'daily' && room.status !== 'available' && reqStart <= today) {
+    
+    // ถ้าสถานะห้องไม่ใช่ 'available' (เช่น occupied หรือ reserved)
+    // ให้บล็อกเฉพาะการจองที่เริ่มใส่วันนี้หรือก่อนหน้า
+    // แต่ถ้าจองล่วงหน้าในอนาคต (reqStart > today) และไม่มีการทับซ้อนกับ booking เดิม จะให้จองได้
+    if (!isOccupied && room.status !== 'available' && reqStart <= today) {
       isOccupied = true;
     }
 
