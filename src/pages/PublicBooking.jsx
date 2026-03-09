@@ -311,6 +311,7 @@ export default function PublicBooking() {
         // Save current branch to prevent wrong branch redirect
         if (branchId) {
           localStorage.setItem('public_booking_branch_id', branchId);
+          localStorage.setItem('pendingBookingBranchId', branchId);
         }
         
         const redirectUrl = new URL(window.location.href);
@@ -351,6 +352,7 @@ export default function PublicBooking() {
         // Save current branch to prevent wrong branch redirect
         if (branchId) {
           localStorage.setItem('public_booking_branch_id', branchId);
+          localStorage.setItem('pendingBookingBranchId', branchId);
         }
         
         const redirectUrl = new URL(window.location.href);
