@@ -33,7 +33,21 @@ import PublicProfileDialog from '@/components/public/PublicProfileDialog';
 
 export default function PublicBooking() {
   const urlParams = new URLSearchParams(window.location.search);
-  const branchIdParam = urlParams.get('branchId');
+  let branchIdParam = urlParams.get('branchId');
+
+  // Handle LINE LIFF redirect state
+  if (!branchIdParam && urlParams.get('liff.state')) {
+    try {
+      const stateStr = urlParams.get('liff.state');
+      const stateParams = new URLSearchParams(stateStr.startsWith('?') ? stateStr.substring(1) : stateStr);
+      if (stateParams.get('branchId')) {
+        branchIdParam = stateParams.get('branchId');
+      }
+    } catch (e) {
+      console.error('Error parsing liff.state:', e);
+    }
+  }
+
   const [branchId, setBranchId] = useState(branchIdParam || localStorage.getItem('public_booking_branch_id'));
 
   useEffect(() => {
