@@ -35,8 +35,8 @@ export default function PublicBooking() {
   const urlParams = new URLSearchParams(window.location.search);
   let branchIdParam = urlParams.get('branchId');
 
-  // Handle LINE LIFF redirect state
-  if (!branchIdParam && urlParams.get('liff.state')) {
+  // Handle LINE LIFF redirect state (Prioritize liff.state)
+  if (urlParams.get('liff.state')) {
     try {
       const stateStr = urlParams.get('liff.state');
       const stateParams = new URLSearchParams(stateStr.startsWith('?') ? stateStr.substring(1) : stateStr);
