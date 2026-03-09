@@ -25,7 +25,8 @@ import {
   Users,
   Calendar,
   Search,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
