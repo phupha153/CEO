@@ -132,7 +132,7 @@ export default function PublicBooking() {
     queryKey: ['publicAllRooms', branchId, searchDate],
     queryFn: async () => {
       if (!branchId) return [];
-      const rooms = await base44.entities.Room.filter({ branch_id: branchId });
+      const rooms = await base44.entities.Room.filter({ branch_id: branchId }, '', 1000);
       return rooms || [];
     },
     enabled: !!branchId && !showInitialDialog,
@@ -297,7 +297,7 @@ export default function PublicBooking() {
     const reqStart = new Date(searchDate);
     const reqEnd = formData.check_out_date ? new Date(formData.check_out_date) : new Date(reqStart.getTime() + 24*60*60*1000);
     
-    const isOccupied = (bookingsData || []).some(booking => {
+    let isOccupied = (bookingsData || []).some(booking => {
       if (booking.room_id !== room.id) return false;
       
       const checkIn = new Date(booking.check_in_date);
@@ -309,6 +309,16 @@ export default function PublicBooking() {
         return reqEnd > checkIn;
       }
     });
+
+    if (!isOccupied && room.room_type === 'monthly' && room.status !== 'available') {
+      isOccupied = true;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!isOccupied && room.room_type === 'daily' && room.status !== 'available' && reqStart <= today) {
+      isOccupied = true;
+    }
 
     return {
       ...room,
