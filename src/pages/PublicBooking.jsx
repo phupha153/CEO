@@ -441,6 +441,14 @@ export default function PublicBooking() {
   }
 
   const handleInitialSearch = () => {
+    if (!tempCheckOutDate) {
+      toast.error('กรุณาระบุวันที่เช็คเอาท์เพื่อตรวจสอบห้องว่าง');
+      return;
+    }
+    if (tempCheckOutDate <= tempSearchDate) {
+      toast.error('วันที่เช็คเอาท์ต้องหลังจากวันที่เช็คอิน');
+      return;
+    }
     setSearchDate(tempSearchDate);
     setFormData({ 
       ...formData, 
