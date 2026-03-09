@@ -220,10 +220,19 @@ export default function PublicBooking() {
     staleTime: 30000
   });
 
-  // Initialize LIFF and handle login state
+  // 1. Initialize LIFF
   useEffect(() => {
     const liffId = configs.find(c => c.key === 'liff_id')?.value;
-    if (!liffId) return; // Wait until config is loaded
+    if (!liffId) {
+      if (configs.length > 0) setIsLiffReady(true);
+      return; 
+    }
+    
+    // Prevent multiple initializations
+    if (window.liff && window.liff.id) {
+      setIsLiffReady(true);
+      return;
+    }
 
     const initLiff = async () => {
       try {
@@ -239,27 +248,11 @@ export default function PublicBooking() {
             guest_name: prev.guest_name || profile.displayName,
             line_user_id: profile.userId
           }));
-
-          // Handle pending booking here to ensure order of execution
-          const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
-          if (pendingRoomId && allRoomsData && allRoomsData.length > 0) {
-            const room = allRoomsData.find(r => r.id === pendingRoomId);
-            if (room) {
-              localStorage.removeItem('pendingBookingRoomId');
-              setSelectedRoom(room);
-              setFormData(prev => ({ 
-                ...prev, 
-                check_in_date: searchDate,
-                guest_name: profile.displayName,
-                line_user_id: profile.userId
-              }));
-              setIsRoomSelected(true);
-              setShowBookingForm(true);
-            }
-          }
         }
       } catch (err) {
         console.error('LIFF init/profile error:', err);
+      } finally {
+        setIsLiffReady(true);
       }
     };
 
@@ -273,7 +266,38 @@ export default function PublicBooking() {
       script.onload = initLiff;
       document.body.appendChild(script);
     }
-  }, [configs, allRoomsData, searchDate]);
+  }, [configs]);
+
+  // 2. Handle Pending Booking
+  useEffect(() => {
+    if (!isLiffReady) return;
+
+    const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+    if (pendingRoomId) {
+      if (allRoomsData && allRoomsData.length > 0) {
+        const room = allRoomsData.find(r => r.id === pendingRoomId);
+        
+        if (room && lineProfile) {
+          localStorage.removeItem('pendingBookingRoomId');
+          setSelectedRoom(room);
+          setFormData(prev => ({ 
+            ...prev, 
+            check_in_date: searchDate,
+            guest_name: lineProfile.displayName,
+            line_user_id: lineProfile.userId
+          }));
+          setIsRoomSelected(true);
+          setShowBookingForm(true);
+        } else if (room && !lineProfile) {
+          localStorage.removeItem('pendingBookingRoomId');
+          toast.error('ท่านยกเลิกการเข้าสู่ระบบ หรือการเชื่อมต่อ LINE ไม่สำเร็จ');
+        } else if (!room) {
+          localStorage.removeItem('pendingBookingRoomId');
+          toast.error('ไม่พบห้องพักที่ท่านเลือก หรือห้องอาจจะถูกจองไปแล้ว');
+        }
+      }
+    }
+  }, [isLiffReady, allRoomsData, lineProfile, searchDate]);
 
   const handleRoomSelect = async (room) => {
     const proceedToBooking = () => {
