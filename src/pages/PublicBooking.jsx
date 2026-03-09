@@ -587,7 +587,7 @@ export default function PublicBooking() {
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-blue-100">
               <img
-                src={branch.image_url || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
+                src={buildingLogo}
                 alt={branch.branch_name}
                 className="w-full h-full object-contain p-1"
                 onError={(e) => {
