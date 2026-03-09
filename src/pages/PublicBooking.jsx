@@ -294,15 +294,19 @@ export default function PublicBooking() {
 
   // Check which rooms are available on selected date
   const rooms = (allRoomsData || []).map(room => {
-    const searchDateObj = new Date(searchDate);
+    const reqStart = new Date(searchDate);
+    const reqEnd = formData.check_out_date ? new Date(formData.check_out_date) : new Date(reqStart.getTime() + 24*60*60*1000);
+    
     const isOccupied = (bookingsData || []).some(booking => {
+      if (booking.room_id !== room.id) return false;
+      
       const checkIn = new Date(booking.check_in_date);
       const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
       
       if (checkOut) {
-        return searchDateObj >= checkIn && searchDateObj < checkOut;
+        return reqStart < checkOut && reqEnd > checkIn;
       } else {
-        return booking.room_id === room.id;
+        return reqEnd > checkIn;
       }
     });
 
