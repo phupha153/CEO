@@ -293,6 +293,12 @@ export default function PublicBooking() {
       if (!window.liff.isLoggedIn()) {
         // บังคับล็อกอินเท่านั้น ไม่ยอมให้ proceedToBooking
         localStorage.setItem('pendingBookingRoomId', room.id);
+        
+        // Save current branch to prevent wrong branch redirect
+        if (branchId) {
+          localStorage.setItem('public_booking_branch_id', branchId);
+        }
+        
         const redirectUrl = new URL(window.location.href);
         redirectUrl.searchParams.delete('liff.state');
         redirectUrl.searchParams.set('branchId', branchId);
