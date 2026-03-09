@@ -636,12 +636,11 @@ export default function PublicBooking() {
                 if (!isRoomSelected) {
                   setFormData({ 
                     ...formData, 
-                    booking_type: value,
-                    check_out_date: value === 'monthly' ? '' : formData.check_out_date
+                    booking_type: value
                   });
                 }
               }}
-              className="mb-4 opacity-50 cursor-not-allowed"
+              className="mb-4"
             >
               <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                 <TabsTrigger value="monthly" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
