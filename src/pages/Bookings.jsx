@@ -90,6 +90,8 @@ export default function BookingsPage() {
   const [createPaymentOnBooking, setCreatePaymentOnBooking] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [depositSettingAmount, setDepositSettingAmount] = useState('200');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [aiSearching, setAiSearching] = useState(false);
