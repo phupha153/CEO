@@ -28,7 +28,8 @@ import {
   Sparkles,
   Loader2,
   FileText,
-  Printer
+  Printer,
+  Settings
 } from "lucide-react";
 import {
   format,
