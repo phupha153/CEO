@@ -1051,7 +1051,7 @@ export default function PublicBooking() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-base font-medium text-slate-700">ยอดมัดจำที่ต้องชำระ</span>
                   <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                    ฿200
+                    ฿{publicBookingDeposit.toLocaleString()}
                   </span>
                 </div>
                 <p className="text-xs text-slate-600">
