@@ -714,20 +714,31 @@ export default function PublicBooking() {
             
             <div className="flex-shrink-0 ml-auto">
               {lineProfile ? (
-                <button 
-                  onClick={() => setShowProfileDialog(true)}
-                  className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
-                >
-                  <div className="hidden sm:block text-right">
-                    <p className="text-sm font-semibold text-slate-800">{lineProfile.displayName}</p>
-                    <p className="text-xs text-slate-500">ดูประวัติของฉัน</p>
-                  </div>
-                  <img 
-                    src={lineProfile.pictureUrl} 
-                    alt="Profile" 
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-green-500 object-cover"
-                  />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowProfileDialog(true)}
+                    className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
+                  >
+                    <div className="hidden sm:block text-right">
+                      <p className="text-sm font-semibold text-slate-800">{lineProfile.displayName}</p>
+                      <p className="text-xs text-slate-500">ดูประวัติของฉัน</p>
+                    </div>
+                    <img 
+                      src={lineProfile.pictureUrl} 
+                      alt="Profile" 
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-green-500 object-cover"
+                    />
+                  </button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleLineLogout}
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                    title="ออกจากระบบ"
+                  >
+                    <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </Button>
+                </div>
               ) : (
                 <button 
                   onClick={handleLineLogin}
