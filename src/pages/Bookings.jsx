@@ -54,6 +54,7 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import BookingConfirmTenantDialog from "../components/bookings/BookingConfirmTenantDialog";
+import BookingFormDialog from "../components/bookings/BookingFormDialog";
 import CancelBookingDialog from "../components/bookings/CancelBookingDialog";
 import CheckoutBookingDialog from "../components/bookings/CheckoutBookingDialog";
 
