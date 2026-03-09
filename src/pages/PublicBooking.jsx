@@ -125,6 +125,7 @@ export default function PublicBooking() {
   const bankName = configs.find(c => c.key === 'bank_name')?.value || '';
   const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
   const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
+  const publicBookingDeposit = parseInt(configs.find(c => c.key === 'public_booking_deposit')?.value) || 200;
 
   // Fetch ALL rooms + bookings to check availability (moved up for dependency)
   const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
