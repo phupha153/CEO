@@ -66,28 +66,49 @@ export default function PublicBooking() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
-  const [showInitialDialog, setShowInitialDialog] = useState(true);
+  const [showInitialDialog, setShowInitialDialog] = useState(() => {
+    if (localStorage.getItem('pendingBookingRoomId')) return false;
+    return localStorage.getItem('pb_searchActive') !== 'true';
+  });
   const [detailRoom, setDetailRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [searchDate, setSearchDate] = useState(() => {
+    const saved = localStorage.getItem('pb_searchDate');
+    const today = new Date().toISOString().split('T')[0];
+    return (saved && saved >= today) ? saved : today;
+  });
   const [depositSlipUrl, setDepositSlipUrl] = useState('');
   const [bookingStep, setBookingStep] = useState(1);
-  const [tempSearchDate, setTempSearchDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tempCheckOutDate, setTempCheckOutDate] = useState('');
-  const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
+  
+  const [tempSearchDate, setTempSearchDate] = useState(() => {
+    const saved = localStorage.getItem('pb_searchDate');
+    const today = new Date().toISOString().split('T')[0];
+    return (saved && saved >= today) ? saved : today;
+  });
+  const [tempCheckOutDate, setTempCheckOutDate] = useState(() => localStorage.getItem('pb_checkOutDate') || '');
+  const [tempNumberOfGuests, setTempNumberOfGuests] = useState(() => parseInt(localStorage.getItem('pb_guests')) || 1);
+  
   const [isRoomSelected, setIsRoomSelected] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
-  const [formData, setFormData] = useState({
-    guest_name: '',
-    guest_phone: '',
-    guest_email: '',
-    guest_national_id: '',
-    guest_address: '',
-    number_of_guests: 1,
-    booking_type: 'monthly',
-    check_in_date: new Date().toISOString().split('T')[0],
-    check_out_date: '',
-    line_user_id: ''
+  
+  const [formData, setFormData] = useState(() => {
+    const savedCheckIn = localStorage.getItem('pb_searchDate');
+    const today = new Date().toISOString().split('T')[0];
+    const validCheckIn = (savedCheckIn && savedCheckIn >= today) ? savedCheckIn : today;
+    
+    return {
+      guest_name: '',
+      guest_phone: '',
+      guest_email: '',
+      guest_national_id: '',
+      guest_address: '',
+      number_of_guests: parseInt(localStorage.getItem('pb_guests')) || 1,
+      booking_type: localStorage.getItem('pb_bookingType') || 'monthly',
+      check_in_date: validCheckIn,
+      check_out_date: localStorage.getItem('pb_checkOutDate') || '',
+      line_user_id: ''
+    };
   });
 
   const [isLineConnecting, setIsLineConnecting] = useState(false);
