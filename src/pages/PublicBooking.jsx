@@ -32,32 +32,46 @@ import { toast } from 'sonner';
 import PublicProfileDialog from '@/components/public/PublicProfileDialog';
 
 export default function PublicBooking() {
-  const urlParams = new URLSearchParams(window.location.search);
-  let branchIdParam = urlParams.get('branchId');
-
-  // Handle LINE LIFF redirect state
-  if (!branchIdParam && urlParams.get('liff.state')) {
-    try {
-      const stateStr = urlParams.get('liff.state');
-      const stateParams = new URLSearchParams(stateStr.startsWith('?') ? stateStr.substring(1) : stateStr);
-      if (stateParams.get('branchId')) {
-        branchIdParam = stateParams.get('branchId');
-      }
-    } catch (e) {
-      console.error('Error parsing liff.state:', e);
-    }
-  }
-
-  const [branchId, setBranchId] = useState(branchIdParam || localStorage.getItem('public_booking_branch_id'));
-
-  useEffect(() => {
-    if (branchIdParam) {
-      localStorage.setItem('public_booking_branch_id', branchIdParam);
-      if (branchId !== branchIdParam) {
-        setBranchId(branchIdParam);
+  const [branchId, setBranchId] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let extracted = urlParams.get('branchId');
+    
+    // Handle LINE LIFF redirect state
+    if (!extracted && urlParams.get('liff.state')) {
+      try {
+        const stateStr = urlParams.get('liff.state');
+        const queryStart = stateStr.indexOf('?');
+        const queryStr = queryStart !== -1 ? stateStr.substring(queryStart + 1) : stateStr;
+        const stateParams = new URLSearchParams(queryStr);
+        if (stateParams.get('branchId')) {
+          extracted = stateParams.get('branchId');
+        }
+      } catch (e) {
+        console.error('Error parsing liff.state:', e);
       }
     }
-  }, [branchIdParam]);
+
+    // Override with pending branch if returning from LINE login
+    const pendingBranch = localStorage.getItem('pendingBookingBranchId');
+    if (pendingBranch) {
+      extracted = pendingBranch;
+      localStorage.removeItem('pendingBookingBranchId');
+      
+      // Clean up the URL to show the correct branchId
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('branchId', extracted);
+        window.history.replaceState({}, '', newUrl.toString());
+      } catch(e) {}
+    }
+
+    if (extracted) {
+      localStorage.setItem('public_booking_branch_id', extracted);
+      return extracted;
+    }
+
+    return localStorage.getItem('public_booking_branch_id');
+  });
 
   const [lineProfile, setLineProfile] = useState(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
