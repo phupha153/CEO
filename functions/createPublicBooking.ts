@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       number_of_guests: number_of_guests || 1,
       status: 'active',
       booking_no: `TMP-${Date.now()}`,
-      deposit_amount: 200,
+      deposit_amount: payload.deposit_amount !== undefined ? payload.deposit_amount : 200,
       deposit_slip_url: payload.deposit_slip_url || '',
       line_user_id: payload.line_user_id || ''
     };
