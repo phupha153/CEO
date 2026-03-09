@@ -678,7 +678,10 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
-            // ⭐ ส่งผ่าน sendBatchLineMessages และ sendFacebookPaymentReminder
+            const now_iso = getThailandTimestamp();
+            const CHUNK_SIZE = 10; // ลดจำนวนต่อรอบป้องกัน Timeout ฝั่งต้นทาง
+
+            // --- 1. จัดการ LINE ---
             const lineRecipientsCleaned = lineRecipients.map(r => ({
                 lineUserId: testLineUserId || r.lineUserId,
                 message: r.message,
@@ -694,99 +697,118 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             }));
 
             if (lineRecipientsCleaned.length > 0) {
-                try {
-                    const batchResult = await retryWithBackoff(
-                        () => base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: lineRecipientsCleaned,
-                            options: {
-                                batchSize: 10,
-                                delayBetweenBatches: 2000,
-                                delayBetweenMessages: 200,
-                                retryAttempts: 2
+                console.log(`📤 Sending LINE in chunks of ${CHUNK_SIZE}...`);
+                for (let i = 0; i < lineRecipientsCleaned.length; i += CHUNK_SIZE) {
+                    const chunk = lineRecipientsCleaned.slice(i, i + CHUNK_SIZE);
+                    const chunkSuccessfulPaymentIds = [];
+
+                    try {
+                        const batchResult = await retryWithBackoff(
+                            () => base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: chunk,
+                                options: {
+                                    batchSize: 10,
+                                    delayBetweenBatches: 1000,
+                                    delayBetweenMessages: 100,
+                                    retryAttempts: 2
+                                }
+                            }),
+                            3, 1000
+                        );
+
+                        const result = batchResult.data;
+                        sentCount += result.success || 0;
+                        
+                        if (result.errors) {
+                            result.errors.forEach(err => {
+                                sendErrors.push(`ห้อง ${err.lineUserId || 'N/A'}: ${err.error || 'Unknown error'}`);
+                            });
+                        }
+                        
+                        const failedLineUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
+                        chunk.forEach(r => {
+                            if (!failedLineUserIds.includes(r.lineUserId)) {
+                                successfulPaymentIds.add(r.metadata.paymentId);
+                                chunkSuccessfulPaymentIds.push(r.metadata.paymentId);
                             }
-                        }),
-                        3, // 3 retries
-                        1000 // 1s base delay
-                    );
-
-                    const result = batchResult.data;
-                    sentCount += result.success || 0;
-                    
-                    if (result.errors) {
-                        result.errors.forEach(err => {
-                            sendErrors.push(`ห้อง ${err.lineUserId || 'N/A'}: ${err.error || 'Unknown error'}`);
                         });
+
+                        console.log(`✅ LINE Chunk ${Math.floor(i/CHUNK_SIZE) + 1}: ${result.success}/${chunk.length} sent`);
+                        
+                        // ⭐ อัปเดต DB ทันทีเมื่อจบแต่ละ chunk ป้องกัน state loss ถ้าเกิด error ภายหลัง
+                        if (chunkSuccessfulPaymentIds.length > 0) {
+                            await Promise.all(chunkSuccessfulPaymentIds.map(id => 
+                                base44.asServiceRole.entities.Payment.update(id, { 
+                                    overdue_reminder_sent_date: now_iso,
+                                    bill_sent_date: now_iso
+                                }).catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                            ));
+                            console.log(`📝 Updated DB for ${chunkSuccessfulPaymentIds.length} LINE payments`);
+                        }
+
+                    } catch (lineError) {
+                        console.error(`❌ LINE chunk ${Math.floor(i/CHUNK_SIZE) + 1} failed after retries:`, lineError);
+                        sendErrors.push(`LINE batch error: ${lineError.message}`);
                     }
                     
-                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
-                    const failedLineUserIds = (result.errors || []).map(err => err.lineUserId).filter(Boolean);
-                    lineRecipientsCleaned.forEach(r => {
-                        if (!failedLineUserIds.includes(r.lineUserId)) {
-                            successfulPaymentIds.add(r.metadata.paymentId);
-                        }
-                    });
-
-                    console.log(`✅ LINE: ${result.success}/${lineRecipientsCleaned.length} sent`);
-                } catch (lineError) {
-                    console.error('❌ LINE batch send failed after 3 retries:', lineError);
-                    sendErrors.push(`LINE batch error (after retries): ${lineError.message}`);
+                    if (i + CHUNK_SIZE < lineRecipientsCleaned.length) {
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
                 }
             }
 
-            // Facebook
+            // --- 2. จัดการ Facebook ---
             if (facebookRecipients.length > 0 && !testLineUserId) {
-                try {
-                    const fbResult = await base44.asServiceRole.functions.invoke('sendFacebookPaymentReminder', {
-                        recipients: facebookRecipients
-                    });
+                console.log(`📤 Sending Facebook in chunks of ${CHUNK_SIZE}...`);
+                for (let i = 0; i < facebookRecipients.length; i += CHUNK_SIZE) {
+                    const chunk = facebookRecipients.slice(i, i + CHUNK_SIZE);
+                    const chunkSuccessfulPaymentIds = [];
 
-                    const result = fbResult.data;
-                    sentCount += result.success || 0;
-                    
-                    if (result.errors) {
-                        result.errors.forEach(err => {
-                            sendErrors.push(`Facebook: ${err.error || 'Unknown error'}`);
+                    try {
+                        const fbResult = await base44.asServiceRole.functions.invoke('sendFacebookPaymentReminder', {
+                            recipients: chunk
                         });
+
+                        const result = fbResult.data;
+                        sentCount += result.success || 0;
+                        
+                        if (result.errors) {
+                            result.errors.forEach(err => {
+                                sendErrors.push(`Facebook (Payment ${err.paymentId || 'N/A'}): ${err.error || 'Unknown error'}`);
+                            });
+                        }
+                        
+                        // ⭐ ดึง error จาก paymentId ตามที่ Facebook API ส่งกลับมา
+                        const failedPaymentIds = (result.errors || []).map(err => err.paymentId).filter(Boolean);
+                        chunk.forEach(r => {
+                            if (!failedPaymentIds.includes(r.metadata.paymentId)) {
+                                successfulPaymentIds.add(r.metadata.paymentId);
+                                chunkSuccessfulPaymentIds.push(r.metadata.paymentId);
+                            }
+                        });
+
+                        console.log(`✅ Facebook Chunk ${Math.floor(i/CHUNK_SIZE) + 1}: ${result.success}/${chunk.length} sent`);
+
+                        // ⭐ อัปเดต DB ทันทีเมื่อจบแต่ละ chunk
+                        if (chunkSuccessfulPaymentIds.length > 0) {
+                            await Promise.all(chunkSuccessfulPaymentIds.map(id => 
+                                base44.asServiceRole.entities.Payment.update(id, { 
+                                    overdue_reminder_sent_date: now_iso,
+                                    bill_sent_date: now_iso
+                                }).catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                            ));
+                            console.log(`📝 Updated DB for ${chunkSuccessfulPaymentIds.length} FB payments`);
+                        }
+
+                    } catch (fbError) {
+                        console.error(`❌ Facebook chunk ${Math.floor(i/CHUNK_SIZE) + 1} failed:`, fbError);
+                        sendErrors.push(`Facebook batch error: ${fbError.message}`);
                     }
                     
-                    // เพิ่ม payment IDs ที่ส่งสำเร็จ (กรองเอาเฉพาะคนที่ไม่มี error)
-                    const failedFbUserIds = (result.errors || []).map(err => err.facebookUserId || err.recipientId || err.id).filter(Boolean);
-                    facebookRecipients.forEach(r => {
-                        if (!failedFbUserIds.includes(r.facebookUserId)) {
-                            successfulPaymentIds.add(r.metadata.paymentId);
-                        }
-                    });
-
-                    console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
-                } catch (fbError) {
-                    console.error('❌ Facebook batch send failed:', fbError);
-                    sendErrors.push(`Facebook batch error: ${fbError.message}`);
+                    if (i + CHUNK_SIZE < facebookRecipients.length) {
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
                 }
-            }
-        }
-
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
-        console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
-        const now_iso = getThailandTimestamp();
-        const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
-        const paymentIdsArray = Array.from(successfulPaymentIds);
-        
-        for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
-            const batch = paymentIdsArray.slice(i, i + updateBatchSize);
-            await Promise.all(
-                batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { 
-                        overdue_reminder_sent_date: now_iso,
-                        bill_sent_date: now_iso
-                    })
-                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
-                )
-            );
-            console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
-            
-            // ⭐ เพิ่ม delay ระหว่าง batch
-            if (i + updateBatchSize < paymentIdsArray.length) {
-                await new Promise(r => setTimeout(r, 500));
             }
         }
 
