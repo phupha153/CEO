@@ -441,12 +441,18 @@ export default function PublicBooking() {
       return;
     }
 
+    const advanceRentAmount = monthlyAdvanceRentMonths * (selectedRoom.price || 0);
+    const commonFeeAmount = monthlyCommonFeeMonths * (selectedRoom.common_fee || 0);
+
     const bookingPayload = {
       ...formData,
       room_id: selectedRoom.id,
       branch_id: branchId,
       deposit_slip_url: depositSlipUrl,
-      deposit_amount: publicBookingDeposit
+      deposit_amount: calculatedDeposit,
+      security_deposit: formData.booking_type === 'monthly' ? monthlySecurityDeposit : 0,
+      advance_rent: formData.booking_type === 'monthly' ? advanceRentAmount : 0,
+      common_fee_included: formData.booking_type === 'monthly' ? commonFeeAmount : 0,
     };
 
     console.log('📤 Sending booking data:', bookingPayload);
