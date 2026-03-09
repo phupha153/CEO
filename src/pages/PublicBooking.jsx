@@ -125,8 +125,52 @@ export default function PublicBooking() {
   const bankName = configs.find(c => c.key === 'bank_name')?.value || '';
   const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
   const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
-  const publicBookingDeposit = parseInt(configs.find(c => c.key === 'public_booking_deposit')?.value) || 200;
   const buildingLogo = configs.find(c => c.key === 'building_logo')?.value || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
+
+  const bookingPaymentType = configs.find(c => c.key === 'public_booking_payment_type')?.value || 'deposit';
+  const dailyDepositAmount = parseFloat(configs.find(c => c.key === 'public_booking_daily_deposit')?.value) || parseFloat(configs.find(c => c.key === 'public_booking_deposit')?.value) || 200;
+  const monthlySecurityDeposit = parseFloat(configs.find(c => c.key === 'public_booking_monthly_security_deposit')?.value) || 0;
+  const monthlyAdvanceRentMonths = parseFloat(configs.find(c => c.key === 'public_booking_monthly_advance_rent_months')?.value) || 0;
+  const monthlyCommonFeeMonths = parseFloat(configs.find(c => c.key === 'public_booking_monthly_common_fee_months')?.value) || 0;
+  const monthlyBookingDepositAmount = parseFloat(configs.find(c => c.key === 'public_booking_monthly_booking_deposit')?.value) || 1000;
+
+  const diffTime = formData.check_out_date ? Math.abs(new Date(formData.check_out_date) - new Date(formData.check_in_date)) : 0;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+  const nights = diffDays;
+
+  let breakdown = [];
+  let calculatedDeposit = 0;
+  
+  if (selectedRoom) {
+    if (formData.booking_type === 'daily') {
+      if (bookingPaymentType === 'full') {
+        const roomTotal = nights * (selectedRoom.price || 0);
+        calculatedDeposit = roomTotal;
+        breakdown.push({ label: `ค่าห้องพัก ${nights} คืน`, amount: roomTotal });
+      } else {
+        calculatedDeposit = dailyDepositAmount;
+        breakdown.push({ label: 'ค่ามัดจำจองห้อง', amount: dailyDepositAmount });
+      }
+    } else {
+      const advanceRentAmount = monthlyAdvanceRentMonths * (selectedRoom.price || 0);
+      const commonFeeAmount = monthlyCommonFeeMonths * (selectedRoom.common_fee || 0);
+      
+      if (bookingPaymentType === 'full') {
+        calculatedDeposit = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount;
+        if (monthlySecurityDeposit > 0) breakdown.push({ label: 'เงินประกัน/มัดจำ', amount: monthlySecurityDeposit });
+        if (advanceRentAmount > 0) breakdown.push({ label: `ค่าเช่าล่วงหน้า ${monthlyAdvanceRentMonths} เดือน`, amount: advanceRentAmount });
+        if (commonFeeAmount > 0) breakdown.push({ label: `ค่าส่วนกลางล่วงหน้า ${monthlyCommonFeeMonths} เดือน`, amount: commonFeeAmount });
+      } else {
+        calculatedDeposit = monthlyBookingDepositAmount;
+        breakdown.push({ label: 'ค่ามัดจำจองห้อง', amount: monthlyBookingDepositAmount });
+        
+        const checkInTotal = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount - monthlyBookingDepositAmount;
+        if (checkInTotal > 0) {
+          breakdown.push({ label: 'ส่วนที่เหลือที่ต้องชำระวันเข้าพัก', amount: checkInTotal, isInfo: true });
+        }
+      }
+    }
+  }
 
   // Fetch ALL rooms + bookings to check availability (moved up for dependency)
   const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
