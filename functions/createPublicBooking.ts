@@ -108,13 +108,13 @@ Deno.serve(async (req) => {
       }
     });
 
-    if (!isBooked && room.room_type === 'monthly' && room.status !== 'available') {
-      isBooked = true;
-    }
-    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (!isBooked && room.room_type === 'daily' && room.status !== 'available' && reqStart <= today) {
+    
+    // ถ้าสถานะห้องไม่ใช่ 'available' (เช่น occupied หรือ reserved)
+    // ให้บล็อกเฉพาะการจองที่เริ่มในวันนี้หรือก่อนหน้า
+    // แต่ถ้าจองล่วงหน้าในอนาคต (reqStart > today) และไม่มีการทับซ้อนกับ booking เดิม จะให้จองได้
+    if (!isBooked && room.status !== 'available' && reqStart <= today) {
       isBooked = true;
     }
 
