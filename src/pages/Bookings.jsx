@@ -111,26 +111,20 @@ export default function BookingsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    retry: false,
-    staleTime: 60 * 60 * 1000,
-  });
-
+  const { data: currentUser } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me(), retry: false, staleTime: 3600000 });
   const userPermissions = currentUser?.permissions || [];
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-
-  const canViewAll = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_all');
-  const canViewDaily = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_daily');
-  const canViewMonthly = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_monthly');
+  const isDevOrOwner = userRole === 'developer' || userRole === 'owner';
+  const canViewAll = isDevOrOwner || userPermissions.includes('bookings_view_all');
+  const canViewDaily = isDevOrOwner || userPermissions.includes('bookings_view_daily');
+  const canViewMonthly = isDevOrOwner || userPermissions.includes('bookings_view_monthly');
   const canView = canViewAll || canViewDaily || canViewMonthly;
-  const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_add');
-  const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_edit');
-  const canDelete = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_delete');
-  const canCancel = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_cancel_daily');
-  const canCheckIn = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_checkin');
-  const canCheckOut = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_checkout');
+  const canAdd = isDevOrOwner || userPermissions.includes('bookings_add');
+  const canEdit = isDevOrOwner || userPermissions.includes('bookings_edit');
+  const canDelete = isDevOrOwner || userPermissions.includes('bookings_delete');
+  const canCancel = isDevOrOwner || userPermissions.includes('bookings_cancel_daily');
+  const canCheckIn = isDevOrOwner || userPermissions.includes('bookings_checkin');
+  const canCheckOut = isDevOrOwner || userPermissions.includes('bookings_checkout');
 
   const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId, 'secure'],
@@ -1255,6 +1249,16 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         icon={Calendar}
         actions={
           <>
+            {canAdd && (
+              <Button
+                onClick={() => setShowSettingsDialog(true)}
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
+              >
+                <Settings className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">ตั้งค่าเงินมัดจำ</span>
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setCurrentCalendarDate(new Date());
