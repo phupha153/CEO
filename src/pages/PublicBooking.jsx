@@ -313,6 +313,23 @@ export default function PublicBooking() {
     }
   };
 
+  const handleLineLogout = () => {
+    try {
+      if (window.liff && window.liff.isLoggedIn()) {
+        window.liff.logout();
+        setLineProfile(null);
+        setFormData(prev => ({
+          ...prev,
+          guest_name: '',
+          line_user_id: ''
+        }));
+        toast.success('ออกจากระบบเรียบร้อยแล้ว');
+      }
+    } catch (err) {
+      console.error('LINE Logout Error', err);
+    }
+  };
+
   const handleLineLogin = async () => {
     try {
       const liffId = configs.find(c => c.key === 'liff_id')?.value;
