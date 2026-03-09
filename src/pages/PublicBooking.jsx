@@ -281,10 +281,10 @@ export default function PublicBooking() {
         base44.entities.Booking.filter({ 
           branch_id: branchId,
           status: 'active'
-        }),
+        }, '', 1000),
         base44.entities.TemporaryBooking.filter({
           branch_id: branchId
-        })
+        }, '', 1000)
       ]);
       return [...(bookings || []), ...(tempBookings || [])];
     },
