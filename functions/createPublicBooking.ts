@@ -80,31 +80,43 @@ Deno.serve(async (req) => {
     const room = rooms[0];
 
     // 2. Check actual availability by querying active bookings on the selected date
-    const searchDate = new Date(check_in_date);
+    const reqStart = new Date(check_in_date || new Date().toISOString().split('T')[0]);
+    const reqEnd = check_out_date ? new Date(check_out_date) : new Date(reqStart.getTime() + 24*60*60*1000);
+
     const [activeBookings, tempBookings] = await Promise.all([
       base44.asServiceRole.entities.Booking.filter({
         room_id: room_id,
         branch_id: branch_id,
         status: 'active'
-      }),
+      }, '', 1000),
       base44.asServiceRole.entities.TemporaryBooking.filter({
         room_id: room_id,
         branch_id: branch_id
-      })
+      }, '', 1000)
     ]);
 
     // Check if room is booked on the selected date
     const allBookings = [...(activeBookings || []), ...(tempBookings || [])];
-    const isBooked = allBookings.some(booking => {
+    let isBooked = allBookings.some(booking => {
       const checkIn = new Date(booking.check_in_date);
       const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
       
       if (checkOut) {
-        return searchDate >= checkIn && searchDate < checkOut;
+        return reqStart < checkOut && reqEnd > checkIn;
       } else {
-        return booking.room_id === room_id;
+        return reqEnd > checkIn;
       }
     });
+
+    if (!isBooked && room.room_type === 'monthly' && room.status !== 'available') {
+      isBooked = true;
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!isBooked && room.room_type === 'daily' && room.status !== 'available' && reqStart <= today) {
+      isBooked = true;
+    }
 
     if (isBooked) {
       return Response.json({ 
