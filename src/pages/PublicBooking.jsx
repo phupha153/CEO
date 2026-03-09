@@ -387,7 +387,7 @@ export default function PublicBooking() {
       room_id: selectedRoom.id,
       branch_id: branchId,
       deposit_slip_url: depositSlipUrl,
-      deposit_amount: 200
+      deposit_amount: publicBookingDeposit
     };
 
     console.log('📤 Sending booking data:', bookingPayload);
