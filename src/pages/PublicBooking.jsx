@@ -1115,13 +1115,25 @@ export default function PublicBooking() {
               {/* Deposit Amount */}
               <div className="bg-gradient-to-br from-blue-50 to-sky-100 rounded-xl p-5 border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-base font-medium text-slate-700">ยอดมัดจำที่ต้องชำระ</span>
+                  <span className="text-base font-medium text-slate-700">ยอดที่ต้องชำระ</span>
                   <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                    ฿{publicBookingDeposit.toLocaleString()}
+                    ฿{calculatedDeposit.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-xs text-slate-600">
-                  กรุณาโอนเงินมัดจำเพื่อยืนยันการจอง
+                
+                {breakdown.length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t border-blue-200/50 pt-3">
+                    {breakdown.map((item, idx) => (
+                      <div key={idx} className={`flex justify-between text-sm ${item.isInfo ? 'text-slate-500 font-medium pt-2 border-t border-slate-200 border-dashed' : 'text-slate-600'}`}>
+                        <span>{item.label}</span>
+                        <span>{item.amount > 0 ? `฿${item.amount.toLocaleString()}` : '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="text-xs text-slate-600 mt-4 text-center">
+                  กรุณาโอนเงินตามยอดที่ระบุเพื่อยืนยันการจอง
                 </p>
               </div>
 
