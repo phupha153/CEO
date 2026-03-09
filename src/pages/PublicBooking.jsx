@@ -127,6 +127,7 @@ export default function PublicBooking() {
 
   const [isLineConnecting, setIsLineConnecting] = useState(false);
   const [liffError, setLiffError] = useState(null);
+  const [isLiffReady, setIsLiffReady] = useState(false);
 
   // Fetch branch info
   const { data: branch, isLoading: branchLoading } = useQuery({
