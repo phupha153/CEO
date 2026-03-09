@@ -531,13 +531,22 @@ export default function PublicBooking() {
     setSearchDate(tempSearchDate);
     const diffTime = Math.abs(new Date(tempCheckOutDate) - new Date(tempSearchDate));
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    setFormData({ 
-      ...formData, 
+    const newBookingType = diffDays >= 28 ? 'monthly' : 'daily';
+    
+    setFormData(prev => ({ 
+      ...prev, 
       check_in_date: tempSearchDate,
       check_out_date: tempCheckOutDate,
       number_of_guests: tempNumberOfGuests,
-      booking_type: diffDays >= 28 ? 'monthly' : 'daily'
-    });
+      booking_type: newBookingType
+    }));
+    
+    localStorage.setItem('pb_searchDate', tempSearchDate);
+    localStorage.setItem('pb_checkOutDate', tempCheckOutDate);
+    localStorage.setItem('pb_guests', tempNumberOfGuests.toString());
+    localStorage.setItem('pb_bookingType', newBookingType);
+    localStorage.setItem('pb_searchActive', 'true');
+    
     setShowInitialDialog(false);
   };
 
