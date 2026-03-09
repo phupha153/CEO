@@ -1436,9 +1436,9 @@ export default function PublicBooking() {
               </div>
 
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
-                <p className="text-xs text-slate-600 mb-2">เงินมัดจำ</p>
-                <p className="text-2xl font-bold text-indigo-600">฿{publicBookingDeposit.toLocaleString()}</p>
-                <p className="text-xs text-slate-600 mt-2">กรุณาโอนเงินมัดจำตามบัญชีที่ปรากฎด้านบน</p>
+                <p className="text-xs text-slate-600 mb-2">ยอดชำระการจอง</p>
+                <p className="text-2xl font-bold text-indigo-600">฿{calculatedDeposit.toLocaleString()}</p>
+                <p className="text-xs text-slate-600 mt-2">เราได้รับข้อมูลการจองของคุณเรียบร้อยแล้ว</p>
               </div>
 
               <p className="text-xs text-slate-600 text-center">
