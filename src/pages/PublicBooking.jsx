@@ -547,7 +547,13 @@ export default function PublicBooking() {
 
               {/* Search Button */}
               <Button 
-                onClick={handleInitialSearch}
+                onClick={() => {
+                  if (!tempCheckOutDate) {
+                    toast.error('กรุณาเลือกวันที่เช็คเอาท์เพื่อตรวจสอบห้องว่าง');
+                    return;
+                  }
+                  handleInitialSearch();
+                }}
                 className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg"
               >
                 ดูราคา
