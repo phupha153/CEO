@@ -168,7 +168,8 @@ Deno.serve(async (req) => {
         payment_slip_url: booking.deposit_slip_url || '',
         payment_method: 'transfer',
         line_user_id: payload.line_user_id || '',
-        notes: notes
+        notes: notes,
+        late_fee_locked: true
       });
     }
 

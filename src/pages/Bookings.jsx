@@ -771,6 +771,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             common_fee_amount: commonFee,
             total_amount: totalRemaining,
             status: 'pending',
+            late_fee_locked: true,
             notes: `รายการชำระจากการจองห้อง ${room.room_number} - ${bookingData.guest_name}\n` +
                    `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
                    `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
@@ -948,6 +949,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             common_fee_amount: commonFee,
             total_amount: totalRemaining,
             status: 'pending',
+            late_fee_locked: true,
             notes: `รายการชำระจากการจองห้อง ${room?.room_number || ''} - ${booking.guest_name}\n` +
                    `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
                    `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
