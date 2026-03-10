@@ -416,6 +416,7 @@ Deno.serve(async (req) => {
             const bankAccountName = accNameConf.value;
             const bankName = bankNameConf.value;
             const buildingName = getConfigValue('building_name', branchId, 'ที่พัก');
+            const qrCodeUrl = getConfigValue('payment_qr_code_url', branchId, null);
 
             // --- ส่วนสร้างข้อความ ---
             let message = '';
