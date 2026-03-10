@@ -179,15 +179,16 @@ export default function PublicBooking() {
       const commonFeeAmount = monthlyCommonFeeMonths * (selectedRoom.common_fee || 0);
       
       if (bookingPaymentType === 'full') {
-        calculatedDeposit = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount;
+        calculatedDeposit = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount + monthlyOtherFees;
         if (monthlySecurityDeposit > 0) breakdown.push({ label: 'เงินประกัน/มัดจำ', amount: monthlySecurityDeposit });
         if (advanceRentAmount > 0) breakdown.push({ label: `ค่าเช่าล่วงหน้า ${monthlyAdvanceRentMonths} เดือน`, amount: advanceRentAmount });
         if (commonFeeAmount > 0) breakdown.push({ label: `ค่าส่วนกลางล่วงหน้า ${monthlyCommonFeeMonths} เดือน`, amount: commonFeeAmount });
+        if (monthlyOtherFees > 0) breakdown.push({ label: `ค่าอื่นๆ แรกเข้า`, amount: monthlyOtherFees });
       } else {
         calculatedDeposit = monthlyBookingDepositAmount;
         breakdown.push({ label: 'ค่ามัดจำจองห้อง', amount: monthlyBookingDepositAmount });
         
-        const checkInTotal = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount - monthlyBookingDepositAmount;
+        const checkInTotal = monthlySecurityDeposit + advanceRentAmount + commonFeeAmount + monthlyOtherFees - monthlyBookingDepositAmount;
         if (checkInTotal > 0) {
           breakdown.push({ label: 'ส่วนที่เหลือที่ต้องชำระวันเข้าพัก', amount: checkInTotal, isInfo: true });
         }
