@@ -147,34 +147,53 @@ Deno.serve(async (req) => {
 
     // ✅ Step 4: Fetch ALL rooms & tenants for this branch (Cache-friendly)
     // ⚠️ Base44 SDK ไม่รองรับ $in operator - ต้องโหลดทั้งสาขา
-    const [rooms, tenants] = await Promise.all([
+    const [rooms, tenants, tempBookings, activeBookings] = await Promise.all([
       base44.asServiceRole.entities.Room.filter({ branch_id }, '-room_number', 1000),
-      base44.asServiceRole.entities.Tenant.filter({ branch_id }, '-created_date', 1000)
+      base44.asServiceRole.entities.Tenant.filter({ branch_id }, '-created_date', 1000),
+      base44.asServiceRole.entities.TemporaryBooking.filter({ branch_id }, '-created_date', 1000),
+      base44.asServiceRole.entities.Booking.filter({ branch_id, status: 'active' }, '-created_date', 1000)
     ]);
 
     // ✅ Create Maps for O(1) lookup
     const roomsMap = new Map(rooms.map(r => [r.id, r]));
     const tenantsMap = new Map(tenants.map(t => [t.id, t]));
+    const tempBookingsMap = new Map(tempBookings.map(b => [b.id, b]));
+    const activeBookingsMap = new Map(activeBookings.map(b => [b.id, b]));
 
     const step4Data = {
       rooms_count: rooms.length,
-      tenants_count: tenants.length
+      tenants_count: tenants.length,
+      temp_bookings_count: tempBookings.length,
+      active_bookings_count: activeBookings.length
     };
-    console.log('🔍 Step 4 - Rooms & Tenants:', step4Data);
-    if (debug) logs.push({ step: 'Step 4: Rooms & Tenants', data: step4Data });
+    console.log('🔍 Step 4 - Rooms & Tenants & Bookings:', step4Data);
+    if (debug) logs.push({ step: 'Step 4: Rooms & Tenants & Bookings', data: step4Data });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
     const enrichedPayments = payments.map(payment => {
       const tenant = tenantsMap.get(payment.tenant_id);
+      let tenantName = tenant?.full_name;
+      
+      if (!tenantName && payment.booking_id) {
+        const tempBooking = tempBookingsMap.get(payment.booking_id);
+        const activeBooking = activeBookingsMap.get(payment.booking_id);
+        
+        if (tempBooking && tempBooking.guest_name) {
+          tenantName = tempBooking.guest_name + " (จองออนไลน์)";
+        } else if (activeBooking && activeBooking.guest_name) {
+          tenantName = activeBooking.guest_name;
+        }
+      }
+
       return {
         ...payment,
         room_number: roomsMap.get(payment.room_id)?.room_number || 'N/A',
         room_type: roomsMap.get(payment.room_id)?.room_type,
-        tenant_name: tenant?.full_name || 'N/A',
+        tenant_name: tenantName || 'N/A',
         tenant_phone: tenant?.phone,
         tenant_line_user_id: tenant?.line_user_id || null,
         tenant_facebook_user_id: tenant?.facebook_user_id || null,
-        line_user_id: tenant?.line_user_id || null,
+        line_user_id: payment.line_user_id || tenant?.line_user_id || null,
         facebook_user_id: tenant?.facebook_user_id || null,
       };
     });
