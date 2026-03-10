@@ -151,23 +151,7 @@ Deno.serve(async (req) => {
       status: 'reserved'
     });
 
-    // 5. Send confirmation to user if logged in with LINE
-    if (payload.line_user_id) {
-      try {
-        const checkInDateStr = check_in_date ? new Date(check_in_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : 'ไม่ระบุ';
-        const checkOutDateStr = check_out_date ? new Date(check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-        
-        let msg = `✅ ทางเราได้รับคำขอจองห้องของคุณแล้ว\n\n`;
-        msg += `🏠 ห้อง: ${room.room_number}\n`;
-        msg += `📅 วันเข้าพัก: ${checkInDateStr}\n`;
-        if (checkOutDateStr) msg += `📅 วันออก: ${checkOutDateStr}\n`;
-        msg += `\nกรุณารอเจ้าหน้าที่ตรวจสอบและติดต่อกลับเพื่อยืนยันการจองค่ะ 🙏`;
-        
-        await sendLineMessage(base44, payload.line_user_id, msg, branch_id);
-      } catch (err) {
-        console.error('Failed to send LINE confirmation to user:', err);
-      }
-    }
+
 
     // 6. Send notification to admins (optional - using service role for SendEmail)
     try {

@@ -60,8 +60,7 @@ export default function PublicBooking() {
     }
   }, [branchIdParam]);
 
-  const [lineProfile, setLineProfile] = useState(null);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
+
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -1267,11 +1266,7 @@ export default function PublicBooking() {
         </DialogContent>
       </Dialog>
 
-      <PublicProfileDialog 
-        open={showProfileDialog} 
-        onOpenChange={setShowProfileDialog} 
-        lineProfile={lineProfile} 
-      />
+
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
