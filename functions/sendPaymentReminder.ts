@@ -595,6 +595,7 @@ Deno.serve(async (req) => {
                 const cleanedRecipients = lineRecipients.map(r => ({
                     lineUserId: r.lineUserId,
                     message: r.message,
+                    imageUrl: r.imageUrl,
                     branchId: r.metadata?.branchId,
                     metadata: {
                         paymentId: r.metadata?.paymentId,
