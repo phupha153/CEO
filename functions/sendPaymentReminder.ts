@@ -420,6 +420,7 @@ Deno.serve(async (req) => {
 
             // --- ส่วนสร้างข้อความ ---
             let message = '';
+            let imageUrlToSend = null;
 
             console.log(`📝 Message template for payment ${payment.id}: "${template}", customMessage: ${!!customMessage}`);
 
@@ -534,6 +535,7 @@ Deno.serve(async (req) => {
                         message += `📄 ดูรายละเอียดบิล:\n${invoiceLink}\n\n`;
                     }
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    imageUrlToSend = qrCodeUrl;
                 }
                 }
 
@@ -541,7 +543,7 @@ Deno.serve(async (req) => {
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
-                imageUrl: qrCodeUrl,
+                imageUrl: imageUrlToSend,
                 metadata: {
                     paymentId: payment.id,
                     tenantId: tenant.id,
