@@ -1007,6 +1007,11 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       await base44.entities.Booking.update(booking.id, {
         status: 'completed'
       });
+
+      // ⭐ เปลี่ยนสถานะห้องกลับเป็นว่างเมื่อเช็คเอาท์
+      await base44.entities.Room.update(booking.room_id, {
+        status: 'available'
+      });
       
       return booking;
     },
