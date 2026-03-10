@@ -80,7 +80,7 @@ export default function BookingConfirmTenantDialog({
             {/* ฟอร์มสร้างผู้เช่าใหม่ */}
             {(!selectedTenant || createNewTenant) && (
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-3">
-                <p className="text-sm font-semibold text-slate-700">ข้อมูลผู้เช่าใหม่</p>
+                <p className="text-sm font-semibold text-slate-700">ข้อมูลผู้เช่าใหม่ (เว้นว่างไว้เพื่อข้าม)</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
                     placeholder="ชื่อ-นามสกุล"
