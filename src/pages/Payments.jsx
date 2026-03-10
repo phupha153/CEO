@@ -52,13 +52,10 @@ export default function PaymentsPage() {
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
-
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
+  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'all');
   const [dateRangeType, setDateRangeType] = useState('this_month');
-  const [customRange, setCustomRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
+  const [customRange, setCustomRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('payments_view_mode') || 'room';
