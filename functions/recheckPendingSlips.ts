@@ -456,25 +456,29 @@ Deno.serve(async (req) => {
                             continue;
                         }
 
-                // ⭐ เช็คบัญชีปลายทาง (เช็คเฉพาะเลขบัญชี ไม่เช็คชื่อ) ก่อนเช็คยอดเงิน
+                // ⭐ เช็คบัญชีปลายทางก่อนเช็คยอดเงิน
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
+                const expectedAccountName = getConfigValue('bank_account_name', payment.branch_id);
                 
                 const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
                 const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
-                const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
+                const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name?.en || slipData.receiver?.account?.name || slipData.receiver?.name || slipData.receiver?.displayName || '';
 
                 console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
                 console.log('📋 Expected Configuration:');
                 console.log('  Bank Account:', expectedAccountNumber || '(not set)');
                 console.log('  PromptPay:', expectedPromptPay || '(not set)');
+                console.log('  Account Name:', expectedAccountName || '(not set)');
                 console.log('\n📋 Received from Slip:');
                 console.log('  Receiver Account:', receiverAccount || '(empty)');
                 console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
+                console.log('  Receiver Name:', receiverName || '(empty)');
 
                 // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
                 if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
-                    (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+                    (!expectedPromptPay || expectedPromptPay.trim() === '') &&
+                    (!expectedAccountName || expectedAccountName.trim() === '')) {
                     console.log('⚠️ NO CONFIG FOUND - Manual review required');
 
                     await entityService.Payment.update(payment.id, {
