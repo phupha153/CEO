@@ -540,6 +540,7 @@ Deno.serve(async (req) => {
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
+                imageUrl: qrCodeUrl,
                 metadata: {
                     paymentId: payment.id,
                     tenantId: tenant.id,
