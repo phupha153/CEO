@@ -1204,7 +1204,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const errorCode = slip2goData.code;
         const errorMessage = slip2goData.message || '';
 
-        const isDuplicateError = errorCode === '200501' || errorMessage.toLowerCase().includes('duplicate');
+        const isDuplicateError = String(errorCode) === '200501' || errorMessage.toLowerCase().includes('duplicate');
 
         if (isDuplicateError) {
             // Log duplicate
