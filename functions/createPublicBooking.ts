@@ -118,14 +118,36 @@ Deno.serve(async (req) => {
 
     // 4.5 Create Payment record for deposit
     if (booking.deposit_amount > 0) {
+      let totalRequired = 0;
+      if (booking_type === 'monthly') {
+        const securityDeposit = payload.security_deposit || 0;
+        const advanceRent = payload.advance_rent || 0;
+        const commonFee = payload.common_fee_included || 0;
+        totalRequired = securityDeposit + advanceRent + commonFee;
+      } else {
+        const reqStart = new Date(check_in_date || new Date().toISOString().split('T')[0]);
+        const reqEnd = check_out_date ? new Date(check_out_date) : new Date(reqStart.getTime() + 24*60*60*1000);
+        const nights = Math.ceil(Math.abs(reqEnd - reqStart) / (1000 * 60 * 60 * 24)) || 1;
+        totalRequired = nights * (room.price || 0);
+      }
+
+      if (totalRequired === 0) {
+        totalRequired = booking.deposit_amount;
+      }
+
+      const isPartial = booking.deposit_amount < totalRequired;
+      const status = isPartial ? 'partial_paid' : 'paid';
+
       await base44.asServiceRole.entities.Payment.create({
         branch_id: branch_id,
         booking_id: booking.id,
         room_id: room_id,
         payment_category: 'booking_deposit',
-        due_date: new Date().toISOString().split('T')[0],
-        total_amount: booking.deposit_amount,
-        status: 'pending',
+        due_date: check_in_date || new Date().toISOString().split('T')[0],
+        total_amount: totalRequired,
+        paid_amount: booking.deposit_amount,
+        status: status,
+        payment_date: new Date().toISOString().split('T')[0],
         payment_slip_url: booking.deposit_slip_url || '',
         payment_method: 'transfer',
         line_user_id: payload.line_user_id || '',
