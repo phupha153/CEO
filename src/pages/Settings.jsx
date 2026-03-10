@@ -1276,7 +1276,7 @@ export default function Settings() {
         { key: 'bank_account_name_en', value: bankInfo.account_name_en, description: 'ชื่อบัญชีธนาคาร (อังกฤษ)', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
-        { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }
+        { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }, { key: 'payment_qr_code_url', value: bankInfo.payment_qr_code_url, description: 'QR Code รับชำระเงิน', category: 'general', applyToAllBranches: applyToAllBranches_bank }
       ];
       
       // ⭐ Save sequentially to avoid Rate Limit (4 items = fast enough)
