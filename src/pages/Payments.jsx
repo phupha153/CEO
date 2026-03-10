@@ -202,16 +202,15 @@ export default function PaymentsPage() {
   const canDeleteTestData = userRole === 'developer';
 
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
-    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
+    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth, bookingTypeFilter],
     queryFn: async () => {
       if (!selectedBranchId || !roomViewMonth) return [];
-      
       const [year, month] = roomViewMonth.split('-').map(Number);
       const monthDate = new Date(year, month - 1, 1);
-      
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: 'all',
+        booking_type_filter: bookingTypeFilter,
         date_range_type: 'custom',
         custom_range: {
           from: startOfMonth(monthDate),
@@ -238,13 +237,13 @@ export default function PaymentsPage() {
   };
 
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, bookingTypeFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
-      
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
+        booking_type_filter: bookingTypeFilter,
         date_range_type: dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
         search_query: searchQuery,
@@ -2742,34 +2741,19 @@ Return JSON.`;
                         </Select>
                       </div>
                       
-                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                        <label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">ทั้งหมด</SelectItem>
-                            <SelectItem value="pending">รอชำระ</SelectItem>
-                            <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
-                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
-                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
-                          </SelectContent>
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="partial_paid">ชำระบางส่วน</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent>
                         </Select>
                       </div>
-
-                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                        <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                          <SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="due_date">วันครบกำหนด</SelectItem>
-                            <SelectItem value="room">หมายเลขห้อง</SelectItem>
-                            <SelectItem value="created_date">วันที่สร้าง</SelectItem>
-                            <SelectItem value="amount">ยอดเงิน</SelectItem>
-                          </SelectContent>
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">ประเภท</label>
+                        <Select value={bookingTypeFilter} onValueChange={setBookingTypeFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="monthly">รายเดือน</SelectItem><SelectItem value="daily">รายวัน</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
+                        <Select value={sortBy} onValueChange={setSortBy}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="due_date">วันครบกำหนด</SelectItem><SelectItem value="room">หมายเลขห้อง</SelectItem><SelectItem value="created_date">วันที่สร้าง</SelectItem><SelectItem value="amount">ยอดเงิน</SelectItem></SelectContent>
                         </Select>
                       </div>
 
