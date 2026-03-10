@@ -828,12 +828,21 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       delete bookingData.updated_date;
       delete bookingData.created_by;
 
-      await base44.entities.Booking.create(bookingData);
+      const newRealBooking = await base44.entities.Booking.create(bookingData);
       
       if (tenantId && tempBooking.line_user_id) {
         // อัปเดต line_user_id ให้ผู้เช่า ถ้าจองผ่าน LINE
         await base44.entities.Tenant.update(tenantId, {
           line_user_id: tempBooking.line_user_id
+        });
+      }
+
+      // โอนรายการชำระเงินจาก TemporaryBooking ไปยัง Booking จริงและผูกกับผู้เช่า
+      const existingPayments = await base44.entities.Payment.filter({ booking_id: tempBooking.id });
+      for (const payment of existingPayments) {
+        await base44.entities.Payment.update(payment.id, {
+          booking_id: newRealBooking.id,
+          tenant_id: tenantId || null
         });
       }
       
