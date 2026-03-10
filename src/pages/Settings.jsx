@@ -89,7 +89,7 @@ export default function Settings() {
     account_name_en: '',
     account_number: '',
     bank_name: '',
-    promptpay: ''
+    promptpay: '', payment_qr_code_url: ''
   });
   const [translatingName, setTranslatingName] = useState(false);
 
