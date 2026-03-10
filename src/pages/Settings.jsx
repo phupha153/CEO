@@ -518,7 +518,7 @@ export default function Settings() {
     const accountNameEnConfig = getConfigValue('bank_account_name_en', false);
     const accountNumberConfig = getConfigValue('bank_account_number', false);
     const bankNameConfig = getConfigValue('bank_name', false);
-    const promptpayConfig = getConfigValue('promptpay', false);
+    const promptpayConfig = getConfigValue('promptpay', false); const paymentQrCodeConfig = getConfigValue('payment_qr_code_url', false);
     const lessorNameConfig = getConfigValue('lessor_name', false);
     const lessorIdConfig = getConfigValue('lessor_id', false);
     const lessorPhoneConfig = getConfigValue('lessor_phone', false);
