@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
     const { 
       branch_id, 
       status_filter = 'all',
+      booking_type_filter = 'all',
       date_range_type = 'this_month',
       custom_range,
       search_query = '',
