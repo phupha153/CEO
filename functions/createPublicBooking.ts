@@ -116,6 +116,23 @@ Deno.serve(async (req) => {
       status: 'reserved'
     });
 
+    // 4.5 Create Payment record for deposit
+    if (booking.deposit_amount > 0) {
+      await base44.asServiceRole.entities.Payment.create({
+        branch_id: branch_id,
+        booking_id: booking.id,
+        room_id: room_id,
+        payment_category: 'booking_deposit',
+        due_date: new Date().toISOString().split('T')[0],
+        total_amount: booking.deposit_amount,
+        status: 'pending',
+        payment_slip_url: booking.deposit_slip_url || '',
+        payment_method: 'transfer',
+        line_user_id: payload.line_user_id || '',
+        notes: `เงินมัดจำการจองห้อง ${room.room_number} - ${guest_name}`
+      });
+    }
+
     // 5. Send notification to admins (optional - using service role for SendEmail)
     try {
       const branch = await base44.asServiceRole.entities.Branch.filter({ id: branch_id });
