@@ -765,13 +765,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             booking_id: newBooking.id,
             room_id: newBooking.room_id,
             payment_category: 'booking_deposit',
-            due_date: dueDate,
+            due_date: '2099-12-31', // กำหนดไปปี 2099 เพื่อไม่ให้ขึ้นว่าเลยกำหนดชำระ
+            late_fee_locked: true,  // ล็อคค่าปรับสำหรับบิลการจอง
             security_deposit_amount: securityDeposit,
             advance_rent_amount: advanceRent,
             common_fee_amount: commonFee,
             total_amount: totalRemaining,
             status: 'pending',
-            late_fee_locked: true,
             notes: `รายการชำระจากการจองห้อง ${room.room_number} - ${bookingData.guest_name}\n` +
                    `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
                    `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
@@ -949,7 +949,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             common_fee_amount: commonFee,
             total_amount: totalRemaining,
             status: 'pending',
-            late_fee_locked: true,
             notes: `รายการชำระจากการจองห้อง ${room?.room_number || ''} - ${booking.guest_name}\n` +
                    `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
                    `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
