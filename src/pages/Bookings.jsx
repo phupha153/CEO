@@ -758,13 +758,14 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       const totalRemaining = securityDeposit + advanceRent + commonFee;
 
       if (totalRemaining > 0) {
+        const dueDate = bookingData.check_out_date || bookingData.contract_deadline || bookingData.check_in_date;
+          
           await base44.entities.Payment.create({
             branch_id: selectedBranchId,
             booking_id: newBooking.id,
             room_id: newBooking.room_id,
             payment_category: 'booking_deposit',
-            due_date: '2099-12-31', // กำหนดไปในอนาคตไกลๆ เพื่อไม่ให้โดนค่าปรับ
-            late_fee_locked: true, // ล็อคไม่ให้ระบบคำนวณค่าปรับ
+            due_date: dueDate,
             security_deposit_amount: securityDeposit,
             advance_rent_amount: advanceRent,
             common_fee_amount: commonFee,
