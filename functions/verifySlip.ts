@@ -407,16 +407,18 @@ Deno.serve(async (req) => {
 
             const expectedAccountNumber = getConfigValue('bank_account_number');
             const expectedPromptPay = getConfigValue('promptpay');
+            const expectedAccountName = getConfigValue('bank_account_name');
 
             // ⭐ ดึงข้อมูลจาก Slip2Go Response
             const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
-            const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
+            const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name?.en || slipData.receiver?.account?.name || slipData.receiver?.name || slipData.receiver?.displayName || '';
 
             console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
             console.log('📋 Expected Configuration:');
             console.log('  Bank Account:', expectedAccountNumber || '(not set)');
             console.log('  PromptPay:', expectedPromptPay || '(not set)');
+            console.log('  Account Name:', expectedAccountName || '(not set)');
             console.log('\n📋 Received from Slip:');
             console.log('  Receiver Account:', receiverAccount || '(empty)');
             console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
@@ -424,7 +426,8 @@ Deno.serve(async (req) => {
 
             // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
             if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
-                (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+                (!expectedPromptPay || expectedPromptPay.trim() === '') &&
+                (!expectedAccountName || expectedAccountName.trim() === '')) {
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
@@ -434,13 +437,13 @@ Deno.serve(async (req) => {
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
-                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
-                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                 });
 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
                     manual_review_required: true,
                     no_config: true
                 });
