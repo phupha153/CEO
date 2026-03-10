@@ -4318,25 +4318,12 @@ Return JSON.`;
                   </h3>
 
                   <div className="space-y-4">
-                    <div>
-                      <Label className="flex items-center gap-2"><DoorOpen className="w-4 h-4 text-slate-600" />ค่าเช่า (บาท)</Label>
-                      <Input type="number" value={formData.rent_amount} onChange={(e) => setFormData({ ...formData, rent_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" />
-                    </div>
+                    <div className="grid grid-cols-2 gap-4"><div><Label>เงินประกัน (บาท)</Label><Input type="number" value={formData.security_deposit_amount} onChange={(e) => setFormData({ ...formData, security_deposit_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" /></div><div><Label>ค่าเช่าล่วงหน้า (บาท)</Label><Input type="number" value={formData.advance_rent_amount} onChange={(e) => setFormData({ ...formData, advance_rent_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" /></div></div>
+                    <div><Label className="flex items-center gap-2"><DoorOpen className="w-4 h-4 text-slate-600" />ค่าเช่า (บาท)</Label><Input type="number" value={formData.rent_amount} onChange={(e) => setFormData({ ...formData, rent_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" /></div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="flex items-center gap-2"><Droplets className="w-4 h-4 text-blue-600" />หน่วยน้ำ</Label>
-                        <Input type="number" value={formData.water_units} onChange={(e) => {
-                          const units = parseFloat(e.target.value || 0);
-                          const rate = parseFloat(formData.water_rate || 0);
-                          setFormData({ ...formData, water_units: units, water_amount: parseFloat((units * rate).toFixed(2)) });
-                        }} onWheel={(e) => e.target.blur()} placeholder="0" />
-                      </div>
-                      <div>
-                        <Label>ค่าน้ำ (บาท)</Label>
-                        <Input type="number" value={formData.water_amount} onChange={(e) => setFormData({ ...formData, water_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" />
-                        <p className="text-xs text-slate-500 mt-1">อัตรา: {formData.water_rate} บาท/หน่วย</p>
-                      </div>
+                      <div><Label className="flex items-center gap-2"><Droplets className="w-4 h-4 text-blue-600" />หน่วยน้ำ</Label><Input type="number" value={formData.water_units} onChange={(e) => setFormData({ ...formData, water_units: parseFloat(e.target.value || 0), water_amount: parseFloat((parseFloat(e.target.value || 0) * parseFloat(formData.water_rate || 0)).toFixed(2)) })} onWheel={(e) => e.target.blur()} placeholder="0" /></div>
+                      <div><Label>ค่าน้ำ (บาท)</Label><Input type="number" value={formData.water_amount} onChange={(e) => setFormData({ ...formData, water_amount: parseFloat(e.target.value) || 0 })} onWheel={(e) => e.target.blur()} placeholder="0" /><p className="text-xs text-slate-500 mt-1">อัตรา: {formData.water_rate} บาท/หน่วย</p></div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
