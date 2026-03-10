@@ -493,7 +493,7 @@ Deno.serve(async (req) => {
                 console.log(`  Expected Name (clean): ${cleanExpectedName}`);
                 console.log(`  Receiver Name (clean): ${cleanReceiverName}`);
                 
-                const prefixes = ['นาย', 'นางสาว', 'นาง', 'นส', 'mr', 'ms', 'mrs', 'บจก', 'บริษัท', 'หจก'];
+                const prefixes = ['นาย', 'นางสาว', 'นาง', 'นส', 'น.ส.', 'น.ส', 'mr', 'ms', 'mrs', 'บจก', 'บริษัท', 'หจก'];
                 for (const prefix of prefixes) {
                     if (cleanReceiverName.startsWith(prefix)) cleanReceiverName = cleanReceiverName.substring(prefix.length);
                     if (cleanExpectedName.startsWith(prefix)) cleanExpectedName = cleanExpectedName.substring(prefix.length);
