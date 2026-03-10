@@ -28,6 +28,25 @@ Deno.serve(async (req) => {
       payments = allPayments.flat();
     }
 
+    // Also fetch bookings mapped directly via line_user_id (for daily bookings without tenant)
+    const lineBookings = await base44.asServiceRole.entities.Booking.filter({ line_user_id });
+    const existingBookingIds = new Set(bookings.map(b => b.id));
+    for (const b of lineBookings) {
+      if (!existingBookingIds.has(b.id)) {
+        bookings.push(b);
+        existingBookingIds.add(b.id);
+      }
+    }
+
+    const linePayments = await base44.asServiceRole.entities.Payment.filter({ line_user_id });
+    const existingPaymentIds = new Set(payments.map(p => p.id));
+    for (const p of linePayments) {
+      if (!existingPaymentIds.has(p.id)) {
+        payments.push(p);
+        existingPaymentIds.add(p.id);
+      }
+    }
+
     // Fetch payments for TemporaryBookings
     if (tempBookings.length > 0) {
       const tempBookingIds = tempBookings.map(b => b.id);
@@ -35,7 +54,6 @@ Deno.serve(async (req) => {
       const tempPayments = tempPaymentsResult.flat();
       
       // Add only unique payments
-      const existingPaymentIds = new Set(payments.map(p => p.id));
       for (const p of tempPayments) {
         if (!existingPaymentIds.has(p.id)) {
           payments.push(p);
