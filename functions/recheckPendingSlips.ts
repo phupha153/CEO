@@ -207,22 +207,14 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ⭐ ตรวจสอบ auth - ถ้าไม่มี user หรือไม่ใช่ admin ให้ใช้ service role
-        let isServiceRole = false;
-        try {
-            const currentUser = await base44.auth.me();
-            if (!currentUser) {
-                isServiceRole = true;
-            }
-        } catch (authError) {
-            isServiceRole = true;
-        }
-        
         const slip2goApiKey = Deno.env.get('SLIP2GO_API_KEY');
         if (!slip2goApiKey) {
             console.error('❌ SLIP2GO_API_KEY not configured');
             return Response.json({ success: false, error: 'SLIP2GO_API_KEY not configured' });
         }
+
+        // ⭐ ใช้ Service Role เสมอสำหรับ Cron Job (ป้องกัน Error 401 ใน Log)
+        const entityService = base44.asServiceRole.entities;
 
         // ⭐ CRITICAL: ดึงเฉพาะ Payment ที่ status=pending และมี payment_slip_url
         // ไม่ดึงทั้งหมด 50,000+ รายการ - ใช้ filter ที่ DB level
@@ -232,9 +224,6 @@ Deno.serve(async (req) => {
         let pendingWithSlip = [];
         let skip = 0;
         let hasMore = true;
-        
-        // ⭐ ใช้ service role ถ้าไม่มี auth, ถ้ามี user ให้ใช้ user's auth
-        const entityService = isServiceRole ? base44.asServiceRole.entities : base44.entities;
         
         while (hasMore) {
             // ดึงเฉพาะ pending payments
