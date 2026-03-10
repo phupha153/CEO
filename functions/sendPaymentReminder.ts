@@ -416,11 +416,9 @@ Deno.serve(async (req) => {
             const bankAccountName = accNameConf.value;
             const bankName = bankNameConf.value;
             const buildingName = getConfigValue('building_name', branchId, 'ที่พัก');
-            const qrCodeUrl = getConfigValue('payment_qr_code_url', branchId, null);
 
             // --- ส่วนสร้างข้อความ ---
             let message = '';
-            let imageUrlToSend = null;
 
             console.log(`📝 Message template for payment ${payment.id}: "${template}", customMessage: ${!!customMessage}`);
 
@@ -535,7 +533,6 @@ Deno.serve(async (req) => {
                         message += `📄 ดูรายละเอียดบิล:\n${invoiceLink}\n\n`;
                     }
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
-                    imageUrlToSend = qrCodeUrl;
                 }
                 }
 
@@ -543,7 +540,7 @@ Deno.serve(async (req) => {
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
-                imageUrl: imageUrlToSend,
+                imageUrl: qrCodeUrl,
                 metadata: {
                     paymentId: payment.id,
                     tenantId: tenant.id,
