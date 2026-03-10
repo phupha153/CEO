@@ -544,14 +544,14 @@ Deno.serve(async (req) => {
                     let cleanExpectedName = expectedAccountName.replace(/[\s\.\-]/g, '').toLowerCase();
                     let cleanReceiverName = receiverName.replace(/[\s\.\-]/g, '').toLowerCase();
                     
-                    console.log(`  Expected Name (clean): ${cleanExpectedName}`);
-                    console.log(`  Receiver Name (clean): ${cleanReceiverName}`);
-                    
                     const prefixes = ['นาย', 'นางสาว', 'นาง', 'นส', 'น.ส.', 'น.ส', 'mr', 'ms', 'mrs', 'บจก', 'บริษัท', 'หจก'];
                     for (const prefix of prefixes) {
                         if (cleanReceiverName.startsWith(prefix)) cleanReceiverName = cleanReceiverName.substring(prefix.length);
                         if (cleanExpectedName.startsWith(prefix)) cleanExpectedName = cleanExpectedName.substring(prefix.length);
                     }
+
+                    console.log(`  Expected Name (after prefix strip): ${cleanExpectedName}`);
+                    console.log(`  Receiver Name (after prefix strip): ${cleanReceiverName}`);
                     
                     if (cleanExpectedName.length > 2 && (cleanReceiverName.includes(cleanExpectedName) || cleanExpectedName.includes(cleanReceiverName))) {
                         accountMatch = true;
