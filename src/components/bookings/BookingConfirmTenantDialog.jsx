@@ -133,7 +133,7 @@ export default function BookingConfirmTenantDialog({
                       phone: tenantFormData.phone,
                       national_id: tenantFormData.national_id,
                       email: tenantFormData.email,
-                      line_user_id: '',
+                      line_user_id: pendingTempBooking.line_user_id || '',
                       status: 'active'
                     });
                     tenantId = newTenant.id;
