@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
             for (const recipient of passedRecipients) {
                 const facebookUserId = recipient.facebookUserId;
                 const message = recipient.message; // ⭐ ใช้ message ที่ caller ส่งมา (ไม่สร้างใหม่)
+                const imageUrl = recipient.imageUrl;
                 const branchId = recipient.metadata?.branchId;
                 
                 console.log(`📋 Recipient: facebookUserId=${facebookUserId}, branchId=${branchId}, messageLength=${message?.length || 0}`);
