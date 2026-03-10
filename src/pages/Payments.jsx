@@ -2879,13 +2879,8 @@ Return JSON.`;
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                                   <Receipt className="w-5 h-5 md:w-6 md:h-6 text-white" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                   <DoorOpen className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" />
-                                   <h3 className="text-base md:text-xl font-bold text-slate-800">
-                                     ห้อง {room?.room_number || 'N/A'}
-                                   </h3>
-                                   <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1 flex-wrap"><DoorOpen className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" /><h3 className="text-base md:text-xl font-bold text-slate-800">ห้อง {room?.room_number || 'N/A'}</h3><div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                     <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">{payment.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</Badge>
                                      {getStatusBadge(effectiveStatus, payment)}
                                      {payment.bill_sent_date && effectiveStatus !== 'paid' && (
                                        <Badge className="bg-purple-100 text-purple-700 text-xs hidden md:inline-flex" title={`ส่งบิลแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}`}>
@@ -3395,8 +3390,7 @@ Return JSON.`;
                                     </div>
                                   </td>
                                 )}
-                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{payment.room_number || 'N/A'}</td>
-                                <td className="px-4 py-3 text-sm text-slate-600">{payment.tenant_name || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{payment.room_number || 'N/A'}<span className="block text-xs text-blue-600 mt-0.5">{payment.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</span></td><td className="px-4 py-3 text-sm text-slate-600">{payment.tenant_name || 'N/A'}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600">
                                   {(() => {
                                     if (!payment.due_date) return 'N/A';
