@@ -159,16 +159,9 @@ Deno.serve(async (req) => {
                     await delay(idx * delayBetweenMessages);
 
                     return await retryOperation(async () => {
-                        const messages = [{ type: 'text', text: recipient.message }];
-                        if (recipient.imageUrl) {
-                            messages.push({
-                                type: 'image',
-                                originalContentUrl: recipient.imageUrl,
-                                previewImageUrl: recipient.imageUrl
-                            });
-                        }
-                        const payload = {
-                            to: recipient.lineUserId,
+                         const messages = [{ type: 'text', text: recipient.message }];
+                         const payload = {
+                             to: recipient.lineUserId,
                              messages: messages
                          };
                          const authHeader = `Bearer ${token}`;

@@ -89,7 +89,7 @@ export default function Settings() {
     account_name_en: '',
     account_number: '',
     bank_name: '',
-    promptpay: '', payment_qr_code_url: ''
+    promptpay: ''
   });
   const [translatingName, setTranslatingName] = useState(false);
 
@@ -518,7 +518,7 @@ export default function Settings() {
     const accountNameEnConfig = getConfigValue('bank_account_name_en', false);
     const accountNumberConfig = getConfigValue('bank_account_number', false);
     const bankNameConfig = getConfigValue('bank_name', false);
-    const promptpayConfig = getConfigValue('promptpay', false); const paymentQrCodeConfig = getConfigValue('payment_qr_code_url', false);
+    const promptpayConfig = getConfigValue('promptpay', false);
     const lessorNameConfig = getConfigValue('lessor_name', false);
     const lessorIdConfig = getConfigValue('lessor_id', false);
     const lessorPhoneConfig = getConfigValue('lessor_phone', false);
@@ -663,7 +663,7 @@ export default function Settings() {
       account_name_en: accountNameEnConfig?.value || '',
       account_number: accountNumberConfig?.value || '',
       bank_name: bankNameConfig?.value || '',
-      promptpay: promptpayConfig?.value || '', payment_qr_code_url: paymentQrCodeConfig?.value || ''
+      promptpay: promptpayConfig?.value || ''
     });
   }, [configs, selectedBranch]);
 
@@ -1276,7 +1276,7 @@ export default function Settings() {
         { key: 'bank_account_name_en', value: bankInfo.account_name_en, description: 'ชื่อบัญชีธนาคาร (อังกฤษ)', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
-        { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }, { key: 'payment_qr_code_url', value: bankInfo.payment_qr_code_url, description: 'QR Code รับชำระเงิน', category: 'general', applyToAllBranches: applyToAllBranches_bank }
+        { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }
       ];
       
       // ⭐ Save sequentially to avoid Rate Limit (4 items = fast enough)

@@ -74,10 +74,10 @@ async function getFacebookConfig(base44, branchId = null) {
     }
 }
 
-async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, imageUrl = null, branchId = null, sentBy = 'system') {
+async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, branchId = null, sentBy = 'system') {
     try {
-        // ส่งข้อความ Text ก่อน
-        const responseText = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
+        // ⭐ ใช้ MESSAGE_TAG เพื่อส่งนอกช่วง 24 ชม. (แจ้งเตือนการชำระเงิน)
+        const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -88,32 +88,10 @@ async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, i
             })
         });
         
-        if (!responseText.ok) {
-            const errorData = await responseText.json();
-            console.error('Facebook API error (Text):', errorData);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Facebook API error:', errorData);
             return { success: false, error: errorData };
-        }
-
-        // ถัามีรูปภาพ ให้ส่งรูปตามไป
-        if (imageUrl) {
-            const responseImage = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipient: { id: recipientId },
-                    message: {
-                        attachment: {
-                            type: "image",
-                            payload: { url: imageUrl, is_reusable: true }
-                        }
-                    },
-                    messaging_type: 'MESSAGE_TAG',
-                    tag: 'CONFIRMED_EVENT_UPDATE'
-                })
-            });
-            if (!responseImage.ok) {
-                console.error('Facebook API error (Image):', await responseImage.json());
-            }
         }
 
         // ⭐⭐⭐ บันทึกข้อความขาออกลง FacebookMessage entity (เหมือน LINE)
@@ -167,7 +145,6 @@ Deno.serve(async (req) => {
             for (const recipient of passedRecipients) {
                 const facebookUserId = recipient.facebookUserId;
                 const message = recipient.message; // ⭐ ใช้ message ที่ caller ส่งมา (ไม่สร้างใหม่)
-                const imageUrl = recipient.imageUrl;
                 const branchId = recipient.metadata?.branchId;
                 
                 console.log(`📋 Recipient: facebookUserId=${facebookUserId}, branchId=${branchId}, messageLength=${message?.length || 0}`);
@@ -192,7 +169,7 @@ Deno.serve(async (req) => {
 
                 // ส่งข้อความ
                 console.log(`📤 Sending to Facebook: ${facebookUserId}`);
-                const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, imageUrl, branchId, user?.email || 'system');
+                const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
                 
                 console.log(`📬 Send result:`, JSON.stringify(sendResult));
                 
@@ -308,7 +285,7 @@ Deno.serve(async (req) => {
 
             // ⭐ ส่งข้อความที่ส่งมาจาก caller (ไม่สร้างใหม่)
             console.log(`📤 Sending Facebook message (${message.length} chars)...`);
-            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, null, branchId, user?.email || 'system');
+            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
             
             if (sendResult.success) {
                 results.success++;

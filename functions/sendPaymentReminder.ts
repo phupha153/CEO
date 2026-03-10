@@ -398,9 +398,6 @@ Deno.serve(async (req) => {
             const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branchId);
             const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branchId);
             const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branchId);
-            const qrCodeConf = configs.find(c => c.key === 'payment_qr_code_url' && c.branch_id === branchId) 
-                            || configs.find(c => c.key === 'payment_qr_code_url' && !c.branch_id);
-            const qrCodeUrl = qrCodeConf?.value || null;
 
             if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
                 return Response.json({
@@ -540,7 +537,6 @@ Deno.serve(async (req) => {
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
-                imageUrl: qrCodeUrl,
                 metadata: {
                     paymentId: payment.id,
                     tenantId: tenant.id,
@@ -595,7 +591,6 @@ Deno.serve(async (req) => {
                 const cleanedRecipients = lineRecipients.map(r => ({
                     lineUserId: r.lineUserId,
                     message: r.message,
-                    imageUrl: r.imageUrl,
                     branchId: r.metadata?.branchId,
                     metadata: {
                         paymentId: r.metadata?.paymentId,
