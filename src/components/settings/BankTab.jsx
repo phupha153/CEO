@@ -19,6 +19,35 @@ export default function BankTab({
   translatingName,
   isSavingBankInfo
 }) {
+  const [uploadingQrCode, setUploadingQrCode] = React.useState(false);
+
+  const handleQrCodeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('ขนาดไฟล์ต้องไม่เกิน 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingQrCode(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setBankInfo({ ...bankInfo, payment_qr_code_url: file_url });
+      toast.success('อัปโหลดรูป QR Code สำเร็จ');
+    } catch (error) {
+      toast.error('อัปโหลดไม่สำเร็จ: ' + error.message);
+    }
+    setUploadingQrCode(false);
+    e.target.value = '';
+  };
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
       <CardHeader>
