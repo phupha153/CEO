@@ -943,7 +943,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             tenant_id: booking.tenant_id || null,
             room_id: booking.room_id,
             payment_category: 'security_deposit',
-            due_date: '2099-12-31', // กำหนดไปปี 2099 เพื่อไม่ให้ขึ้นว่าเลยกำหนดชำระ
+            due_date: dueDate,
             late_fee_locked: true,  // ล็อคค่าปรับสำหรับบิลแรกเข้า
             security_deposit_amount: securityDeposit,
             advance_rent_amount: advanceRent,
