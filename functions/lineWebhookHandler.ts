@@ -1315,86 +1315,54 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         const expectedAccountNumber = getConfigValue('bank_account_number');
         const expectedPromptPay = getConfigValue('promptpay');
+        const expectedAccountName = getConfigValue('bank_account_name');
 
-        // ⭐ ดึงข้อมูลจาก Slip2Go Response
-        const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
-        const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
-        const receiverName = slipData.receiver?.account?.name || slipData.receiver?.name || '';
+        const rawRA = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account;
+        const receiverAccount = typeof rawRA === 'string' ? rawRA : '';
+        const rawRP = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value;
+        const receiverPromptPay = typeof rawRP === 'string' ? rawRP : '';
+        const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name?.en || slipData.receiver?.account?.name || slipData.receiver?.name || slipData.receiver?.displayName || '';
 
-        console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
-        console.log('📋 Expected Configuration:');
-        console.log('  Bank Account:', expectedAccountNumber || '(not set)');
-        console.log('  PromptPay:', expectedPromptPay || '(not set)');
-        console.log('\n📋 Received from Slip:');
-        console.log('  Receiver Account:', receiverAccount || '(empty)');
-        console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
-        console.log('  Receiver Name:', receiverName || '(empty)');
+        console.log(`🏦 Verification Check: Acc=${receiverAccount}, PP=${receiverPromptPay}, Name=${receiverName}`);
 
-        // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
         if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
-            (!expectedPromptPay || expectedPromptPay.trim() === '')) {
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
-            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-            const roomNumber = room?.room_number || 'ไม่ทราบ';
-
-            console.log('⚠️ NO CONFIG FOUND - Manual review required');
-
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
-            });
-
-            await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
-                branchId,
-                replyToken
-            );
+            (!expectedPromptPay || expectedPromptPay.trim() === '') &&
+            (!expectedAccountName || expectedAccountName.trim() === '')) {
+            const rmRes = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, { payment_slip_url: slipImageUrl, notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNum} - ยังไม่ได้ตั้งค่าบัญชี` });
+            await sendMessage(base44, lineUserId, `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`, branchId, replyToken);
             return;
         }
 
         let accountMatch = false;
         let matchMethod = '';
 
-        // ⭐ เช็คเลขบัญชีธนาคาร
-        if (expectedAccountNumber) {
-            console.log('\n🔍 Checking Bank Account Number...');
-            accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
-            if (accountMatch) {
-                matchMethod = 'Bank Account';
-                console.log(`✅ MATCHED via Bank Account Number`);
-            }
-        }
-
-        // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
+        if (expectedAccountNumber && isAccountMatch(receiverAccount, expectedAccountNumber)) { accountMatch = true; matchMethod = 'Bank Account'; }
         if (!accountMatch && expectedPromptPay) {
-            console.log('\n🔍 Checking PromptPay...');
-            console.log('  Trying receiverPromptPay vs expectedPromptPay...');
-            const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
-            
-            if (!promptPayMatch1) {
-                console.log('  Trying receiverAccount vs expectedPromptPay...');
-                const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
-                accountMatch = promptPayMatch2;
-                if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
-            } else {
-                accountMatch = true;
-                matchMethod = 'PromptPay';
+            if (isAccountMatch(receiverPromptPay, expectedPromptPay)) { accountMatch = true; matchMethod = 'PromptPay'; }
+            else if (isAccountMatch(receiverAccount, expectedPromptPay)) { accountMatch = true; matchMethod = 'PromptPay (via receiverAccount)'; }
+        }
+        
+        if (!accountMatch && expectedAccountName && receiverName) {
+            let cleanExpected = expectedAccountName.replace(/[\s\.\-]/g, '').toLowerCase();
+            let cleanReceiver = receiverName.replace(/[\s\.\-]/g, '').toLowerCase();
+            const prefixes = ['นาย', 'นางสาว', 'นาง', 'นส', 'น.ส.', 'น.ส', 'mr', 'ms', 'mrs', 'บจก', 'บริษัท', 'หจก'];
+            for (const p of prefixes) {
+                if (cleanReceiver.startsWith(p)) cleanReceiver = cleanReceiver.substring(p.length);
+                if (cleanExpected.startsWith(p)) cleanExpected = cleanExpected.substring(p.length);
             }
-            
-            if (accountMatch) {
-                console.log(`✅ MATCHED via ${matchMethod}`);
+            if (cleanExpected.length > 2 && (cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver))) {
+                accountMatch = true; matchMethod = 'Account Name';
             }
         }
 
-        console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
-        console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
-        console.log(`  Method: ${matchMethod || 'None'}`);
-        console.log('====================================================\n');
+        console.log(`🏦 Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'} via ${matchMethod}`);
 
         if (!accountMatch) {
             const rmRes = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
-            const errorMsg = `โอนเงินไปผิดบัญชี\n\nควรโอนเข้าบัญชี: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบและส่งสลิปมาใหม่อีกครั้งค่ะ`;
+            const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay || expectedAccountName}\n\nกรุณาตรวจสอบและส่งสลิปมาใหม่อีกครั้งค่ะ`;
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, { payment_slip_url: slipImageUrl, notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNum} - ${errorMsg}` });
             try {
                 const b = (await base44.asServiceRole.entities.Branch.list()).find(b => b.id === pendingPayment.branch_id);
