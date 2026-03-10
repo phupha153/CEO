@@ -109,12 +109,6 @@ export default function BookingConfirmTenantDialog({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            {pendingTempBooking?.line_user_id && (
-              <div className="flex-1 flex items-center text-sm text-green-600 bg-green-50 px-3 rounded-lg border border-green-200">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                ลูกค้าล็อกอิน LINE มาแล้ว ระบบจะผูก LINE ให้อัตโนมัติ
-              </div>
-            )}
             <Button
               variant="outline"
               onClick={() => {
@@ -139,7 +133,7 @@ export default function BookingConfirmTenantDialog({
                       phone: tenantFormData.phone,
                       national_id: tenantFormData.national_id,
                       email: tenantFormData.email,
-                      line_user_id: pendingTempBooking?.line_user_id || '',
+                      line_user_id: '',
                       status: 'active'
                     });
                     tenantId = newTenant.id;
