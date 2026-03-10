@@ -124,6 +124,13 @@ export default function BookingConfirmTenantDialog({
               onClick={async () => {
                 let tenantId = selectedTenant?.id;
 
+                // ถ้าเลือกสร้างใหม่แต่ไม่กรอกชื่อ = ไม่ต้องการสร้างผู้เช่า (ข้าม)
+                if (!tenantId && !tenantFormData.full_name) {
+                  // ยืนยันโดยไม่ผูกผู้เช่า (Booking จะมี line_user_id จาก tempBooking แต่ไม่มี tenant_id)
+                  confirmTempBookingMutation.mutate({ tempBooking: pendingTempBooking, tenantId: null });
+                  return;
+                }
+
                 // สร้างผู้เช่าใหม่ถ้าต้องการ
                 if (!tenantId && tenantFormData.full_name) {
                   try {
