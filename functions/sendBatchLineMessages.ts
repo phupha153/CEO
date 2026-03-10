@@ -190,7 +190,10 @@ Deno.serve(async (req) => {
 
                          if (!response.ok) {
                               const errorData = await response.json();
-                              const errorMsg = errorData.message || `HTTP ${response.status}`;
+                              let errorMsg = errorData.message || `HTTP ${response.status}`;
+                              if (errorData.details && Array.isArray(errorData.details)) {
+                                  errorMsg += ` - ${errorData.details.map(d => d.property + ': ' + d.message).join(', ')}`;
+                              }
                               console.error(`❌ LINE API Error for ${recipient.lineUserId}: ${errorMsg}`);
                               console.error(`   Error detail: ${JSON.stringify(errorData)}`);
                               throw new Error(errorMsg);
