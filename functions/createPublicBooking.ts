@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         booking_id: booking.id,
         room_id: room_id,
         payment_category: 'booking_deposit',
-        due_date: '2099-12-31', // กำหนดไปปี 2099 เพื่อไม่ให้ขึ้นว่าเลยกำหนดชำระ
+        due_date: check_in_date || new Date().toISOString().split('T')[0],
         late_fee_locked: true, // ล็อคค่าปรับสำหรับบิลการจอง
         total_amount: totalRequired,
         paid_amount: booking.deposit_amount,
