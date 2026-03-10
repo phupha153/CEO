@@ -111,9 +111,6 @@ export default function PublicBooking() {
     };
   });
 
-  const [isLineConnecting, setIsLineConnecting] = useState(false);
-  const [liffError, setLiffError] = useState(null);
-
   // Fetch branch info
   const { data: branch, isLoading: branchLoading } = useQuery({
     queryKey: ['publicBranch', branchId],
@@ -347,6 +344,8 @@ export default function PublicBooking() {
       security_deposit: formData.booking_type === 'monthly' ? monthlySecurityDeposit : 0,
       advance_rent: formData.booking_type === 'monthly' ? advanceRentAmount : 0,
       common_fee_included: formData.booking_type === 'monthly' ? commonFeeAmount : 0,
+      // เพิ่มไลน์ไอดีถ้ามีการกรอกมาในฟอร์ม (ถ้าเพิ่มฟอร์ม) ตอนนี้ไม่มีก็ส่งว่างไปก่อน
+      line_user_id: ''
     };
 
     console.log('📤 Sending booking data:', bookingPayload);

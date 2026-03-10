@@ -1,40 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
-async function sendLineMessage(base44, lineUserId, text, branchId) {
-  try {
-    const configs = await base44.asServiceRole.entities.Config.list();
-    
-    let lineToken = null;
-    if (branchId) {
-      const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-      if (branchToken?.value?.trim()) lineToken = branchToken.value.trim();
-    }
-    
-    if (!lineToken) {
-      const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-      if (globalToken?.value?.trim()) lineToken = globalToken.value.trim();
-    }
-    
-    if (!lineToken) lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-
-    if (!lineToken) return;
-
-    await fetch('https://api.line.me/v2/bot/message/push', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lineToken}`
-      },
-      body: JSON.stringify({
-        to: lineUserId,
-        messages: [{ type: 'text', text }]
-      })
-    });
-  } catch (error) {
-    console.error('Error sending LINE message:', error.message);
-  }
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
