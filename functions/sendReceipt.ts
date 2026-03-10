@@ -89,25 +89,12 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ✅ ตรวจสอบ authentication ก่อน
-        let user;
+        // ✅ ตรวจสอบ authentication (อนุญาตให้ไม่มี user ได้ เพื่อให้ Cron Job เรียกใช้งานได้)
+        let user = null;
         try {
             user = await base44.auth.me();
         } catch (authError) {
-            console.error('Authentication error:', authError);
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
-                message: 'Unauthorized - Please login again'
-            }, { status: 401 });
-        }
-
-        if (!user) {
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต',
-                message: 'User not authenticated'
-            }, { status: 401 });
+            console.log('No user session (likely called from Cron/Service role)');
         }
 
         // ✅ Parse request body
