@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
 
             // ⭐ ส่งข้อความที่ส่งมาจาก caller (ไม่สร้างใหม่)
             console.log(`📤 Sending Facebook message (${message.length} chars)...`);
-            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
+            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, null, branchId, user?.email || 'system');
             
             if (sendResult.success) {
                 results.success++;
