@@ -663,7 +663,7 @@ export default function Settings() {
       account_name_en: accountNameEnConfig?.value || '',
       account_number: accountNumberConfig?.value || '',
       bank_name: bankNameConfig?.value || '',
-      promptpay: promptpayConfig?.value || ''
+      promptpay: promptpayConfig?.value || '', payment_qr_code_url: paymentQrCodeConfig?.value || ''
     });
   }, [configs, selectedBranch]);
 
