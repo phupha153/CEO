@@ -88,15 +88,34 @@ function numberToThaiText(number) {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+        
+        // ✅ ตรวจสอบ authentication ก่อน
+        let user;
+        try {
+            user = await base44.auth.me();
+        } catch (authError) {
+            console.error('Authentication error:', authError);
+            return Response.json({ 
+                success: false,
+                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
+                message: 'Unauthorized - Please login again'
+            }, { status: 401 });
+        }
 
-        // ✅ Parse request body first
+        if (!user) {
+            return Response.json({ 
+                success: false,
+                error: 'ไม่ได้รับอนุญาต',
+                message: 'User not authenticated'
+            }, { status: 401 });
+        }
+
+        // ✅ Parse request body
         let paymentId;
-        let isInternal = false;
         try {
             const body = await req.json();
             paymentId = body.paymentId;
-            isInternal = body.isInternal === true;
-            console.log('📝 Request body parsed:', { paymentId, isInternal });
+            console.log('📝 Request body parsed:', { paymentId });
         } catch (jsonError) {
             console.error('JSON parse error:', jsonError);
             return Response.json({ 
@@ -114,32 +133,6 @@ Deno.serve(async (req) => {
                 error: 'ไม่พบข้อมูล Payment ID',
                 message: 'paymentId is required'
             }, { status: 400 });
-        }
-
-        // ✅ ตรวจสอบ authentication ถ้าไม่ได้เป็นการเรียกจากระบบภายใน
-        let user = null;
-        if (!isInternal) {
-            try {
-                user = await base44.auth.me();
-            } catch (authError) {
-                console.error('Authentication error:', authError);
-                return Response.json({ 
-                    success: false,
-                    error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
-                    message: 'Unauthorized - Please login again'
-                }, { status: 401 });
-            }
-
-            if (!user) {
-                return Response.json({ 
-                    success: false,
-                    error: 'ไม่ได้รับอนุญาต',
-                    message: 'User not authenticated'
-                }, { status: 401 });
-            }
-            console.log('User authenticated:', user.email);
-        } else {
-            console.log('🔄 Internal call - bypassing auth check');
         }
 
         // ดึงข้อมูล payment โดยตรง
@@ -175,7 +168,7 @@ Deno.serve(async (req) => {
         console.log('✅ Payment found:', payment.id, 'Status:', payment.status);
 
         // 🔒 Security: Branch Access Check
-        if (!isInternal && payment.branch_id && user) {
+        if (payment.branch_id) {
             const userAccessibleBranches = user.accessible_branches;
             const isDeveloper = user.custom_role === 'developer';
             const isOwner = user.custom_role === 'owner';

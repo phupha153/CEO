@@ -1437,7 +1437,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         } else if (remainingSlipAmount > 0) await sendMessage(base44, lineUserId, `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต\nขอบคุณค่ะ 🙏`, branchId, replyToken);
         for (const item of processedIds) {
             if (item.status === 'paid') {
-                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id, isInternal: true }); } 
+                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id }); } 
                 catch (e) { console.error(`❌ Receipt failed ${item.id}:`, e.message); }
             }
         }
