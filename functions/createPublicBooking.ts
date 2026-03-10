@@ -119,11 +119,24 @@ Deno.serve(async (req) => {
     // 4.5 Create Payment record for deposit
     if (booking.deposit_amount > 0) {
       let totalRequired = 0;
+      let notes = `เงินมัดจำการจองห้อง ${room.room_number} - ${guest_name}`;
+
       if (booking_type === 'monthly') {
         const securityDeposit = payload.security_deposit || 0;
         const advanceRent = payload.advance_rent || 0;
         const commonFee = payload.common_fee_included || 0;
-        totalRequired = securityDeposit + advanceRent + commonFee;
+        const otherAmount = payload.other_amount || 0;
+        totalRequired = securityDeposit + advanceRent + commonFee + otherAmount;
+
+        let details = [];
+        if (securityDeposit > 0) details.push(`เงินประกัน: ${securityDeposit.toLocaleString()} บาท`);
+        if (advanceRent > 0) details.push(`ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท`);
+        if (commonFee > 0) details.push(`ค่าส่วนกลางล่วงหน้า: ${commonFee.toLocaleString()} บาท`);
+        if (otherAmount > 0) details.push(`ค่าอื่นๆ: ${otherAmount.toLocaleString()} บาท`);
+        
+        if (details.length > 0) {
+          notes += `\n` + details.join('\n');
+        }
       } else {
         const reqStart = new Date(check_in_date || new Date().toISOString().split('T')[0]);
         const reqEnd = check_out_date ? new Date(check_out_date) : new Date(reqStart.getTime() + 24*60*60*1000);
@@ -146,12 +159,16 @@ Deno.serve(async (req) => {
         due_date: check_in_date || new Date().toISOString().split('T')[0],
         total_amount: totalRequired,
         paid_amount: booking.deposit_amount,
+        security_deposit_amount: booking_type === 'monthly' ? (payload.security_deposit || 0) : 0,
+        advance_rent_amount: booking_type === 'monthly' ? (payload.advance_rent || 0) : 0,
+        common_fee_amount: booking_type === 'monthly' ? (payload.common_fee_included || 0) : 0,
+        other_amount: booking_type === 'monthly' ? (payload.other_amount || 0) : 0,
         status: status,
         payment_date: new Date().toISOString().split('T')[0],
         payment_slip_url: booking.deposit_slip_url || '',
         payment_method: 'transfer',
         line_user_id: payload.line_user_id || '',
-        notes: `เงินมัดจำการจองห้อง ${room.room_number} - ${guest_name}`
+        notes: notes
       });
     }
 
