@@ -28,6 +28,22 @@ Deno.serve(async (req) => {
       payments = allPayments.flat();
     }
 
+    // Fetch payments for TemporaryBookings
+    if (tempBookings.length > 0) {
+      const tempBookingIds = tempBookings.map(b => b.id);
+      const tempPaymentsResult = await Promise.all(tempBookingIds.map(id => base44.asServiceRole.entities.Payment.filter({ booking_id: id })));
+      const tempPayments = tempPaymentsResult.flat();
+      
+      // Add only unique payments
+      const existingPaymentIds = new Set(payments.map(p => p.id));
+      for (const p of tempPayments) {
+        if (!existingPaymentIds.has(p.id)) {
+          payments.push(p);
+          existingPaymentIds.add(p.id);
+        }
+      }
+    }
+
     // Get rooms info
     const allRoomIds = [...new Set([
       ...tempBookings.map(b => b.room_id),
