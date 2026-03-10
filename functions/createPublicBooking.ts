@@ -152,7 +152,8 @@ ${payload.line_user_id ? '📱 (ลูกค้าระบุตัวตนผ
       success: true,
       message: 'จองห้องสำเร็จ! ทางสาขาจะติดต่อกลับไปเร็วๆ นี้',
       booking_id: booking.id,
-      booking_no: booking.booking_no
+      booking_no: booking.booking_no,
+      deposit_amount: booking.deposit_amount
     });
 
   } catch (error) {
