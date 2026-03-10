@@ -154,6 +154,7 @@ export default function PublicBooking() {
   const monthlySecurityDeposit = parseFloat(configs.find(c => c.key === 'public_booking_monthly_security_deposit')?.value) || 0;
   const monthlyAdvanceRentMonths = parseFloat(configs.find(c => c.key === 'public_booking_monthly_advance_rent_months')?.value) || 0;
   const monthlyCommonFeeMonths = parseFloat(configs.find(c => c.key === 'public_booking_monthly_common_fee_months')?.value) || 0;
+  const monthlyOtherFees = parseFloat(configs.find(c => c.key === 'public_booking_monthly_other_fees')?.value) || 0;
   const monthlyBookingDepositAmount = parseFloat(configs.find(c => c.key === 'public_booking_monthly_booking_deposit')?.value) || 1000;
 
   const diffTime = formData.check_out_date ? Math.abs(new Date(formData.check_out_date) - new Date(formData.check_in_date)) : 0;
