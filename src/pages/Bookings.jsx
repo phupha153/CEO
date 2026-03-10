@@ -830,6 +830,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
       await base44.entities.Booking.create(bookingData);
       
+      if (tenantId && tempBooking.line_user_id) {
+        // อัปเดต line_user_id ให้ผู้เช่า ถ้าจองผ่าน LINE
+        await base44.entities.Tenant.update(tenantId, {
+          line_user_id: tempBooking.line_user_id
+        });
+      }
+      
       // ⭐ อัปเดตสถานะห้องเป็น "occupied" และลบแถบ "ติดจอง"
       await base44.entities.Room.update(tempBooking.room_id, { status: 'occupied' });
       
