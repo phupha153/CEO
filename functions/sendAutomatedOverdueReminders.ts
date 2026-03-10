@@ -568,6 +568,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             const branchBankAccountNumber = getConfigValue('bank_account_number', '-', paymentBranchId);
             const branchBankAccountName = getConfigValue('bank_account_name', '-', paymentBranchId);
             const branchBuildingName = getConfigValue('building_name', 'ที่พัก', paymentBranchId);
+            const qrCodeUrl = getConfigValue('payment_qr_code_url', null, paymentBranchId);
 
             // ⭐⭐⭐ ใช้ latestPayment (ที่ refresh แล้ว) สำหรับค่าปรับและ invoice URL
             const lateFee = latestPayment.late_fee_amount || 0;
@@ -640,6 +641,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                 lineUserId: hasLine ? tenant.line_user_id : null,
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
                 message: message,
+                imageUrl: qrCodeUrl,
                 metadata: {
                     paymentId: latestPayment.id,
                     tenantId: tenant.id,
