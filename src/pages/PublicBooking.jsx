@@ -537,6 +537,7 @@ export default function PublicBooking() {
       security_deposit: formData.booking_type === 'monthly' ? monthlySecurityDeposit : 0,
       advance_rent: formData.booking_type === 'monthly' ? advanceRentAmount : 0,
       common_fee_included: formData.booking_type === 'monthly' ? commonFeeAmount : 0,
+      other_amount: formData.booking_type === 'monthly' ? monthlyOtherFees : 0,
     };
 
     console.log('📤 Sending booking data:', bookingPayload);
