@@ -237,6 +237,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Booking Type filter (daily vs monthly)
+    if (booking_type_filter !== 'all') {
+      filtered = filtered.filter(payment => payment.booking_type === booking_type_filter);
+    }
+
     // Search filter
     if (search_query.trim()) {
       const query = search_query.toLowerCase();
