@@ -568,7 +568,8 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             const branchBankAccountNumber = getConfigValue('bank_account_number', '-', paymentBranchId);
             const branchBankAccountName = getConfigValue('bank_account_name', '-', paymentBranchId);
             const branchBuildingName = getConfigValue('building_name', 'ที่พัก', paymentBranchId);
-            const qrCodeUrl = getConfigValue('payment_qr_code_url', null, paymentBranchId);
+            const rawQrCodeUrl = getConfigValue('payment_qr_code_url', null, paymentBranchId);
+            const qrCodeUrl = (rawQrCodeUrl && rawQrCodeUrl.trim().startsWith('https')) ? rawQrCodeUrl.trim() : null;
 
             // ⭐⭐⭐ ใช้ latestPayment (ที่ refresh แล้ว) สำหรับค่าปรับและ invoice URL
             const lateFee = latestPayment.late_fee_amount || 0;
