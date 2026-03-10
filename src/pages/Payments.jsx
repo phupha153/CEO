@@ -1584,27 +1584,10 @@ export default function PaymentsPage() {
   const resetForm = () => {
     setEditingPayment(null);
     setFormData({
-      booking_id: '',
-      tenant_id: '',
-      room_id: '',
-      meter_reading_id: '',
-      payment_date: '',
-      due_date: '',
-      rent_amount: 0,
-      water_units: 0,
-      water_rate: 0,
-      water_amount: 0,
-      electricity_units: 0,
-      electricity_rate: 0,
-      electricity_amount: 0,
-      internet_amount: 0,
-      common_fee_amount: 0,
-      parking_fee_amount: 0,
-      other_amount: 0,
-      late_fee_amount: 0,
-      payment_method: 'cash',
-      payment_slip_url: '',
-      notes: ''
+      booking_id: '', tenant_id: '', room_id: '', meter_reading_id: '', payment_date: '', due_date: '',
+      rent_amount: 0, water_units: 0, water_rate: 0, water_amount: 0, electricity_units: 0, electricity_rate: 0, electricity_amount: 0,
+      internet_amount: 0, common_fee_amount: 0, parking_fee_amount: 0, other_amount: 0, security_deposit_amount: 0, advance_rent_amount: 0,
+      late_fee_amount: 0, payment_method: 'cash', payment_slip_url: '', notes: ''
     });
   };
 
