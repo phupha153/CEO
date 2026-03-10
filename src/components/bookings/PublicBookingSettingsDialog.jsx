@@ -144,6 +144,16 @@ export default function PublicBookingSettingsDialog({ isOpen, setIsOpen, configs
                   className="mt-1"
                 />
               </div>
+              <div>
+                <Label>ค่าอื่นๆแรกเข้า (บาท)</Label>
+                <Input
+                  type="number"
+                  value={monthlyOtherFees}
+                  onChange={(e) => setMonthlyOtherFees(e.target.value)}
+                  placeholder="0"
+                  className="mt-1"
+                />
+              </div>
             </div>
 
             {bookingPaymentType === 'deposit' ? (
