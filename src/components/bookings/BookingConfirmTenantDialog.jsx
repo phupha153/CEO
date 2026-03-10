@@ -67,7 +67,7 @@ export default function BookingConfirmTenantDialog({
                   <SelectValue placeholder="เลือกผู้เช่า..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">🆓 ไม่เลือกผู้เช่า (สร้างใหม่)</SelectItem>
+                  <SelectItem value="new">🆓 ข้าม / สร้างผู้เช่าใหม่</SelectItem>
                   {tenants.filter(t => t.status === 'active').map(tenant => (
                     <SelectItem key={tenant.id} value={tenant.id}>
                       {tenant.full_name} • {tenant.phone}
