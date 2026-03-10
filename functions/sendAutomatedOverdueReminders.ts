@@ -687,6 +687,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             const lineRecipientsCleaned = lineRecipients.map(r => ({
                 lineUserId: testLineUserId || r.lineUserId,
                 message: r.message,
+                imageUrl: r.imageUrl,
                 branchId: r.metadata.branchId,
                 metadata: {
                     paymentId: r.metadata.paymentId,
