@@ -60,7 +60,8 @@ export default function PublicBooking() {
     }
   }, [branchIdParam]);
 
-
+  const [lineProfile, setLineProfile] = useState(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -110,6 +111,9 @@ export default function PublicBooking() {
       line_user_id: ''
     };
   });
+
+  const [isLineConnecting, setIsLineConnecting] = useState(false);
+  const [liffError, setLiffError] = useState(null);
 
   // Fetch branch info
   const { data: branch, isLoading: branchLoading } = useQuery({
@@ -202,11 +206,166 @@ export default function PublicBooking() {
     staleTime: 30000
   });
 
-  const handleRoomSelect = (room) => {
-    setSelectedRoom(room);
-    setFormData(prev => ({ ...prev, check_in_date: searchDate }));
-    setIsRoomSelected(true);
-    setShowBookingForm(true);
+  // Initialize LIFF and handle login state
+  useEffect(() => {
+    const liffId = configs.find(c => c.key === 'liff_id')?.value;
+    if (!liffId) return; // Wait until config is loaded
+
+    const initLiff = async () => {
+      try {
+        if (!window.liff.id) {
+          await window.liff.init({ liffId });
+        }
+        
+        if (window.liff.isLoggedIn()) {
+          const profile = await window.liff.getProfile();
+          setLineProfile(profile);
+          setFormData(prev => ({
+            ...prev,
+            guest_name: prev.guest_name || profile.displayName,
+            line_user_id: profile.userId
+          }));
+
+          // Handle pending booking here to ensure order of execution
+          const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+          if (pendingRoomId && allRoomsData && allRoomsData.length > 0) {
+            const room = allRoomsData.find(r => r.id === pendingRoomId);
+            if (room) {
+              localStorage.removeItem('pendingBookingRoomId');
+              setSelectedRoom(room);
+              setFormData(prev => ({ 
+                ...prev, 
+                check_in_date: searchDate,
+                guest_name: profile.displayName,
+                line_user_id: profile.userId
+              }));
+              setIsRoomSelected(true);
+              setShowBookingForm(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('LIFF init/profile error:', err);
+      }
+    };
+
+    if (window.liff) {
+      initLiff();
+    } else {
+      const script = document.createElement('script');
+      script.id = 'liff-sdk';
+      script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      script.async = true;
+      script.onload = initLiff;
+      document.body.appendChild(script);
+    }
+  }, [configs, allRoomsData, searchDate]);
+
+  const handleRoomSelect = async (room) => {
+    const proceedToBooking = () => {
+      setSelectedRoom(room);
+      setFormData(prev => ({ ...prev, check_in_date: searchDate }));
+      setIsRoomSelected(true);
+      setShowBookingForm(true);
+    };
+
+    const liffId = configs.find(c => c.key === 'liff_id')?.value;
+    
+    // ถ้าไม่ได้ตั้งค่า LINE LIFF ไว้เลย อนุญาตให้จองได้เลย (ป้องกันระบบพังถ้าแอดมินลืมใส่ liff_id)
+    if (!liffId) {
+      proceedToBooking();
+      return;
+    }
+
+    if (!window.liff) {
+      toast.error('ระบบ LINE ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองอีกครั้ง');
+      return;
+    }
+
+    try {
+      if (!window.liff.id) {
+        try {
+          await window.liff.init({ liffId });
+        } catch (initErr) {
+          console.warn('LIFF init warning:', initErr);
+        }
+      }
+
+      if (!window.liff.isLoggedIn()) {
+        // บังคับล็อกอินเท่านั้น ไม่ยอมให้ proceedToBooking
+        localStorage.setItem('pendingBookingRoomId', room.id);
+        
+        // Save current branch to prevent wrong branch redirect
+        if (branchId) {
+          localStorage.setItem('public_booking_branch_id', branchId);
+        }
+        
+        const redirectUrl = new URL(window.location.href);
+        redirectUrl.searchParams.delete('liff.state');
+        redirectUrl.searchParams.set('branchId', branchId);
+        window.liff.login({ redirectUri: redirectUrl.toString() });
+      } else {
+        proceedToBooking();
+      }
+    } catch (err) {
+      console.error('LINE Login Error', err);
+      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ LINE กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
+  const handleLineLogout = () => {
+    try {
+      if (window.liff && window.liff.isLoggedIn()) {
+        window.liff.logout();
+        setLineProfile(null);
+        setFormData(prev => ({
+          ...prev,
+          guest_name: '',
+          line_user_id: ''
+        }));
+        toast.success('ออกจากระบบเรียบร้อยแล้ว');
+      }
+    } catch (err) {
+      console.error('LINE Logout Error', err);
+    }
+  };
+
+  const handleLineLogin = async () => {
+    try {
+      const liffId = configs.find(c => c.key === 'liff_id')?.value;
+      if (!liffId) {
+        toast.error('ยังไม่มีการตั้งค่า LINE Login ในระบบ');
+        return;
+      }
+      
+      if (!window.liff) {
+        toast.error('ระบบ LINE ยังโหลดไม่เสร็จ กรุณารอสักครู่');
+        return;
+      }
+
+      if (!window.liff.id) {
+        try {
+          await window.liff.init({ liffId });
+        } catch (initErr) {
+          console.warn('LIFF init warning:', initErr);
+        }
+      }
+
+      if (!window.liff.isLoggedIn()) {
+        // Save current branch to prevent wrong branch redirect
+        if (branchId) {
+          localStorage.setItem('public_booking_branch_id', branchId);
+        }
+        
+        const redirectUrl = new URL(window.location.href);
+        redirectUrl.searchParams.delete('liff.state');
+        redirectUrl.searchParams.set('branchId', branchId);
+        window.liff.login({ redirectUri: redirectUrl.toString() });
+      }
+    } catch (err) {
+      console.error('LINE Login Action Error', err);
+      toast.error('ไม่สามารถเข้าสู่ระบบด้วย LINE ได้');
+    }
   };
 
   const { data: bookingsData } = useQuery({
@@ -344,8 +503,6 @@ export default function PublicBooking() {
       security_deposit: formData.booking_type === 'monthly' ? monthlySecurityDeposit : 0,
       advance_rent: formData.booking_type === 'monthly' ? advanceRentAmount : 0,
       common_fee_included: formData.booking_type === 'monthly' ? commonFeeAmount : 0,
-      // เพิ่มไลน์ไอดีถ้ามีการกรอกมาในฟอร์ม (ถ้าเพิ่มฟอร์ม) ตอนนี้ไม่มีก็ส่งว่างไปก่อน
-      line_user_id: ''
     };
 
     console.log('📤 Sending booking data:', bookingPayload);
@@ -556,9 +713,46 @@ export default function PublicBooking() {
             </div>
             
             <div className="flex-shrink-0 ml-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400">
-                <User className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
+              {lineProfile ? (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowProfileDialog(true)}
+                    className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
+                  >
+                    <div className="hidden sm:block text-right">
+                      <p className="text-sm font-semibold text-slate-800">{lineProfile.displayName}</p>
+                      <p className="text-xs text-slate-500">ดูประวัติของฉัน</p>
+                    </div>
+                    <img 
+                      src={lineProfile.pictureUrl} 
+                      alt="Profile" 
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-green-500 object-cover"
+                    />
+                  </button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleLineLogout}
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                    title="ออกจากระบบ"
+                  >
+                    <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </Button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleLineLogin}
+                  className="flex items-center gap-2 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full sm:rounded-xl transition-colors text-left"
+                >
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm font-semibold text-slate-800">เข้าสู่ระบบ</p>
+                    <p className="text-xs text-slate-500">เพื่อดูประวัติการจอง</p>
+                  </div>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400">
+                    <User className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1265,7 +1459,11 @@ export default function PublicBooking() {
         </DialogContent>
       </Dialog>
 
-
+      <PublicProfileDialog 
+        open={showProfileDialog} 
+        onOpenChange={setShowProfileDialog} 
+        lineProfile={lineProfile} 
+      />
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
