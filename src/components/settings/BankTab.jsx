@@ -3,8 +3,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Save, Loader2 } from "lucide-react";
+import { CreditCard, Save, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { BranchToggle } from "./BranchToggle";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function BankTab({
   bankInfo,
