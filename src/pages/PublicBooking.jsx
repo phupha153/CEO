@@ -68,7 +68,7 @@ export default function PublicBooking() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [showInitialDialog, setShowInitialDialog] = useState(() => {
-    if (localStorage.getItem('pendingBookingRoomId')) return false;
+    if (localStorage.getItem('pendingBookingRoomId') || localStorage.getItem('pb_pendingBookingData')) return false;
     return localStorage.getItem('pb_searchActive') !== 'true';
   });
   const [detailRoom, setDetailRoom] = useState(null);
@@ -220,25 +220,55 @@ export default function PublicBooking() {
         if (window.liff.isLoggedIn()) {
           const profile = await window.liff.getProfile();
           setLineProfile(profile);
-          setFormData(prev => ({
-            ...prev,
-            guest_name: prev.guest_name || profile.displayName,
+          
+          let updatedFormData = {
+            ...formData,
+            guest_name: formData.guest_name || profile.displayName,
             line_user_id: profile.userId
-          }));
+          };
+
+          // กู้คืนข้อมูลการจองที่พิมพ์ค้างไว้ก่อนเด้งไปล็อกอิน LINE
+          const savedFormData = localStorage.getItem('pb_pendingBookingData');
+          if (savedFormData) {
+            try {
+              const parsedData = JSON.parse(savedFormData);
+              updatedFormData = {
+                ...updatedFormData,
+                ...parsedData,
+                line_user_id: profile.userId // บังคับอัปเดต LINE ID
+              };
+              localStorage.removeItem('pb_pendingBookingData'); // ลบออกหลังดึงมาใช้
+            } catch (e) {
+              console.error('Error parsing saved form data:', e);
+            }
+          }
+
+          setFormData(updatedFormData);
 
           // Handle pending booking here to ensure order of execution
           const pendingRoomId = localStorage.getItem('pendingBookingRoomId');
+          const savedStep = localStorage.getItem('pb_pendingBookingStep');
+          
           if (pendingRoomId && allRoomsData && allRoomsData.length > 0) {
             const room = allRoomsData.find(r => r.id === pendingRoomId);
             if (room) {
               localStorage.removeItem('pendingBookingRoomId');
               setSelectedRoom(room);
-              setFormData(prev => ({ 
-                ...prev, 
-                check_in_date: searchDate,
-                guest_name: profile.displayName,
-                line_user_id: profile.userId
-              }));
+              
+              if (!savedFormData) {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    check_in_date: searchDate,
+                    guest_name: profile.displayName,
+                    line_user_id: profile.userId
+                  }));
+              }
+              
+              if (savedStep) {
+                  setBookingStep(parseInt(savedStep));
+                  localStorage.removeItem('pb_pendingBookingStep');
+              }
+              
               setIsRoomSelected(true);
               setShowBookingForm(true);
             }
@@ -294,6 +324,8 @@ export default function PublicBooking() {
       if (!window.liff.isLoggedIn()) {
         // บังคับล็อกอินเท่านั้น ไม่ยอมให้ proceedToBooking
         localStorage.setItem('pendingBookingRoomId', room.id);
+        localStorage.setItem('pb_pendingBookingData', JSON.stringify(formData));
+        localStorage.setItem('pb_pendingBookingStep', bookingStep.toString());
         
         // Save current branch to prevent wrong branch redirect
         if (branchId) {
