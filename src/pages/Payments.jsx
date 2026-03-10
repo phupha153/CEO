@@ -1556,27 +1556,10 @@ export default function PaymentsPage() {
 
     setEditingPayment(payment);
     setFormData({
-      booking_id: payment.booking_id || '',
-      tenant_id: payment.tenant_id || '',
-      room_id: payment.room_id || '',
-      meter_reading_id: payment.meter_reading_id || '',
-      payment_date: payment.payment_date || '',
-      due_date: payment.due_date || '',
-      rent_amount: payment.rent_amount || 0,
-      water_units: payment.water_units || 0,
-      water_rate: payment.water_rate || 0,
-      water_amount: payment.water_amount || 0,
-      electricity_units: payment.electricity_units || 0,
-      electricity_rate: payment.electricity_rate || 0,
-      electricity_amount: payment.electricity_amount || 0,
-      internet_amount: payment.internet_amount || 0,
-      common_fee_amount: payment.common_fee_amount || 0,
-      parking_fee_amount: payment.parking_fee_amount || 0,
-      other_amount: payment.other_amount || 0,
-      late_fee_amount: payment.late_fee_amount || 0, late_fee_locked: payment.late_fee_locked || false,
-      payment_method: payment.payment_method || 'cash',
-      payment_slip_url: payment.payment_slip_url || '',
-      notes: payment.notes || ''
+      booking_id: payment.booking_id || '', tenant_id: payment.tenant_id || '', room_id: payment.room_id || '', meter_reading_id: payment.meter_reading_id || '', payment_date: payment.payment_date || '', due_date: payment.due_date || '',
+      rent_amount: payment.rent_amount || 0, water_units: payment.water_units || 0, water_rate: payment.water_rate || 0, water_amount: payment.water_amount || 0, electricity_units: payment.electricity_units || 0, electricity_rate: payment.electricity_rate || 0, electricity_amount: payment.electricity_amount || 0,
+      internet_amount: payment.internet_amount || 0, common_fee_amount: payment.common_fee_amount || 0, parking_fee_amount: payment.parking_fee_amount || 0, other_amount: payment.other_amount || 0, security_deposit_amount: payment.security_deposit_amount || 0, advance_rent_amount: payment.advance_rent_amount || 0,
+      late_fee_amount: payment.late_fee_amount || 0, late_fee_locked: payment.late_fee_locked || false, payment_method: payment.payment_method || 'cash', payment_slip_url: payment.payment_slip_url || '', notes: payment.notes || ''
     });
     setShowDialog(true);
   };
