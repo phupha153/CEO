@@ -16,6 +16,7 @@ export default function PublicBookingSettingsDialog({ isOpen, setIsOpen, configs
   const [monthlySecurityDeposit, setMonthlySecurityDeposit] = useState('2000');
   const [monthlyAdvanceRent, setMonthlyAdvanceRent] = useState('1');
   const [monthlyCommonFee, setMonthlyCommonFee] = useState('0');
+  const [monthlyOtherFees, setMonthlyOtherFees] = useState('0');
   const [monthlyBookingDeposit, setMonthlyBookingDeposit] = useState('1000');
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function PublicBookingSettingsDialog({ isOpen, setIsOpen, configs
       setMonthlySecurityDeposit(getVal('public_booking_monthly_security_deposit', '2000'));
       setMonthlyAdvanceRent(getVal('public_booking_monthly_advance_rent_months', '1'));
       setMonthlyCommonFee(getVal('public_booking_monthly_common_fee_months', '0'));
+      setMonthlyOtherFees(getVal('public_booking_monthly_other_fees', '0'));
       setMonthlyBookingDeposit(getVal('public_booking_monthly_booking_deposit', '1000'));
     }
   }, [configs]);
@@ -53,6 +55,7 @@ export default function PublicBookingSettingsDialog({ isOpen, setIsOpen, configs
       await upsertConfig('public_booking_monthly_security_deposit', monthlySecurityDeposit, 'เงินประกันรายเดือน');
       await upsertConfig('public_booking_monthly_advance_rent_months', monthlyAdvanceRent, 'ค่าเช่าล่วงหน้ารายเดือน');
       await upsertConfig('public_booking_monthly_common_fee_months', monthlyCommonFee, 'ค่าส่วนกลางล่วงหน้ารายเดือน');
+      await upsertConfig('public_booking_monthly_other_fees', monthlyOtherFees, 'ค่าอื่นๆแรกเข้า (บาท)');
       await upsertConfig('public_booking_monthly_booking_deposit', monthlyBookingDeposit, 'เงินมัดจำสำหรับจองรายเดือน');
     },
     onSuccess: () => {
