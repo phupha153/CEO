@@ -935,6 +935,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
           await base44.entities.Payment.create({
             branch_id: selectedBranchId,
             booking_id: booking.id,
+            tenant_id: booking.tenant_id || null,
             room_id: booking.room_id,
             payment_category: 'security_deposit',
             due_date: dueDate,
