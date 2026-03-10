@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         console.log('✅ Payment found:', payment.id, 'Status:', payment.status);
 
         // 🔒 Security: Branch Access Check
-        if (payment.branch_id) {
+        if (!isSystemCall && payment.branch_id) {
             const userAccessibleBranches = user.accessible_branches;
             const isDeveloper = user.custom_role === 'developer';
             const isOwner = user.custom_role === 'owner';
