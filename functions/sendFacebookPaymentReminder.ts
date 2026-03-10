@@ -74,10 +74,10 @@ async function getFacebookConfig(base44, branchId = null) {
     }
 }
 
-async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, branchId = null, sentBy = 'system') {
+async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, imageUrl = null, branchId = null, sentBy = 'system') {
     try {
-        // ⭐ ใช้ MESSAGE_TAG เพื่อส่งนอกช่วง 24 ชม. (แจ้งเตือนการชำระเงิน)
-        const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
+        // ส่งข้อความ Text ก่อน
+        const responseText = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -88,10 +88,32 @@ async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, b
             })
         });
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Facebook API error:', errorData);
+        if (!responseText.ok) {
+            const errorData = await responseText.json();
+            console.error('Facebook API error (Text):', errorData);
             return { success: false, error: errorData };
+        }
+
+        // ถัามีรูปภาพ ให้ส่งรูปตามไป
+        if (imageUrl) {
+            const responseImage = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: recipientId },
+                    message: {
+                        attachment: {
+                            type: "image",
+                            payload: { url: imageUrl, is_reusable: true }
+                        }
+                    },
+                    messaging_type: 'MESSAGE_TAG',
+                    tag: 'CONFIRMED_EVENT_UPDATE'
+                })
+            });
+            if (!responseImage.ok) {
+                console.error('Facebook API error (Image):', await responseImage.json());
+            }
         }
 
         // ⭐⭐⭐ บันทึกข้อความขาออกลง FacebookMessage entity (เหมือน LINE)
