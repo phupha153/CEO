@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
 
                 // ส่งข้อความ
                 console.log(`📤 Sending to Facebook: ${facebookUserId}`);
-                const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
+                const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, imageUrl, branchId, user?.email || 'system');
                 
                 console.log(`📬 Send result:`, JSON.stringify(sendResult));
                 
