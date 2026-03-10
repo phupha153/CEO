@@ -645,8 +645,7 @@ Deno.serve(async (req) => {
                 if (tenant?.line_user_id) {
                     try {
                         // เรียก sendReceipt function
-                        const sendReceiptService = isServiceRole ? base44.asServiceRole.functions : base44.functions;
-                        const receiptResponse = await sendReceiptService.invoke('sendReceipt', { 
+                        const receiptResponse = await base44.asServiceRole.functions.invoke('sendReceipt', { 
                             paymentId: payment.id 
                         });
                         
