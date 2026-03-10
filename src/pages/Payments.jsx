@@ -3186,12 +3186,9 @@ Return JSON.`;
                                     className="overflow-hidden"
                                   >
                                     <div className="space-y-1 text-xs md:text-sm mb-3 pt-3 border-t border-slate-200">
-                                      {payment.rent_amount > 0 && (
-                                        <div className="flex justify-between">
-                                          <span className="text-slate-600">ค่าเช่า:</span>
-                                          <span className="font-medium">{payment.rent_amount.toLocaleString()} ฿</span>
-                                        </div>
-                                      )}
+                                      {payment.security_deposit_amount > 0 && (<div className="flex justify-between"><span className="text-slate-600">เงินประกันห้อง:</span><span className="font-medium">{payment.security_deposit_amount.toLocaleString()} ฿</span></div>)}
+                                      {payment.advance_rent_amount > 0 && (<div className="flex justify-between"><span className="text-slate-600">ค่าเช่าล่วงหน้า:</span><span className="font-medium">{payment.advance_rent_amount.toLocaleString()} ฿</span></div>)}
+                                      {payment.rent_amount > 0 && (<div className="flex justify-between"><span className="text-slate-600">ค่าเช่า:</span><span className="font-medium">{payment.rent_amount.toLocaleString()} ฿</span></div>)}
                                       {payment.electricity_amount > 0 && (
                                         <div className="flex justify-between">
                                           <span className="text-slate-600">ค่าไฟ ({payment.electricity_units} หน่วย):</span>
