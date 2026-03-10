@@ -461,8 +461,13 @@ Deno.serve(async (req) => {
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
                 const expectedAccountName = getConfigValue('bank_account_name', payment.branch_id);
                 
-                const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
-                const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value || '';
+                // ป้องกันกรณี account เป็น object แล้วไปแปลงเป็น string ได้ [object Object]
+                const rawReceiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account;
+                const receiverAccount = typeof rawReceiverAccount === 'string' ? rawReceiverAccount : '';
+                
+                const rawReceiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.account?.proxy?.account || slipData.receiver?.proxy?.account || slipData.receiver?.proxy?.value;
+                const receiverPromptPay = typeof rawReceiverPromptPay === 'string' ? rawReceiverPromptPay : '';
+                
                 const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name?.en || slipData.receiver?.account?.name || slipData.receiver?.name || slipData.receiver?.displayName || '';
 
                 console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
