@@ -134,6 +134,36 @@ export default function ConfirmPaymentDialog({
             <span className="text-sm text-slate-600">ผู้เช่า</span>
             <span className="font-medium text-slate-800">{tenant?.full_name || 'N/A'}</span>
           </div>
+
+          {(payment.security_deposit_amount > 0 || payment.advance_rent_amount > 0 || payment.common_fee_amount > 0 || payment.other_amount > 0) && (
+            <div className="py-2 space-y-1 border-t mt-2">
+              {payment.security_deposit_amount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">เงินประกันห้อง</span>
+                  <span className="text-xs font-medium text-slate-700">{payment.security_deposit_amount.toLocaleString()} ฿</span>
+                </div>
+              )}
+              {payment.advance_rent_amount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">ค่าเช่าล่วงหน้า</span>
+                  <span className="text-xs font-medium text-slate-700">{payment.advance_rent_amount.toLocaleString()} ฿</span>
+                </div>
+              )}
+              {payment.common_fee_amount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">ค่าส่วนกลางล่วงหน้า</span>
+                  <span className="text-xs font-medium text-slate-700">{payment.common_fee_amount.toLocaleString()} ฿</span>
+                </div>
+              )}
+              {payment.other_amount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">ค่าอื่นๆ</span>
+                  <span className="text-xs font-medium text-slate-700">{payment.other_amount.toLocaleString()} ฿</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-2 border-t">
             <span className="text-sm font-semibold text-slate-700">ยอดเงินรวม</span>
             <span className="text-xl font-bold text-blue-600">{payment.total_amount?.toLocaleString() || 0} ฿</span>
