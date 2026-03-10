@@ -89,25 +89,17 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ✅ ตรวจสอบ authentication ก่อน
-        let user;
+        // ✅ ตรวจสอบ authentication (รองรับทั้ง User ปกติและ System Cron Job)
+        let user = null;
+        let isSystemCall = false;
         try {
             user = await base44.auth.me();
         } catch (authError) {
-            console.error('Authentication error:', authError);
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
-                message: 'Unauthorized - Please login again'
-            }, { status: 401 });
+            console.log('No user session found, assuming system call (Cron Job)');
         }
 
         if (!user) {
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต',
-                message: 'User not authenticated'
-            }, { status: 401 });
+            isSystemCall = true;
         }
 
         // ✅ Parse request body
