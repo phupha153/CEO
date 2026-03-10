@@ -864,9 +864,19 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   });
 
   const deleteTempBookingMutation = useMutation({
-    mutationFn: (id) => base44.entities.TemporaryBooking.delete(id),
+    mutationFn: async (id) => {
+      const tempBooking = temporaryBookings.find(b => b.id === id);
+      if (tempBooking) {
+        // เปลี่ยนสถานะห้องกลับเป็นว่าง
+        await base44.entities.Room.update(tempBooking.room_id, {
+          status: 'available'
+        });
+      }
+      return await base44.entities.TemporaryBooking.delete(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      queryClient.invalidateQueries(['rooms', selectedBranchId]);
       toast.success('ลบการจองชั่วคราวสำเร็จ');
     },
     onError: (error) => {
