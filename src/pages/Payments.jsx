@@ -4700,12 +4700,9 @@ Return JSON.`;
 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-slate-800">รายการค่าใช้จ่าย</h3>
-                  {selectedPayment.rent_amount > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">ค่าเช่า:</span>
-                      <span className="font-medium">{selectedPayment.rent_amount.toLocaleString()} ฿</span>
-                    </div>
-                  )}
+                  {selectedPayment.security_deposit_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">เงินประกันห้อง:</span><span className="font-medium">{selectedPayment.security_deposit_amount.toLocaleString()} ฿</span></div>)}
+                  {selectedPayment.advance_rent_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">ค่าเช่าล่วงหน้า:</span><span className="font-medium">{selectedPayment.advance_rent_amount.toLocaleString()} ฿</span></div>)}
+                  {selectedPayment.rent_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">ค่าเช่า:</span><span className="font-medium">{selectedPayment.rent_amount.toLocaleString()} ฿</span></div>)}
                   {selectedPayment.electricity_amount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">ค่าไฟ ({selectedPayment.electricity_units} หน่วย @ {selectedPayment.electricity_rate} ฿):</span>
