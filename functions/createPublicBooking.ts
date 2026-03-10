@@ -156,7 +156,8 @@ Deno.serve(async (req) => {
         booking_id: booking.id,
         room_id: room_id,
         payment_category: 'booking_deposit',
-        due_date: check_in_date || new Date().toISOString().split('T')[0],
+        due_date: '2099-12-31', // กำหนดไปปี 2099 เพื่อไม่ให้ขึ้นว่าเลยกำหนดชำระ
+        late_fee_locked: true, // ล็อคค่าปรับสำหรับบิลการจอง
         total_amount: totalRequired,
         paid_amount: booking.deposit_amount,
         security_deposit_amount: booking_type === 'monthly' ? (payload.security_deposit || 0) : 0,
@@ -168,8 +169,7 @@ Deno.serve(async (req) => {
         payment_slip_url: booking.deposit_slip_url || '',
         payment_method: 'transfer',
         line_user_id: payload.line_user_id || '',
-        notes: notes,
-        late_fee_locked: true
+        notes: notes
       });
     }
 
