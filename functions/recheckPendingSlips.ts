@@ -393,43 +393,25 @@ Deno.serve(async (req) => {
                 // ⭐ ถ้าพบว่าเป็นรหัส 200500 (ไม่ใช่รูปสลิป) ให้ล้างข้อมูลทิ้งทันที
                 if (isFraudSlip) {
                     console.log(`   ❌ Error 200500: Not a valid slip. Clearing data silently.`);
-                    let newNotes = payment.notes || '';
-                    newNotes = newNotes.replace(/\n\n⚠️ รอตรวจสอบ:.*$/, '');
-                    await entityService.Payment.update(payment.id, { payment_slip_url: null, notes: newNotes });
-                    failCount++;
-                    continue;
-                }
-
-                // ⭐ ถ้าเป็น Duplicate และมี data ถือว่าสลิปถูกต้อง
-                if (isDuplicate && slip2goData.data) {
-                    console.log(`   ⚠️ Slip is duplicated but valid - processing as successful`);
-                } 
-                // ⭐ ถ้าเป็น Duplicate แต่ไม่มี data = สลิปนี้ถูกใช้ไปที่อื่นแล้ว ไม่สามารถตรวจสอบได้
-                else if (isDuplicate && !slip2goData.data) {
-                    console.log(`   ❌ Slip is duplicate and has no data. Clearing payment_slip_url to prevent infinite recheck.`);
                     
+                    // ลบคำว่า "รอตรวจสอบ..." ออกจาก notes
                     let newNotes = payment.notes || '';
                     newNotes = newNotes.replace(/\n\n⚠️ รอตรวจสอบ:.*$/, '');
                     
                     await entityService.Payment.update(payment.id, {
-                        payment_slip_url: null,
-                        notes: `${newNotes}\n\n❌ ตรวจสอบอัตโนมัติ: สลิปนี้เคยถูกใช้ไปแล้ว กรุณาอัปโหลดใหม่`
+                        payment_slip_url: null, // เคลียร์รูปทิ้ง ไม่ให้ค้างในบิล
+                        notes: newNotes
                     });
                     
-                    // แจ้งเตือนผู้เช่า
-                    const tenant = tenants.find(t => t.id === payment.tenant_id);
-                    if (tenant?.line_user_id) {
-                        await sendLineMessage(base44, tenant.line_user_id, 
-                            `⚠️ สลิปที่คุณส่งมาเคยถูกใช้ไปแล้ว\n\nระบบไม่สามารถตรวจสอบซ้ำได้ กรุณาตรวจสอบและส่งสลิปใหม่ที่ถูกต้องค่ะ`,
-                            payment.branch_id,
-                            configs
-                        );
-                    }
                     failCount++;
                     continue;
-                } 
-                // ⭐ กรณี Error อื่นๆ ที่ไม่ใช่ Duplicate
-                else if (!isSlipValid) {
+                }
+
+                // ⭐ ถ้าเป็น Duplicate - ถือว่าสลิปถูกต้อง (เคยตรวจสอบผ่านแล้ว)
+                if (isDuplicate && slip2goData.data) {
+                    console.log(`   ⚠️ Slip is duplicated but valid - processing as successful`);
+                    // ดำเนินการต่อเหมือนสลิปถูกต้อง
+                } else if (!isSlipValid && !isDuplicate) {
                     const retryCount = (payment.notes.match(/ลองครั้งที่/g) || []).length;
 
                     if (retryCount >= 3) {
