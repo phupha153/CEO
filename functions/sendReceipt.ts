@@ -89,17 +89,25 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ✅ ตรวจสอบ authentication (รองรับทั้ง User ปกติและ System Cron Job)
-        let user = null;
-        let isSystemCall = false;
+        // ✅ ตรวจสอบ authentication ก่อน
+        let user;
         try {
             user = await base44.auth.me();
         } catch (authError) {
-            console.log('No user session found, assuming system call (Cron Job)');
+            console.error('Authentication error:', authError);
+            return Response.json({ 
+                success: false,
+                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
+                message: 'Unauthorized - Please login again'
+            }, { status: 401 });
         }
 
         if (!user) {
-            isSystemCall = true;
+            return Response.json({ 
+                success: false,
+                error: 'ไม่ได้รับอนุญาต',
+                message: 'User not authenticated'
+            }, { status: 401 });
         }
 
         // ✅ Parse request body
@@ -160,7 +168,7 @@ Deno.serve(async (req) => {
         console.log('✅ Payment found:', payment.id, 'Status:', payment.status);
 
         // 🔒 Security: Branch Access Check
-        if (!isSystemCall && payment.branch_id) {
+        if (payment.branch_id) {
             const userAccessibleBranches = user.accessible_branches;
             const isDeveloper = user.custom_role === 'developer';
             const isOwner = user.custom_role === 'owner';
