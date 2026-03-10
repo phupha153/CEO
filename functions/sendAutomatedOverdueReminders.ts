@@ -641,7 +641,6 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                 lineUserId: hasLine ? tenant.line_user_id : null,
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
                 message: message,
-                imageUrl: qrCodeUrl,
                 metadata: {
                     paymentId: latestPayment.id,
                     tenantId: tenant.id,
