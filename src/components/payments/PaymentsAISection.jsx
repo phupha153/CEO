@@ -7,46 +7,14 @@ import AISearchBox from "../shared/AISearchBox";
 import AIActionConfirmation from "../shared/AIActionConfirmation";
 import AIResultCard from "../shared/AIResultCard";
 
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AnimatePresence, motion } from "framer-motion";
-
 export default function PaymentsAISection({
   searchQuery, setSearchQuery, handleAISearch, handleStopAISearch, aiSearching,
   aiAction, handleAIActionConfirm, handleAIActionCancel, aiActionLoading,
-  aiResult, payments, getEffectiveStatus, calculateLateFee, handlePaymentClick,
-  dateRangeType, setDateRangeType, statusFilter, setStatusFilter
+  aiResult, payments, getEffectiveStatus, calculateLateFee, handlePaymentClick
 }) {
-  const [showFilters, setShowFilters] = useState(false);
-  const filterRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Check if clicked outside the filter container
-      // Ignore clicks on Select portals (which attach to body and have specific roles or classes)
-      if (
-        filterRef.current && 
-        !filterRef.current.contains(event.target) &&
-        !event.target.closest('[role="listbox"]') && 
-        !event.target.closest('[data-radix-select-content]') &&
-        !event.target.closest('[id^="radix-"]')
-      ) {
-        setShowFilters(false);
-      }
-    };
-    if (showFilters) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showFilters]);
-
   return (
     <>
-      <div className="relative w-full z-40">
+      <div className="relative">
         <AISearchBox
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -54,62 +22,6 @@ export default function PaymentsAISection({
           onStopSearch={handleStopAISearch}
           aiSearching={aiSearching}
           placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
-          filterNode={
-            <div className="relative" ref={filterRef}>
-              <Button 
-                variant={showFilters ? "default" : "outline"} 
-                className={`h-9 md:h-12 w-9 md:w-12 rounded-xl md:rounded-2xl p-0 flex items-center justify-center transition-colors ${showFilters ? 'bg-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="w-4 h-4 md:w-5 md:h-5" />
-              </Button>
-
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-[calc(100%+8px)] w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-[9999]"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <h4 className="font-medium text-slate-800">ตัวกรองเพิ่มเติม</h4>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
-                        <Select value={dateRangeType} onValueChange={setDateRangeType}>
-                          <SelectTrigger className="w-full text-sm bg-slate-50/50 shadow-sm border-slate-300 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[10000]">
-                            <SelectItem value="this_month">เดือนนี้</SelectItem>
-                            <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
-                            <SelectItem value="all">ทั้งหมด</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-full text-sm bg-slate-50/50 shadow-sm border-slate-300 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[10000]">
-                            <SelectItem value="all">ทั้งหมด</SelectItem>
-                            <SelectItem value="pending">รอชำระ</SelectItem>
-                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
-                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          }
         />
 
         {aiSearching && (

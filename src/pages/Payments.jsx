@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, CreditCard, Upload, Receipt, Edit2, Trash2, DoorOpen, Zap, Droplets, Wifi, Calculator, Send, Users, FileText, AlertTriangle, LayoutGrid, Table as TableIcon, Clock, CheckCircle2, XCircle, Wand2, Building2, TestTube, Search, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Sparkles, Loader2, ChevronDown, ChevronUp, User, Home, CheckSquare, Check, Settings, Filter } from "lucide-react";
+import { Plus, CreditCard, Upload, Receipt, Edit2, Trash2, DoorOpen, Zap, Droplets, Wifi, Calculator, Send, Users, FileText, AlertTriangle, LayoutGrid, Table as TableIcon, Clock, CheckCircle2, XCircle, Wand2, Building2, TestTube, Search, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Sparkles, Loader2, ChevronDown, ChevronUp, User, Home, CheckSquare, Check, Settings } from "lucide-react";
 import { format, parseISO, differenceInDays, addMonths, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, isWithinInterval } from "date-fns";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,15 +56,18 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'monthly');
+  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'all');
   const [dateRangeType, setDateRangeType] = useState('this_month');
   const [customRange, setCustomRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('payments_view_mode') || 'room');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('payments_view_mode') || 'room';
+  });
   const [displayLimit, setDisplayLimit] = useState(50);
   const loadMoreRef = useRef(null);
-  const [sortBy, setSortBy] = useState('due_date');
-  useEffect(() => { if (bookingTypeFilter === 'daily' && viewMode === 'room') setViewMode('card'); }, [bookingTypeFilter, viewMode]);
+  const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
@@ -392,6 +395,10 @@ export default function PaymentsPage() {
     gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    if (!configs || configs.length === 0 || !selectedBranchId) return;
+  }, []);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
@@ -2186,24 +2193,88 @@ export default function PaymentsPage() {
         icon={CreditCard}
         actions={
           <>
-            {canAdd && bookingTypeFilter !== 'daily' && tenants.length > 0 && <>{canSendCommsManual && <SendAdvanceReminderButton compact />}<GenerateMonthlyBillsButton branchId={selectedBranchId} /></>}
-            {canAdd && (tenantsFetching || bookingsFetching ? (
-              <Button disabled className="bg-slate-400 shadow-lg gap-2 cursor-wait"><Loader2 className="w-5 h-5 animate-spin" /><span className="hidden md:inline">กำลังโหลด...</span></Button>
-            ) : bookingTypeFilter !== 'daily' && tenants.length === 0 ? (
-              <Button disabled className="bg-slate-400 shadow-lg gap-2" title="ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อน"><Plus className="w-5 h-5" /><span className="hidden md:inline">เพิ่มการชำระเงิน</span></Button>
-            ) : (
-              <Button onClick={() => { setEditingPayment(null); resetForm(); setShowDialog(true); }} data-onboarding="create-payment-button" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg gap-2"><Plus className="w-5 h-5" /><span className="hidden md:inline">เพิ่มการชำระเงิน</span></Button>
-            ))}
+            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length > 0 && (
+              <Button
+                onClick={() => {
+                  setEditingPayment(null);
+                  resetForm();
+                  setShowDialog(true);
+                }}
+                data-onboarding="create-payment-button"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
+              </Button>
+            )}
+            {canAdd && (tenantsFetching || bookingsFetching) && (
+              <Button
+                disabled
+                className="bg-slate-400 shadow-lg gap-2 cursor-wait"
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="hidden md:inline">กำลังโหลด...</span>
+              </Button>
+            )}
+            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length === 0 && (
+              <Button
+                disabled
+                className="bg-slate-400 shadow-lg gap-2"
+                title="ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อน"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
+              </Button>
+            )}
           </>
         }
       />
 
       <div className="px-4 md:px-8 py-3 md:py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-3 md:space-y-6">
-          <div className="flex justify-between items-center -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto"><button onClick={() => { setBookingTypeFilter('monthly'); setViewMode(localStorage.getItem('payments_view_mode') || 'room'); }} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => { setBookingTypeFilter('daily'); setViewMode('card'); }} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div>{bookingTypeFilter !== 'daily' && (<div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 hidden md:flex"><button onClick={() => { setViewMode('room'); localStorage.setItem('payments_view_mode', 'room'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'room' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบห้อง"><Home className="w-5 h-5" /></button><button onClick={() => { setViewMode('card'); localStorage.setItem('payments_view_mode', 'card'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'card' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบการ์ด"><LayoutGrid className="w-5 h-5" /></button><button onClick={() => { setViewMode('table'); localStorage.setItem('payments_view_mode', 'table'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'table' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบตาราง"><TableIcon className="w-5 h-5" /></button></div>)}</div>
-          <PaymentStatCards displayCounts={displayCounts} totalAmounts={totalAmounts} statusFilter={statusFilter} setStatusFilter={setStatusFilter} isLoading={viewMode === 'room' ? roomViewFetching : paymentsLoading} />
-          {bookingTypeFilter !== 'monthly' && (<Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-lg rounded-2xl md:rounded-3xl overflow-visible sticky top-[73px] md:top-[85px] z-30"><div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" /><CardContent className="p-3 md:p-4 relative"><PaymentsAISection searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleAISearch={handleAISearch} handleStopAISearch={handleStopAISearch} aiSearching={aiSearching} aiAction={aiAction} handleAIActionConfirm={handleAIActionConfirm} handleAIActionCancel={handleAIActionCancel} aiActionLoading={aiActionLoading} aiResult={aiResult} payments={payments} getEffectiveStatus={getEffectiveStatus} calculateLateFee={calculateLateFee} handlePaymentClick={handlePaymentClick} dateRangeType={dateRangeType} setDateRangeType={setDateRangeType} statusFilter={statusFilter} setStatusFilter={setStatusFilter} /></CardContent></Card>)}
-          <PaymentsReviewBanner viewMode={viewMode} roomViewPayments={roomViewPayments} payments={payments} paymentsLoading={paymentsLoading} roomViewFetching={roomViewFetching} rooms={rooms} tenants={tenants} setSlipPreview={setSlipPreview} setConfirmPaymentDialog={setConfirmPaymentDialog} updateStatusMutation={updateStatusMutation} setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog} />
+          <div className="flex justify-center md:justify-start -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto max-w-full"><button onClick={() => setBookingTypeFilter('all')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'all' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>ทั้งหมด</button><button onClick={() => setBookingTypeFilter('monthly')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => setBookingTypeFilter('daily')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div></div>
+          <Card className="hidden md:block bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
+            <CardContent className="p-4 md:p-6 relative">
+              <PaymentsAISection
+                searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleAISearch={handleAISearch} handleStopAISearch={handleStopAISearch}
+                aiSearching={aiSearching} aiAction={aiAction} handleAIActionConfirm={handleAIActionConfirm} handleAIActionCancel={handleAIActionCancel}
+                aiActionLoading={aiActionLoading} aiResult={aiResult} payments={payments} getEffectiveStatus={getEffectiveStatus} calculateLateFee={calculateLateFee} handlePaymentClick={handlePaymentClick}
+              />
+            </CardContent>
+          </Card>
+          <PaymentsReviewBanner
+            viewMode={viewMode} roomViewPayments={roomViewPayments} payments={payments} paymentsLoading={paymentsLoading} roomViewFetching={roomViewFetching}
+            rooms={rooms} tenants={tenants} setSlipPreview={setSlipPreview} setConfirmPaymentDialog={setConfirmPaymentDialog} updateStatusMutation={updateStatusMutation}
+            setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog}
+          />
+          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg sticky top-[73px] md:top-[85px] z-30">
+            <CardContent className="p-3">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1"><label className="text-xs font-semibold text-slate-700 mb-1 block">ค้นหา</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><Input placeholder="ค้นหาห้อง หรือผู้เช่า..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/90 shadow-inner border-slate-200" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>)}</div></div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+                  <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                    <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="3_months">3 เดือน</SelectItem><SelectItem value="6_months">6 เดือน</SelectItem><SelectItem value="12_months">12 เดือน</SelectItem><SelectItem value="this_year">ปีนี้</SelectItem><SelectItem value="last_year">ปีที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="custom">กำหนดเอง</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="partial_paid">ชำระบางส่วน</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent></Select>
+                  </div>
+                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
+                    <Select value={sortBy} onValueChange={setSortBy}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="due_date">วันครบกำหนด</SelectItem><SelectItem value="room">หมายเลขห้อง</SelectItem><SelectItem value="created_date">วันที่สร้าง</SelectItem><SelectItem value="amount">ยอดเงิน</SelectItem></SelectContent></Select>
+                  </div>
+                  {dateRangeType === 'custom' && (
+                    <div className="flex flex-col gap-1"><label className="text-xs font-semibold text-slate-700">วันที่</label>
+                      <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"><CalendarIcon className="w-4 h-4" />{format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}</Button></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end"><CalendarComponent mode="range" selected={customRange} onSelect={(r) => { if (r?.from && r?.to) setCustomRange(r); }} numberOfMonths={2} locale={th} /></PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {viewMode === 'card' && paymentsLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
@@ -2908,7 +2979,7 @@ export default function PaymentsPage() {
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {!tenantsFetching && !bookingsFetching && bookingTypeFilter !== 'daily' && tenants.length === 0 && bookings.length === 0 && (
+                    {!tenantsFetching && !bookingsFetching && tenants.length === 0 && bookings.length === 0 && (
                       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
@@ -3391,15 +3462,45 @@ export default function PaymentsPage() {
                                          <div className="space-y-3">
                                            <p className="text-sm text-slate-500">ไม่มีบิลในเดือนนี้</p>
                                            {canAdd && (
-                                             <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700" onClick={async () => {
-                                               const b = bookings.find(x => x.room_id === room.id && x.status === 'active');
-                                               if (b || room.room_type === 'daily') {
-                                                 setEditingPayment(null); resetForm();
-                                                 setFormData({ booking_id: b?.id||'', tenant_id: b?.tenant_id||'', room_id: room.id, meter_reading_id: '', payment_date: '', due_date: calculateDueDate(), rent_amount: 0, water_units: 0, water_rate: 0, water_amount: 0, electricity_units: 0, electricity_rate: 0, electricity_amount: 0, internet_amount: 0, common_fee_amount: 0, parking_fee_amount: 0, other_amount: 0, payment_method: 'cash', payment_slip_url: '', notes: '' });
-                                                 setShowDialog(true); if(b) setTimeout(() => autoCalculatePayment(room.id), 100);
-                                               } else toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
-                                             }}>
-                                               <Plus className="w-3 h-3 mr-1" /> สร้างบิล
+                                             <Button
+                                               size="sm"
+                                               className="w-full bg-blue-600 hover:bg-blue-700"
+                                               onClick={async () => {
+                                                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
+                                                 if (activeBooking) {
+                                                   setEditingPayment(null);
+                                                   resetForm();
+                                                   setFormData({
+                                                     booking_id: activeBooking.id,
+                                                     tenant_id: activeBooking.tenant_id,
+                                                     room_id: room.id,
+                                                     meter_reading_id: '',
+                                                     payment_date: '',
+                                                     due_date: calculateDueDate(),
+                                                     rent_amount: 0,
+                                                     water_units: 0,
+                                                     water_rate: 0,
+                                                     water_amount: 0,
+                                                     electricity_units: 0,
+                                                     electricity_rate: 0,
+                                                     electricity_amount: 0,
+                                                     internet_amount: 0,
+                                                     common_fee_amount: 0,
+                                                     parking_fee_amount: 0,
+                                                     other_amount: 0,
+                                                     payment_method: 'cash',
+                                                     payment_slip_url: '',
+                                                     notes: ''
+                                                   });
+                                                   setShowDialog(true);
+                                                   setTimeout(() => autoCalculatePayment(room.id), 100);
+                                                 } else {
+                                                   toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
+                                                 }
+                                               }}
+                                             >
+                                               <Plus className="w-3 h-3 mr-1" />
+                                               สร้างบิล
                                              </Button>
                                            )}
                                          </div>
@@ -3448,12 +3549,19 @@ export default function PaymentsPage() {
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
                       {rooms
-                        .filter(r => bookingTypeFilter === 'daily' ? r.room_type === 'daily' : (r.status === 'occupied' && r.room_type !== 'daily'))
-                        .sort((a, b) => a.floor !== b.floor ? a.floor - b.floor : a.room_number.localeCompare(b.room_number))
-                        .map(r => {
-                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active');
-                          const t = b ? tenants.find(x => x.id === b.tenant_id) : null;
-                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} {b ? `- ${t?.full_name || b?.guest_name || 'ไม่มีข้อมูล'}` : '(สร้างบิลกำหนดเอง)'}</SelectItem>
+                        .filter(r => r.status === 'occupied')
+                        .sort((a, b) => {
+                          if (a.floor !== b.floor) return a.floor - b.floor;
+                          return a.room_number.localeCompare(b.room_number);
+                        })
+                        .map(room => {
+                          const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
+                          const tenant = activeBooking ? tenants.find(t => t.id === activeBooking.tenant_id) : null;
+                          return (
+                            <SelectItem key={room.id} value={room.id}>
+                              ห้อง {room.room_number} - {tenant?.full_name || 'ไม่พบข้อมูลผู้เช่า'}
+                            </SelectItem>
+                          );
                         })}
                     </SelectContent>
                   </Select>
