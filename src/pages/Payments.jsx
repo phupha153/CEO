@@ -611,9 +611,9 @@ export default function PaymentsPage() {
         return;
       }
 
-      const activeBooking = bookings.find(b => b.room_id === roomId && b.status === 'active');
-      if (!activeBooking) {
-        toast.error('ไม่พบข้อมูลการจองที่ใช้งานอยู่ของห้องนี้');
+      const activeBooking = bookings.find(b => b.room_id === roomId && b.status === 'active') || bookings.find(b => b.room_id === roomId);
+      if (!activeBooking && room.room_type !== 'daily') {
+        toast.error('ไม่พบข้อมูลการจองของห้องนี้');
         setAutoCalculating(false);
         return;
       }
