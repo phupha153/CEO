@@ -63,6 +63,12 @@ export default function AISearchBox({
           </Button>
         )}
       </div>
+      </div>
+      {filterNode && (
+        <div className="flex-shrink-0">
+          {filterNode}
+        </div>
+      )}
     </div>
   );
 }
