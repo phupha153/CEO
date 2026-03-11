@@ -35,7 +35,7 @@ export default function PaymentsAISection({
                   <Filter className="w-4 h-4 md:w-5 md:h-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-4 z-[100]" align="end">
+              <PopoverContent className="w-72 p-4 z-[200]" align="end">
                 <div className="space-y-4">
                   <h4 className="font-medium text-slate-800 border-b pb-2">ตัวกรองเพิ่มเติม</h4>
                   <div className="space-y-2">
@@ -44,7 +44,7 @@ export default function PaymentsAISection({
                       <SelectTrigger className="w-full text-sm bg-white/90 shadow-sm border-slate-300 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[250]">
                         <SelectItem value="this_month">เดือนนี้</SelectItem>
                         <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
                         <SelectItem value="all">ทั้งหมด</SelectItem>
@@ -57,7 +57,7 @@ export default function PaymentsAISection({
                       <SelectTrigger className="w-full text-sm bg-white/90 shadow-sm border-slate-300 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[250]">
                         <SelectItem value="all">ทั้งหมด</SelectItem>
                         <SelectItem value="pending">รอชำระ</SelectItem>
                         <SelectItem value="overdue">เกินกำหนด</SelectItem>
