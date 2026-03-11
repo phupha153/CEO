@@ -3503,7 +3503,7 @@ export default function PaymentsPage() {
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
                       {rooms
-                        .filter(r => bookingTypeFilter === 'daily' ? (r.room_type === 'daily' && bookings.some(b => b.room_id === r.id)) : (r.status === 'occupied' && r.room_type !== 'daily'))
+                        .filter(r => bookingTypeFilter === 'daily' ? r.room_type === 'daily' : (r.status === 'occupied' && r.room_type !== 'daily'))
                         .sort((a, b) => a.floor !== b.floor ? a.floor - b.floor : a.room_number.localeCompare(b.room_number))
                         .map(r => {
                           const b = bookings.find(x => x.room_id === r.id && x.status === 'active') || bookings.find(x => x.room_id === r.id);
