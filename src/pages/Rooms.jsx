@@ -3537,23 +3537,21 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                         <Button 
                                           variant="outline" 
                                           size="sm"
-                                          onClick={() => {
-                                            if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
+                                          onClick={async () => {
+                                            if (!confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) return;
+                                            try {
                                               const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
-                                              const deletePromise = isTemp
-                                                ? base44.entities.TemporaryBooking.delete(displayBooking.id)
-                                                : base44.entities.Booking.update(displayBooking.id, { status: 'cancelled' });
-                                              
-                                              deletePromise.then(() => {
-                                                base44.entities.Room.update(selectedRoom.id, { status: 'available' });
-                                                queryClient.invalidateQueries(['bookings']);
-                                                queryClient.invalidateQueries(['temporaryBookings']);
-                                                queryClient.invalidateQueries(['rooms']);
-                                                setShowDetailDialog(false);
-                                                toast.success('ยกเลิกการจองสำเร็จ');
-                                              }).catch(err => {
-                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
-                                              });
+                                              if (isTemp) await base44.entities.TemporaryBooking.delete(displayBooking.id);
+                                              else await base44.entities.Booking.update(displayBooking.id, { status: 'cancelled' });
+                                              await base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                              await queryClient.invalidateQueries(['bookings']);
+                                              await queryClient.invalidateQueries(['temporaryBookings']);
+                                              await queryClient.invalidateQueries(['rooms']);
+                                              await queryClient.refetchQueries(['rooms', selectedBranchId, 'v2']);
+                                              setShowDetailDialog(false);
+                                              toast.success('ยกเลิกการจองสำเร็จ (เปลี่ยนสถานะห้องเป็นว่างแล้ว)');
+                                            } catch (err) {
+                                              toast.error('เกิดข้อผิดพลาด: ' + err.message);
                                             }
                                           }}
                                           className="bg-red-600 text-white border-red-600 hover:bg-red-700"
