@@ -2186,7 +2186,7 @@ export default function PaymentsPage() {
         icon={CreditCard}
         actions={
           <>
-            {canAdd && bookingTypeFilter !== 'daily' && tenants.length > 0 && <GenerateMonthlyBillsButton branchId={selectedBranchId} />}
+            {canAdd && bookingTypeFilter !== 'daily' && tenants.length > 0 && <>{canSendCommsManual && <SendAdvanceReminderButton compact />}<GenerateMonthlyBillsButton branchId={selectedBranchId} /></>}
             {canAdd && (tenantsFetching || bookingsFetching ? (
               <Button disabled className="bg-slate-400 shadow-lg gap-2 cursor-wait"><Loader2 className="w-5 h-5 animate-spin" /><span className="hidden md:inline">กำลังโหลด...</span></Button>
             ) : bookingTypeFilter !== 'daily' && tenants.length === 0 ? (
