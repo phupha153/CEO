@@ -27,8 +27,7 @@ import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
 import PaymentStatCards from "@/components/payments/PaymentStatCards";
 import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
-import PaymentsAISection from "@/components/payments/PaymentsAISection";
-import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
+import PaymentsAISection from "@/components/payments/PaymentsAISection"; import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner"; import PaymentsFilterBar from "@/components/payments/PaymentsFilterBar";
 import { getAISearchPrompt, getBulkAIPrompt } from "@/components/payments/PaymentsAIPrompts";
 
 export default function PaymentsPage() {
