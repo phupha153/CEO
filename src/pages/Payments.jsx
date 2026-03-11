@@ -2186,39 +2186,14 @@ export default function PaymentsPage() {
         icon={CreditCard}
         actions={
           <>
-            {canAdd && !tenantsFetching && !bookingsFetching && (bookingTypeFilter === 'daily' || tenants.length > 0) && (
-              <Button
-                onClick={() => {
-                  setEditingPayment(null);
-                  resetForm();
-                  setShowDialog(true);
-                }}
-                data-onboarding="create-payment-button"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
-              </Button>
-            )}
-            {canAdd && (tenantsFetching || bookingsFetching) && (
-              <Button
-                disabled
-                className="bg-slate-400 shadow-lg gap-2 cursor-wait"
-              >
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="hidden md:inline">กำลังโหลด...</span>
-              </Button>
-            )}
-            {canAdd && !tenantsFetching && !bookingsFetching && bookingTypeFilter !== 'daily' && tenants.length === 0 && (
-              <Button
-                disabled
-                className="bg-slate-400 shadow-lg gap-2"
-                title="ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อน"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
-              </Button>
-            )}
+            {canAdd && bookingTypeFilter !== 'daily' && tenants.length > 0 && <GenerateMonthlyBillsButton branchId={selectedBranchId} />}
+            {canAdd && (tenantsFetching || bookingsFetching ? (
+              <Button disabled className="bg-slate-400 shadow-lg gap-2 cursor-wait"><Loader2 className="w-5 h-5 animate-spin" /><span className="hidden md:inline">กำลังโหลด...</span></Button>
+            ) : bookingTypeFilter !== 'daily' && tenants.length === 0 ? (
+              <Button disabled className="bg-slate-400 shadow-lg gap-2" title="ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อน"><Plus className="w-5 h-5" /><span className="hidden md:inline">เพิ่มการชำระเงิน</span></Button>
+            ) : (
+              <Button onClick={() => { setEditingPayment(null); resetForm(); setShowDialog(true); }} data-onboarding="create-payment-button" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg gap-2"><Plus className="w-5 h-5" /><span className="hidden md:inline">เพิ่มการชำระเงิน</span></Button>
+            ))}
           </>
         }
       />
