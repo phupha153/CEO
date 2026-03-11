@@ -2271,10 +2271,10 @@ export default function PaymentsPage() {
                       </Popover>
                     </div>
                   )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {viewMode === 'card' && paymentsLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
