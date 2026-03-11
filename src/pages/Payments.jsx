@@ -29,6 +29,8 @@ import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
 import PaymentStatCards from "@/components/payments/PaymentStatCards";
 import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
+import PaymentsAISection from "@/components/payments/PaymentsAISection";
+import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -427,93 +429,33 @@ export default function PaymentsPage() {
       case 'all':
         return null;
       case 'this_month': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth();
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-          if (cycleMonth < 0) {
-            cycleMonth = 11;
-            cycleYear -= 1;
-          }
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
+        let cm = now.getMonth(), cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
       }
       case 'last_month': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 1;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        if (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
+        let cm = now.getMonth() - 1, cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) cm -= 1;
+        if (cm < 0) { cm += 12; cy -= 1; }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
       }
       case '3_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 2;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
+        let cm = now.getMonth() - 2, cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) cm -= 1;
+        while (cm < 0) { cm += 12; cy -= 1; }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
       }
       case '6_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 5;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
+        let cm = now.getMonth() - 5, cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) cm -= 1;
+        while (cm < 0) { cm += 12; cy -= 1; }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
       }
       case '12_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 11;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
+        let cm = now.getMonth() - 11, cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) cm -= 1;
+        while (cm < 0) { cm += 12; cy -= 1; }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
       }
       case 'this_year':
         return { from: startOfYear(now), to: endOfYear(now) };
