@@ -3421,36 +3421,32 @@ export default function PaymentsPage() {
                                                className="w-full bg-blue-600 hover:bg-blue-700"
                                                onClick={async () => {
                                                  const b = bookings.find(x => x.room_id === room.id && x.status === 'active') || bookings.find(x => x.room_id === room.id);
-                                                 if (b) {
-                                                   setEditingPayment(null);
-                                                   resetForm();
-                                                   setFormData({
-                                                     booking_id: b.id,
-                                                     tenant_id: b.tenant_id,
-                                                     room_id: room.id,
-                                                     meter_reading_id: '',
-                                                     payment_date: '',
-                                                     due_date: calculateDueDate(),
-                                                     rent_amount: 0,
-                                                     water_units: 0,
-                                                     water_rate: 0,
-                                                     water_amount: 0,
-                                                     electricity_units: 0,
-                                                     electricity_rate: 0,
-                                                     electricity_amount: 0,
-                                                     internet_amount: 0,
-                                                     common_fee_amount: 0,
-                                                     parking_fee_amount: 0,
-                                                     other_amount: 0,
-                                                     payment_method: 'cash',
-                                                     payment_slip_url: '',
-                                                     notes: ''
-                                                   });
-                                                   setShowDialog(true);
-                                                   setTimeout(() => autoCalculatePayment(room.id), 100);
-                                                 } else {
-                                                   toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
-                                                 }
+                                                 setEditingPayment(null);
+                                                 resetForm();
+                                                 setFormData({
+                                                   booking_id: b?.id || '',
+                                                   tenant_id: b?.tenant_id || '',
+                                                   room_id: room.id,
+                                                   meter_reading_id: '',
+                                                   payment_date: '',
+                                                   due_date: calculateDueDate(),
+                                                   rent_amount: 0,
+                                                   water_units: 0,
+                                                   water_rate: 0,
+                                                   water_amount: 0,
+                                                   electricity_units: 0,
+                                                   electricity_rate: 0,
+                                                   electricity_amount: 0,
+                                                   internet_amount: 0,
+                                                   common_fee_amount: 0,
+                                                   parking_fee_amount: 0,
+                                                   other_amount: 0,
+                                                   payment_method: 'cash',
+                                                   payment_slip_url: '',
+                                                   notes: ''
+                                                 });
+                                                 setShowDialog(true);
+                                                 setTimeout(() => autoCalculatePayment(room.id), 100);
                                                }}
                                              >
                                                <Plus className="w-3 h-3 mr-1" />
