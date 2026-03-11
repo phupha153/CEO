@@ -3495,20 +3495,20 @@ export default function PaymentsPage() {
                   <Select
                     value={formData.room_id}
                     onValueChange={(value) => {
-                      const activeBooking = bookings.find(b => b.room_id === value && b.status === 'active');
-                      setFormData({ ...formData, room_id: value, booking_id: activeBooking?.id || '', tenant_id: activeBooking?.tenant_id || '' });
+                      const b = bookings.find(b => b.room_id === value && b.status === 'active') || bookings.find(b => b.room_id === value);
+                      setFormData({ ...formData, room_id: value, booking_id: b?.id || '', tenant_id: b?.tenant_id || '' });
                     }}
                     disabled={!!editingPayment}
                   >
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
                       {rooms
-                        .filter(r => bookingTypeFilter === 'daily' ? (r.room_type === 'daily' && bookings.some(b => b.room_id === r.id && b.status === 'active')) : (r.status === 'occupied' && r.room_type !== 'daily'))
+                        .filter(r => bookingTypeFilter === 'daily' ? (r.room_type === 'daily' && bookings.some(b => b.room_id === r.id)) : (r.status === 'occupied' && r.room_type !== 'daily'))
                         .sort((a, b) => a.floor !== b.floor ? a.floor - b.floor : a.room_number.localeCompare(b.room_number))
                         .map(r => {
-                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active');
+                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active') || bookings.find(x => x.room_id === r.id);
                           const t = b ? tenants.find(x => x.id === b.tenant_id) : null;
-                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} - {t?.full_name || b?.guest_name || 'ไม่มีข้อมูล'}</SelectItem>
+                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} - {t?.full_name || b?.guest_name || 'ห้องว่าง'}</SelectItem>
                         })}
                     </SelectContent>
                   </Select>
