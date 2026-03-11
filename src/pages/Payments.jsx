@@ -47,11 +47,7 @@ export default function PaymentsPage() {
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [autoCalculating, setAutoCalculating] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [sendingAll, setSendingAll] = useState(false);
-  const [sendingReceipt, setSendingReceipt] = useState(false);
-  const [deletingTestData, setDeletingTestData] = useState(false);
-  const [expandedPayments, setExpandedPayments] = useState(new Set());
-  const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
+  const [sendingAll, setSendingAll] = useState(false); const [sendingReceipt, setSendingReceipt] = useState(false); const [deletingTestData, setDeletingTestData] = useState(false); const [expandedPayments, setExpandedPayments] = useState(new Set()); const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
