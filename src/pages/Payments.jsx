@@ -3519,22 +3519,10 @@ export default function PaymentsPage() {
                                        )}
 
           {displayLimit < filteredPayments.length && viewMode !== 'room' && (
-            <div ref={loadMoreRef} className="py-8 text-center">
-              <div className="inline-flex items-center gap-2 text-slate-600">
-                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <span>กำลังโหลดเพิ่ม...</span>
-              </div>
-            </div>
+            <div ref={loadMoreRef} className="py-8 text-center"><div className="inline-flex items-center gap-2 text-slate-600"><div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" /><span>กำลังโหลดเพิ่ม...</span></div></div>
           )}
-
           {displayLimit >= filteredPayments.length && filteredPayments.length > 50 && viewMode !== 'room' && (
-            <Card className="bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-4 text-center">
-                <p className="text-sm text-slate-600">
-                  แสดงครบทั้งหมด {filteredPayments.length} รายการ
-                </p>
-              </CardContent>
-            </Card>
+            <Card className="bg-white/80 backdrop-blur-sm"><CardContent className="p-4 text-center"><p className="text-sm text-slate-600">แสดงครบทั้งหมด {filteredPayments.length} รายการ</p></CardContent></Card>
           )}
 
           <Dialog open={showDialog} onOpenChange={(open) => { 
