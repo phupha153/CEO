@@ -923,12 +923,46 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
          const dueDate = booking.check_out_date || booking.contract_deadline || new Date().toISOString().split('T')[0];
         
         // คำนวณยอดรวมที่ต้องชำระ (ไม่รวมเงินจองที่จ่ายไปแล้ว)
-        const securityDeposit = booking.security_deposit || 0;
-        const advanceRent = booking.advance_rent || 0;
-        const commonFee = booking.common_fee_included || 0;
-        const totalRemaining = securityDeposit + advanceRent + commonFee;
+        const securityDeposit = parseFloat(booking.security_deposit || 0);
+        const advanceRent = parseFloat(booking.advance_rent || 0);
+        const commonFee = parseFloat(booking.common_fee_included || 0);
+        const depositAmount = parseFloat(booking.deposit_amount || 0);
+        const totalRemaining = Math.max(0, securityDeposit + advanceRent + commonFee - depositAmount);
         
         if (totalRemaining > 0) {
+          let pendingSecDep = securityDeposit;
+          let pendingAdvRent = advanceRent;
+          let pendingCommon = commonFee;
+          let remainingDepositToDeduct = depositAmount;
+
+          if (remainingDepositToDeduct > 0) {
+            if (remainingDepositToDeduct >= pendingSecDep) {
+              remainingDepositToDeduct -= pendingSecDep;
+              pendingSecDep = 0;
+            } else {
+              pendingSecDep -= remainingDepositToDeduct;
+              remainingDepositToDeduct = 0;
+            }
+          }
+          if (remainingDepositToDeduct > 0) {
+            if (remainingDepositToDeduct >= pendingAdvRent) {
+              remainingDepositToDeduct -= pendingAdvRent;
+              pendingAdvRent = 0;
+            } else {
+              pendingAdvRent -= remainingDepositToDeduct;
+              remainingDepositToDeduct = 0;
+            }
+          }
+          if (remainingDepositToDeduct > 0) {
+            if (remainingDepositToDeduct >= pendingCommon) {
+              remainingDepositToDeduct -= pendingCommon;
+              pendingCommon = 0;
+            } else {
+              pendingCommon -= remainingDepositToDeduct;
+              remainingDepositToDeduct = 0;
+            }
+          }
+
           // สร้างรายการชำระเงินรอดำเนินการ
           await base44.entities.Payment.create({
             branch_id: selectedBranchId,
@@ -938,15 +972,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             payment_category: 'security_deposit',
             due_date: dueDate,
             late_fee_locked: true,  // ล็อคค่าปรับสำหรับบิลแรกเข้า
-            security_deposit_amount: securityDeposit,
-            advance_rent_amount: advanceRent,
-            common_fee_amount: commonFee,
+            security_deposit_amount: pendingSecDep,
+            advance_rent_amount: pendingAdvRent,
+            common_fee_amount: pendingCommon,
             total_amount: totalRemaining,
             status: 'pending',
-            notes: `รายการชำระจากการจองห้อง ${room?.room_number || ''} - ${booking.guest_name}\n` +
-                   `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
-                   `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
-                   `ค่าส่วนกลาง: ${commonFee.toLocaleString()} บาท`
+            notes: `ยอดคงเหลือแรกเข้าห้อง ${room?.room_number || ''} - ${booking.guest_name}\n` +
+                   `(หักมัดจำแล้ว)`
           });
         }
       }
