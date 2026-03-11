@@ -27,14 +27,13 @@ import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
 import PaymentStatCards from "@/components/payments/PaymentStatCards";
 import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
-import PaymentsAISection from "@/components/payments/PaymentsAISection"; import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner"; import PaymentsFilterBar from "@/components/payments/PaymentsFilterBar";
+import PaymentsAISection from "@/components/payments/PaymentsAISection";
+import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
+import PaymentsFilterBar from "@/components/payments/PaymentsFilterBar";
 import { getAISearchPrompt, getBulkAIPrompt } from "@/components/payments/PaymentsAIPrompts";
 
 export default function PaymentsPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const selectedBranchId = localStorage.getItem('selected_branch_id');
-  const selectedBranchName = localStorage.getItem('selected_branch_name') || 'ไม่ระบุ';
+  const navigate = useNavigate(); const queryClient = useQueryClient(); const selectedBranchId = localStorage.getItem('selected_branch_id'); const selectedBranchName = localStorage.getItem('selected_branch_name') || 'ไม่ระบุ';
   
   const urlParams = new URLSearchParams(window.location.search);
   const initialStatusFilter = urlParams.get('status') || 'all';
