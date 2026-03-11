@@ -413,13 +413,9 @@ export default function PaymentsPage() {
     const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
     
     switch(dateRangeType) {
-      case 'all':
-        return null;
-      case 'this_month': {
-        let cm = now.getMonth(), cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
-      }
+      case 'all': return null;
+      case 'next_month': { let cm = now.getMonth() + 1, cy = now.getFullYear(); if (now.getDate() < billGenerationDay) { cm -= 1; } if (cm > 11) { cm -= 12; cy += 1; } if (cm < 0) { cm += 12; cy -= 1; } return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) }; }
+      case 'this_month': { let cm = now.getMonth(), cy = now.getFullYear(); if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } } return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) }; }
       case 'last_month': {
         let cm = now.getMonth() - 1, cy = now.getFullYear();
         if (now.getDate() < billGenerationDay) cm -= 1;
