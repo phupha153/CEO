@@ -7,11 +7,16 @@ import AISearchBox from "../shared/AISearchBox";
 import AIActionConfirmation from "../shared/AIActionConfirmation";
 import AIResultCard from "../shared/AIResultCard";
 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 export default function PaymentsAISection({
   searchQuery, setSearchQuery, handleAISearch, handleStopAISearch, aiSearching,
   aiAction, handleAIActionConfirm, handleAIActionCancel, aiActionLoading,
   aiResult, payments, getEffectiveStatus, calculateLateFee, handlePaymentClick,
-  filterNode = null
+  dateRangeType, setDateRangeType, statusFilter, setStatusFilter
 }) {
   return (
     <>
@@ -23,7 +28,47 @@ export default function PaymentsAISection({
           onStopSearch={handleStopAISearch}
           aiSearching={aiSearching}
           placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
-          filterNode={filterNode}
+          filterNode={
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 md:h-12 w-9 md:w-12 bg-white border-slate-200 text-slate-600 rounded-xl md:rounded-2xl p-0 hover:bg-slate-50 flex items-center justify-center">
+                  <Filter className="w-4 h-4 md:w-5 md:h-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-4 z-[100]" align="end">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-slate-800 border-b pb-2">ตัวกรองเพิ่มเติม</h4>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                    <Select value={dateRangeType} onValueChange={setDateRangeType}>
+                      <SelectTrigger className="w-full text-sm bg-white/90 shadow-sm border-slate-300 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="this_month">เดือนนี้</SelectItem>
+                        <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full text-sm bg-white/90 shadow-sm border-slate-300 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="pending">รอชำระ</SelectItem>
+                        <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                        <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          }
         />
 
         {aiSearching && (
