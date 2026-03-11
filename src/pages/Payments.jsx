@@ -3416,45 +3416,15 @@ export default function PaymentsPage() {
                                          <div className="space-y-3">
                                            <p className="text-sm text-slate-500">ไม่มีบิลในเดือนนี้</p>
                                            {canAdd && (
-                                             <Button
-                                               size="sm"
-                                               className="w-full bg-blue-600 hover:bg-blue-700"
-                                               onClick={async () => {
-                                                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
-                                                 if (activeBooking) {
-                                                   setEditingPayment(null);
-                                                   resetForm();
-                                                   setFormData({
-                                                     booking_id: activeBooking.id,
-                                                     tenant_id: activeBooking.tenant_id,
-                                                     room_id: room.id,
-                                                     meter_reading_id: '',
-                                                     payment_date: '',
-                                                     due_date: calculateDueDate(),
-                                                     rent_amount: 0,
-                                                     water_units: 0,
-                                                     water_rate: 0,
-                                                     water_amount: 0,
-                                                     electricity_units: 0,
-                                                     electricity_rate: 0,
-                                                     electricity_amount: 0,
-                                                     internet_amount: 0,
-                                                     common_fee_amount: 0,
-                                                     parking_fee_amount: 0,
-                                                     other_amount: 0,
-                                                     payment_method: 'cash',
-                                                     payment_slip_url: '',
-                                                     notes: ''
-                                                   });
-                                                   setShowDialog(true);
-                                                   setTimeout(() => autoCalculatePayment(room.id), 100);
-                                                 } else {
-                                                   toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
-                                                 }
-                                               }}
-                                             >
-                                               <Plus className="w-3 h-3 mr-1" />
-                                               สร้างบิล
+                                             <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700" onClick={async () => {
+                                               const b = bookings.find(x => x.room_id === room.id && x.status === 'active');
+                                               if (b || room.room_type === 'daily') {
+                                                 setEditingPayment(null); resetForm();
+                                                 setFormData({ booking_id: b?.id||'', tenant_id: b?.tenant_id||'', room_id: room.id, meter_reading_id: '', payment_date: '', due_date: calculateDueDate(), rent_amount: 0, water_units: 0, water_rate: 0, water_amount: 0, electricity_units: 0, electricity_rate: 0, electricity_amount: 0, internet_amount: 0, common_fee_amount: 0, parking_fee_amount: 0, other_amount: 0, payment_method: 'cash', payment_slip_url: '', notes: '' });
+                                                 setShowDialog(true); if(b) setTimeout(() => autoCalculatePayment(room.id), 100);
+                                               } else toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
+                                             }}>
+                                               <Plus className="w-3 h-3 mr-1" /> สร้างบิล
                                              </Button>
                                            )}
                                          </div>
