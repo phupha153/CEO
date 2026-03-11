@@ -2186,7 +2186,7 @@ export default function PaymentsPage() {
         icon={CreditCard}
         actions={
           <>
-            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length > 0 && (
+            {canAdd && !tenantsFetching && !bookingsFetching && (bookingTypeFilter === 'daily' || tenants.length > 0) && (
               <Button
                 onClick={() => {
                   setEditingPayment(null);
@@ -2209,7 +2209,7 @@ export default function PaymentsPage() {
                 <span className="hidden md:inline">กำลังโหลด...</span>
               </Button>
             )}
-            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length === 0 && (
+            {canAdd && !tenantsFetching && !bookingsFetching && bookingTypeFilter !== 'daily' && tenants.length === 0 && (
               <Button
                 disabled
                 className="bg-slate-400 shadow-lg gap-2"
