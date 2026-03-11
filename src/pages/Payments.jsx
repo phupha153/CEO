@@ -611,9 +611,9 @@ export default function PaymentsPage() {
         return;
       }
 
-      const activeBooking = bookings.find(b => b.room_id === roomId && b.status === 'active') || bookings.find(b => b.room_id === roomId);
-      if (!activeBooking && room.room_type !== 'daily') {
-        toast.error('ไม่พบข้อมูลการจองของห้องนี้');
+      const activeBooking = bookings.find(b => b.room_id === roomId && b.status === 'active');
+      if (!activeBooking) {
+        toast.error('ไม่พบข้อมูลการจองที่ใช้งานอยู่ของห้องนี้');
         setAutoCalculating(false);
         return;
       }
@@ -3420,33 +3420,37 @@ export default function PaymentsPage() {
                                                size="sm"
                                                className="w-full bg-blue-600 hover:bg-blue-700"
                                                onClick={async () => {
-                                                 const b = bookings.find(x => x.room_id === room.id && x.status === 'active') || bookings.find(x => x.room_id === room.id);
-                                                 setEditingPayment(null);
-                                                 resetForm();
-                                                 setFormData({
-                                                   booking_id: b?.id || '',
-                                                   tenant_id: b?.tenant_id || '',
-                                                   room_id: room.id,
-                                                   meter_reading_id: '',
-                                                   payment_date: '',
-                                                   due_date: calculateDueDate(),
-                                                   rent_amount: 0,
-                                                   water_units: 0,
-                                                   water_rate: 0,
-                                                   water_amount: 0,
-                                                   electricity_units: 0,
-                                                   electricity_rate: 0,
-                                                   electricity_amount: 0,
-                                                   internet_amount: 0,
-                                                   common_fee_amount: 0,
-                                                   parking_fee_amount: 0,
-                                                   other_amount: 0,
-                                                   payment_method: 'cash',
-                                                   payment_slip_url: '',
-                                                   notes: ''
-                                                 });
-                                                 setShowDialog(true);
-                                                 setTimeout(() => autoCalculatePayment(room.id), 100);
+                                                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
+                                                 if (activeBooking) {
+                                                   setEditingPayment(null);
+                                                   resetForm();
+                                                   setFormData({
+                                                     booking_id: activeBooking.id,
+                                                     tenant_id: activeBooking.tenant_id,
+                                                     room_id: room.id,
+                                                     meter_reading_id: '',
+                                                     payment_date: '',
+                                                     due_date: calculateDueDate(),
+                                                     rent_amount: 0,
+                                                     water_units: 0,
+                                                     water_rate: 0,
+                                                     water_amount: 0,
+                                                     electricity_units: 0,
+                                                     electricity_rate: 0,
+                                                     electricity_amount: 0,
+                                                     internet_amount: 0,
+                                                     common_fee_amount: 0,
+                                                     parking_fee_amount: 0,
+                                                     other_amount: 0,
+                                                     payment_method: 'cash',
+                                                     payment_slip_url: '',
+                                                     notes: ''
+                                                   });
+                                                   setShowDialog(true);
+                                                   setTimeout(() => autoCalculatePayment(room.id), 100);
+                                                 } else {
+                                                   toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
+                                                 }
                                                }}
                                              >
                                                <Plus className="w-3 h-3 mr-1" />
@@ -3491,20 +3495,20 @@ export default function PaymentsPage() {
                   <Select
                     value={formData.room_id}
                     onValueChange={(value) => {
-                      const b = bookings.find(b => b.room_id === value && b.status === 'active') || bookings.find(b => b.room_id === value);
-                      setFormData({ ...formData, room_id: value, booking_id: b?.id || '', tenant_id: b?.tenant_id || '' });
+                      const activeBooking = bookings.find(b => b.room_id === value && b.status === 'active');
+                      setFormData({ ...formData, room_id: value, booking_id: activeBooking?.id || '', tenant_id: activeBooking?.tenant_id || '' });
                     }}
                     disabled={!!editingPayment}
                   >
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
                       {rooms
-                        .filter(r => bookingTypeFilter === 'daily' ? r.room_type === 'daily' : (r.status === 'occupied' && r.room_type !== 'daily'))
+                        .filter(r => bookingTypeFilter === 'daily' ? (r.room_type === 'daily' && bookings.some(b => b.room_id === r.id && b.status === 'active')) : (r.status === 'occupied' && r.room_type !== 'daily'))
                         .sort((a, b) => a.floor !== b.floor ? a.floor - b.floor : a.room_number.localeCompare(b.room_number))
                         .map(r => {
-                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active') || bookings.find(x => x.room_id === r.id);
+                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active');
                           const t = b ? tenants.find(x => x.id === b.tenant_id) : null;
-                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} - {t?.full_name || b?.guest_name || 'ห้องว่าง'}</SelectItem>
+                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} - {t?.full_name || b?.guest_name || 'ไม่มีข้อมูล'}</SelectItem>
                         })}
                     </SelectContent>
                   </Select>
