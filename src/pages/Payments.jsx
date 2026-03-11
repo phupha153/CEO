@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, CreditCard, Upload, Receipt, Edit2, Trash2, DoorOpen, Zap, Droplets, Wifi, Calculator, Send, Users, FileText, AlertTriangle, LayoutGrid, Table as TableIcon, Clock, CheckCircle2, XCircle, Wand2, Building2, TestTube, Search, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Sparkles, Loader2, ChevronDown, ChevronUp, User, Home, CheckSquare, Check, Settings, Filter } from "lucide-react";
+import { Plus, CreditCard, Upload, Receipt, Edit2, Trash2, DoorOpen, Zap, Droplets, Wifi, Calculator, Send, Users, FileText, AlertTriangle, LayoutGrid, Table as TableIcon, Clock, CheckCircle2, XCircle, Wand2, Building2, TestTube, Search, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Sparkles, Loader2, ChevronDown, ChevronUp, User, Home, CheckSquare, Check, Settings } from "lucide-react";
 import { format, parseISO, differenceInDays, addMonths, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, isWithinInterval } from "date-fns";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,11 +29,13 @@ import PaymentStatCards from "@/components/payments/PaymentStatCards";
 import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
 import PaymentsAISection from "@/components/payments/PaymentsAISection";
 import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
-import PaymentsFilterBar from "@/components/payments/PaymentsFilterBar";
 import { getAISearchPrompt, getBulkAIPrompt } from "@/components/payments/PaymentsAIPrompts";
 
 export default function PaymentsPage() {
-  const navigate = useNavigate(); const queryClient = useQueryClient(); const selectedBranchId = localStorage.getItem('selected_branch_id'); const selectedBranchName = localStorage.getItem('selected_branch_name') || 'ไม่ระบุ';
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const selectedBranchId = localStorage.getItem('selected_branch_id');
+  const selectedBranchName = localStorage.getItem('selected_branch_name') || 'ไม่ระบุ';
   
   const urlParams = new URLSearchParams(window.location.search);
   const initialStatusFilter = urlParams.get('status') || 'all';
@@ -45,7 +47,11 @@ export default function PaymentsPage() {
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [autoCalculating, setAutoCalculating] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [sendingAll, setSendingAll] = useState(false); const [sendingReceipt, setSendingReceipt] = useState(false); const [deletingTestData, setDeletingTestData] = useState(false); const [expandedPayments, setExpandedPayments] = useState(new Set()); const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const [deletingTestData, setDeletingTestData] = useState(false);
+  const [expandedPayments, setExpandedPayments] = useState(new Set());
+  const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
@@ -412,9 +418,13 @@ export default function PaymentsPage() {
     const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
     
     switch(dateRangeType) {
-      case 'all': return null;
-      case 'next_month': { let cm = now.getMonth() + 1, cy = now.getFullYear(); if (now.getDate() < billGenerationDay) { cm -= 1; } if (cm > 11) { cm -= 12; cy += 1; } if (cm < 0) { cm += 12; cy -= 1; } return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) }; }
-      case 'this_month': { let cm = now.getMonth(), cy = now.getFullYear(); if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } } return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) }; }
+      case 'all':
+        return null;
+      case 'this_month': {
+        let cm = now.getMonth(), cy = now.getFullYear();
+        if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } }
+        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
+      }
       case 'last_month': {
         let cm = now.getMonth() - 1, cy = now.getFullYear();
         if (now.getDate() < billGenerationDay) cm -= 1;
@@ -2223,14 +2233,23 @@ export default function PaymentsPage() {
             setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog}
           />
           {bookingTypeFilter !== 'monthly' && (
-            <PaymentsFilterBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              dateRangeType={dateRangeType}
-              setDateRangeType={setDateRangeType}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-            />
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg sticky top-[73px] md:top-[85px] z-30">
+              <CardContent className="p-3">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1"><label className="text-xs font-semibold text-slate-700 mb-1 block">ค้นหา</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><Input placeholder="ค้นหาห้อง หรือผู้เช่า..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/90 shadow-inner border-slate-200" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>)}</div></div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                      <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem></SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent></Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {viewMode === 'card' && paymentsLoading ? (
