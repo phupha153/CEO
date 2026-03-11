@@ -3503,19 +3503,12 @@ export default function PaymentsPage() {
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
                       {rooms
-                        .filter(r => r.status === 'occupied')
-                        .sort((a, b) => {
-                          if (a.floor !== b.floor) return a.floor - b.floor;
-                          return a.room_number.localeCompare(b.room_number);
-                        })
-                        .map(room => {
-                          const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
-                          const tenant = activeBooking ? tenants.find(t => t.id === activeBooking.tenant_id) : null;
-                          return (
-                            <SelectItem key={room.id} value={room.id}>
-                              ห้อง {room.room_number} - {tenant?.full_name || 'ไม่พบข้อมูลผู้เช่า'}
-                            </SelectItem>
-                          );
+                        .filter(r => bookingTypeFilter === 'daily' ? (r.room_type === 'daily' && bookings.some(b => b.room_id === r.id && b.status === 'active')) : (r.status === 'occupied' && r.room_type !== 'daily'))
+                        .sort((a, b) => a.floor !== b.floor ? a.floor - b.floor : a.room_number.localeCompare(b.room_number))
+                        .map(r => {
+                          const b = bookings.find(x => x.room_id === r.id && x.status === 'active');
+                          const t = b ? tenants.find(x => x.id === b.tenant_id) : null;
+                          return <SelectItem key={r.id} value={r.id}>ห้อง {r.room_number} - {t?.full_name || b?.guest_name || 'ไม่มีข้อมูล'}</SelectItem>
                         })}
                     </SelectContent>
                   </Select>
