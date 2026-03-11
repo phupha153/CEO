@@ -3420,13 +3420,13 @@ export default function PaymentsPage() {
                                                size="sm"
                                                className="w-full bg-blue-600 hover:bg-blue-700"
                                                onClick={async () => {
-                                                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
-                                                 if (activeBooking) {
+                                                 const b = bookings.find(x => x.room_id === room.id && x.status === 'active') || bookings.find(x => x.room_id === room.id);
+                                                 if (b) {
                                                    setEditingPayment(null);
                                                    resetForm();
                                                    setFormData({
-                                                     booking_id: activeBooking.id,
-                                                     tenant_id: activeBooking.tenant_id,
+                                                     booking_id: b.id,
+                                                     tenant_id: b.tenant_id,
                                                      room_id: room.id,
                                                      meter_reading_id: '',
                                                      payment_date: '',
