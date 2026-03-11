@@ -2245,33 +2245,25 @@ export default function PaymentsPage() {
             rooms={rooms} tenants={tenants} setSlipPreview={setSlipPreview} setConfirmPaymentDialog={setConfirmPaymentDialog} updateStatusMutation={updateStatusMutation}
             setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog}
           />
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg sticky top-[73px] md:top-[85px] z-30">
-            <CardContent className="p-3">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1"><label className="text-xs font-semibold text-slate-700 mb-1 block">ค้นหา</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><Input placeholder="ค้นหาห้อง หรือผู้เช่า..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/90 shadow-inner border-slate-200" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>)}</div></div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-                  <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
-                    <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="3_months">3 เดือน</SelectItem><SelectItem value="6_months">6 เดือน</SelectItem><SelectItem value="12_months">12 เดือน</SelectItem><SelectItem value="this_year">ปีนี้</SelectItem><SelectItem value="last_year">ปีที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="custom">กำหนดเอง</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="partial_paid">ชำระบางส่วน</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent></Select>
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
-                    <Select value={sortBy} onValueChange={setSortBy}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="due_date">วันครบกำหนด</SelectItem><SelectItem value="room">หมายเลขห้อง</SelectItem><SelectItem value="created_date">วันที่สร้าง</SelectItem><SelectItem value="amount">ยอดเงิน</SelectItem></SelectContent></Select>
-                  </div>
-                  {dateRangeType === 'custom' && (
-                    <div className="flex flex-col gap-1"><label className="text-xs font-semibold text-slate-700">วันที่</label>
-                      <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"><CalendarIcon className="w-4 h-4" />{format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}</Button></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end"><CalendarComponent mode="range" selected={customRange} onSelect={(r) => { if (r?.from && r?.to) setCustomRange(r); }} numberOfMonths={2} locale={th} /></PopoverContent>
-                      </Popover>
+          {bookingTypeFilter !== 'monthly' && (
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg sticky top-[73px] md:top-[85px] z-30">
+              <CardContent className="p-3">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1"><label className="text-xs font-semibold text-slate-700 mb-1 block">ค้นหา</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><Input placeholder="ค้นหาห้อง หรือผู้เช่า..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/90 shadow-inner border-slate-200" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>)}</div></div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                      <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem></SelectContent>
+                      </Select>
                     </div>
-                  )}
+                    <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent></Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {viewMode === 'card' && paymentsLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
