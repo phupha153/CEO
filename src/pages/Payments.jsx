@@ -31,6 +31,7 @@ import PaymentStatCards from "@/components/payments/PaymentStatCards";
 import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
 import PaymentsAISection from "@/components/payments/PaymentsAISection";
 import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
+import { getAISearchPrompt, getBulkAIPrompt } from "@/components/payments/PaymentsAIPrompts";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -1784,92 +1785,7 @@ export default function PaymentsPage() {
       const internetRateConfig = configs.find(c => c.key === 'internet_rate');
       const commonFeeConfig = configs.find(c => c.key === 'common_fee');
 
-      const prompt = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการการชำระเงินหอพัก วิเคราะห์คำถามและระบุ action ที่ต้องการ
-
-วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
-คำถาม: "${searchQuery}"
-
-ข้อมูลการชำระเงิน (${paymentsData.length} รายการ):
-${JSON.stringify(paymentsData, null, 2)}
-
-ข้อมูลห้องพัก (${roomsData.length} ห้อง):
-${JSON.stringify(roomsData, null, 2)}
-
-ข้อมูลการจองที่ใช้งานอยู่ (${bookingsData.length} รายการ):
-${JSON.stringify(bookingsData, null, 2)}
-
-การตั้งค่าค่าใช้จ่าย:
-- ค่าน้ำ: ${waterRateConfig?.value || 18} บาท/หน่วย
-- ค่าไฟ: ${electricityRateConfig?.value || 7} บาท/หน่วย
-- อินเทอร์เน็ต: ${internetRateConfig?.value || 200} บาท
-- ค่าส่วนกลาง: ${commonFeeConfig?.value || 0} บาท
-
-การระบุ Action:
-1. ถ้าเป็นการค้นหา/ดูข้อมูล/ถามคำถาม → action_type = "view"
-2. ถ้าเป็นการสร้างบิล/ทำบิล/เพิ่มบิล → action_type = "create" (ต้องมี data)
-3. ถ้าเป็นการลบ/ยกเลิกบิล → action_type = "delete" (ต้องมี data ระบุ id ของรายการที่จะลบ)
-
-**คำสั่งที่ถือว่าเป็นการสร้างบิล:**
-- "สร้างบิลห้อง xxx"
-- "ทำบิลห้อง xxx"  
-- "เพิ่มบิลห้อง xxx"
-- "ออกบิลห้อง xxx"
-- "สร้างใบแจ้งหนี้ห้อง xxx"
-- "บิลห้อง xxx ค่าเช่า xxx"
-
-**คำสั่งที่ถือว่าเป็นการลบบิล:**
-- "ลบบิลห้อง xxx"
-- "ยกเลิกบิลห้อง xxx"
-- "ลบรายการล่าสุดของห้อง xxx"
-
-**กรณีขอ "ลบทั้งหมด" หรือ "ล้างข้อมูล":**
-- ห้าม action_type = "delete" เด็ดขาด (อันตราย)
-- ให้ action_type = "view"
-- ตอบกลับว่า "ไม่สามารถลบข้อมูลทั้งหมดพร้อมกันได้เพื่อความปลอดภัย กรุณาระบุห้องที่ต้องการลบ หรือลบทีละรายการ"
-
-**เมื่อ action_type = "create" ต้อง:**
-1. หา room_id จาก room_number ที่ระบุ
-2. หา booking_id จาก bookings ที่ status=active และตรงกับ room_id
-3. หา tenant_id จาก booking นั้น
-4. กำหนด due_date เป็นวันที่ 5 ของเดือนถัดไป
-5. ใช้ rent_amount จาก room.price
-6. คำนวณ water_amount = water_units × water_rate
-7. คำนวณ electricity_amount = electricity_units × electricity_rate
-
-**เมื่อ action_type = "delete" ต้อง:**
-1. หา payment_id ที่ตรงกับเงื่อนไข (เช่น ห้อง xxx, เดือน xxx)
-2. ระบุ id ใน data
-
-**ตัวอย่าง JSON response สำหรับ create:**
-{
-  "answer": "เตรียมข้อมูลบิลห้อง 101 กรุณาตรวจสอบและยืนยัน",
-  "action_type": "create",
-  "data": {
-    "room_id": "xxx-actual-room-id-xxx",
-    "booking_id": "xxx-actual-booking-id-xxx",
-    "tenant_id": "xxx-actual-tenant-id-xxx",
-    "due_date": "2025-12-05",
-    "rent_amount": 3000,
-    "water_units": 5,
-    "water_rate": 18,
-    "water_amount": 90,
-    "electricity_units": 50,
-    "electricity_rate": 7,
-    "electricity_amount": 350,
-    "internet_amount": 200,
-    "common_fee_amount": 0,
-    "parking_fee_amount": 0,
-    "other_amount": 0
-  }
-}
-
-**สำคัญมาก:** 
-- ต้องใช้ ID จริงจากข้อมูลที่ให้ไว้ ห้ามใช้ placeholder
-- ถ้าหาห้องหรือ booking ไม่เจอ ให้ action_type = "view" และแจ้งว่าไม่พบข้อมูล
-- ห้ามตอบว่า "สำเร็จ" หรือ "เรียบร้อย" ให้ตอบว่า "เตรียมข้อมูล...กรุณายืนยัน"
-
-ตอบเป็นภาษาไทย กระชับชัดเจน
-`;
+      const prompt = getAISearchPrompt(searchQuery, paymentsData, roomsData, bookingsData, waterRateConfig, electricityRateConfig, internetRateConfig, commonFeeConfig, format(new Date(), 'yyyy-MM-dd'));
 
       const response = await Promise.race([
         base44.integrations.Core.InvokeLLM({
@@ -2100,26 +2016,7 @@ ${JSON.stringify(bookingsData, null, 2)}
         })
         .slice(0, 10);
 
-      const prompt = `คุณเป็นผู้ช่วย AI สำหรับระบบจัดการหอพัก ตอบเป็นภาษาไทยเท่านั้น
-
-วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
-ผู้ใช้ต้องการดำเนินการกับการชำระเงินที่เลือก ${selectedPaymentIds.length} รายการ
-คำสั่งผู้ใช้: "${bulkAIQuery}"
-ตัวอย่างการชำระเงินที่เลือก: ${JSON.stringify(selectedPaymentsData)}
-
-กรุณาวิเคราะห์ว่าเป็นการดำเนินการอะไร:
-- ถ้าแก้ไขสถานะ: action="update_status" พร้อม new_status ("paid", "pending", "overdue")
-- ถ้าแก้ไขวันครบกำหนด: action="update_status" พร้อม due_date (รูปแบบ YYYY-MM-DD เช่น "2025-12-11")
-  - "เปลี่ยนวันครบกำหนดเป็นวันนี้" → due_date = "${format(new Date(), 'yyyy-MM-dd')}"
-  - "เปลี่ยนเป็นพรุ่งนี้" → due_date = "${format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')}"
-- ถ้าส่งแจ้งเตือน/บิลทาง LINE: action="send_line" 
-  - พร้อม message_type: "reminder" (แจ้งเตือนชำระ) หรือ "receipt" (ใบเสร็จ)
-- ถ้าลบ: action="delete"
-- ถ้าไม่เข้าใจ: action="none"
-
-สำคัญ: description และ confirmation_message ต้องเป็นภาษาไทย
-
-Return JSON.`;
+      const prompt = getBulkAIPrompt(selectedPaymentIds.length, bulkAIQuery, selectedPaymentsData, format(new Date(), 'yyyy-MM-dd'));
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -2339,8 +2236,21 @@ Return JSON.`;
         <div className="max-w-7xl mx-auto space-y-3 md:space-y-6">
           <div className="flex justify-center md:justify-start -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto max-w-full"><button onClick={() => setBookingTypeFilter('all')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'all' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>ทั้งหมด</button><button onClick={() => setBookingTypeFilter('monthly')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => setBookingTypeFilter('daily')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div></div>
           <Card className="hidden md:block bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-...
-                      <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
+            <CardContent className="p-4 md:p-6 relative">
+              <PaymentsAISection
+                searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleAISearch={handleAISearch} handleStopAISearch={handleStopAISearch}
+                aiSearching={aiSearching} aiAction={aiAction} handleAIActionConfirm={handleAIActionConfirm} handleAIActionCancel={handleAIActionCancel}
+                aiActionLoading={aiActionLoading} aiResult={aiResult} payments={payments} getEffectiveStatus={getEffectiveStatus} calculateLateFee={calculateLateFee} handlePaymentClick={handlePaymentClick}
+              />
+            </CardContent>
+          </Card>
+          <PaymentsReviewBanner
+            viewMode={viewMode} roomViewPayments={roomViewPayments} payments={payments} paymentsLoading={paymentsLoading} roomViewFetching={roomViewFetching}
+            rooms={rooms} tenants={tenants} setSlipPreview={setSlipPreview} setConfirmPaymentDialog={setConfirmPaymentDialog} updateStatusMutation={updateStatusMutation}
+            setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog}
+          />
+          <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
                         <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="3_months">3 เดือน</SelectItem><SelectItem value="6_months">6 เดือน</SelectItem><SelectItem value="12_months">12 เดือน</SelectItem><SelectItem value="this_year">ปีนี้</SelectItem><SelectItem value="last_year">ปีที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="custom">กำหนดเอง</SelectItem></SelectContent>
                         </Select>
