@@ -56,18 +56,15 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'all');
+  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'monthly');
   const [dateRangeType, setDateRangeType] = useState('this_month');
   const [customRange, setCustomRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem('payments_view_mode') || 'room';
-  });
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('payments_view_mode') || 'room');
   const [displayLimit, setDisplayLimit] = useState(50);
   const loadMoreRef = useRef(null);
-  const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [sortBy, setSortBy] = useState('due_date');
+  useEffect(() => { if (bookingTypeFilter === 'daily' && viewMode === 'room') setViewMode('card'); }, [bookingTypeFilter, viewMode]);
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
