@@ -56,18 +56,15 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'all');
+  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'monthly');
   const [dateRangeType, setDateRangeType] = useState('this_month');
   const [customRange, setCustomRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem('payments_view_mode') || 'room';
-  });
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('payments_view_mode') || 'room');
   const [displayLimit, setDisplayLimit] = useState(50);
   const loadMoreRef = useRef(null);
-  const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [sortBy, setSortBy] = useState('due_date');
+  useEffect(() => { if (bookingTypeFilter === 'daily' && viewMode === 'room') setViewMode('card'); }, [bookingTypeFilter, viewMode]);
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
@@ -2232,7 +2229,7 @@ export default function PaymentsPage() {
 
       <div className="px-4 md:px-8 py-3 md:py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-3 md:space-y-6">
-          <div className="flex justify-center md:justify-start -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto max-w-full"><button onClick={() => setBookingTypeFilter('all')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'all' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>ทั้งหมด</button><button onClick={() => setBookingTypeFilter('monthly')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => setBookingTypeFilter('daily')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div></div>
+          <div className="flex justify-between items-center -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto"><button onClick={() => { setBookingTypeFilter('monthly'); setViewMode(localStorage.getItem('payments_view_mode') || 'room'); }} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => { setBookingTypeFilter('daily'); setViewMode('card'); }} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div>{bookingTypeFilter !== 'daily' && (<div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 hidden md:flex"><button onClick={() => { setViewMode('room'); localStorage.setItem('payments_view_mode', 'room'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'room' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบห้อง"><Home className="w-5 h-5" /></button><button onClick={() => { setViewMode('card'); localStorage.setItem('payments_view_mode', 'card'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'card' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบการ์ด"><LayoutGrid className="w-5 h-5" /></button><button onClick={() => { setViewMode('table'); localStorage.setItem('payments_view_mode', 'table'); }} className={`p-2 rounded-xl transition-all duration-300 ${viewMode === 'table' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`} title="มุมมองแบบตาราง"><TableIcon className="w-5 h-5" /></button></div>)}</div>
           <Card className="hidden md:block bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
