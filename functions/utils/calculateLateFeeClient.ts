@@ -7,8 +7,8 @@ import { parseISO, differenceInDays } from "date-fns";
 export function calculateLateFee(payment, configs, selectedBranchId) {
   if (!payment || !payment.due_date) return 0;
   
-  // ⭐ ถ้าชำระแล้ว หรือบิลถูกล็อคค่าปรับ (เช่น บิลค่ามัดจำ) ให้ใช้ค่าปรับเดิม
-  if (payment.status === 'paid' || payment.late_fee_locked === true) {
+  // ⭐ ถ้าชำระแล้ว ใช้ค่าปรับที่ lock ไว้
+  if (payment.status === 'paid') {
     return payment.late_fee_amount || 0;
   }
   

@@ -19,17 +19,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
-
+import AISearchBox from "../components/shared/AISearchBox";
+import AIResultCard from "../components/shared/AIResultCard";
+import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminderButton";
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
-import PaymentStatCards from "@/components/payments/PaymentStatCards";
-import PaymentDetailDialog from "@/components/payments/PaymentDetailDialog";
-import PaymentsAISection from "@/components/payments/PaymentsAISection";
-import PaymentsReviewBanner from "@/components/payments/PaymentsReviewBanner";
-import { getAISearchPrompt, getBulkAIPrompt } from "@/components/payments/PaymentsAIPrompts";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -55,10 +52,13 @@ export default function PaymentsPage() {
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
+
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [bookingTypeFilter, setBookingTypeFilter] = useState(urlParams.get('type') || 'all');
   const [dateRangeType, setDateRangeType] = useState('this_month');
-  const [customRange, setCustomRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+  const [customRange, setCustomRange] = useState({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('payments_view_mode') || 'room';
@@ -204,15 +204,16 @@ export default function PaymentsPage() {
   const canDeleteTestData = userRole === 'developer';
 
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
-    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth, bookingTypeFilter],
+    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
     queryFn: async () => {
       if (!selectedBranchId || !roomViewMonth) return [];
+      
       const [year, month] = roomViewMonth.split('-').map(Number);
       const monthDate = new Date(year, month - 1, 1);
+      
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: 'all',
-        booking_type_filter: bookingTypeFilter,
         date_range_type: 'custom',
         custom_range: {
           from: startOfMonth(monthDate),
@@ -239,13 +240,13 @@ export default function PaymentsPage() {
   };
 
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, bookingTypeFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
+      
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
-        booking_type_filter: bookingTypeFilter,
         date_range_type: dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
         search_query: searchQuery,
@@ -428,33 +429,93 @@ export default function PaymentsPage() {
       case 'all':
         return null;
       case 'this_month': {
-        let cm = now.getMonth(), cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) { cm -= 1; if (cm < 0) { cm = 11; cy -= 1; } }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth();
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+          if (cycleMonth < 0) {
+            cycleMonth = 11;
+            cycleYear -= 1;
+          }
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
       }
       case 'last_month': {
-        let cm = now.getMonth() - 1, cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) cm -= 1;
-        if (cm < 0) { cm += 12; cy -= 1; }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(cy, cm + 1, billGenerationDay) };
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 1;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        if (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
       }
       case '3_months': {
-        let cm = now.getMonth() - 2, cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) cm -= 1;
-        while (cm < 0) { cm += 12; cy -= 1; }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 2;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
       }
       case '6_months': {
-        let cm = now.getMonth() - 5, cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) cm -= 1;
-        while (cm < 0) { cm += 12; cy -= 1; }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 5;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
       }
       case '12_months': {
-        let cm = now.getMonth() - 11, cy = now.getFullYear();
-        if (now.getDate() < billGenerationDay) cm -= 1;
-        while (cm < 0) { cm += 12; cy -= 1; }
-        return { from: new Date(cy, cm, billGenerationDay), to: new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= billGenerationDay ? 1 : 0), billGenerationDay) };
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 11;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
       }
       case 'this_year':
         return { from: startOfYear(now), to: endOfYear(now) };
@@ -1783,7 +1844,92 @@ export default function PaymentsPage() {
       const internetRateConfig = configs.find(c => c.key === 'internet_rate');
       const commonFeeConfig = configs.find(c => c.key === 'common_fee');
 
-      const prompt = getAISearchPrompt(searchQuery, paymentsData, roomsData, bookingsData, waterRateConfig, electricityRateConfig, internetRateConfig, commonFeeConfig, format(new Date(), 'yyyy-MM-dd'));
+      const prompt = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการการชำระเงินหอพัก วิเคราะห์คำถามและระบุ action ที่ต้องการ
+
+วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
+คำถาม: "${searchQuery}"
+
+ข้อมูลการชำระเงิน (${paymentsData.length} รายการ):
+${JSON.stringify(paymentsData, null, 2)}
+
+ข้อมูลห้องพัก (${roomsData.length} ห้อง):
+${JSON.stringify(roomsData, null, 2)}
+
+ข้อมูลการจองที่ใช้งานอยู่ (${bookingsData.length} รายการ):
+${JSON.stringify(bookingsData, null, 2)}
+
+การตั้งค่าค่าใช้จ่าย:
+- ค่าน้ำ: ${waterRateConfig?.value || 18} บาท/หน่วย
+- ค่าไฟ: ${electricityRateConfig?.value || 7} บาท/หน่วย
+- อินเทอร์เน็ต: ${internetRateConfig?.value || 200} บาท
+- ค่าส่วนกลาง: ${commonFeeConfig?.value || 0} บาท
+
+การระบุ Action:
+1. ถ้าเป็นการค้นหา/ดูข้อมูล/ถามคำถาม → action_type = "view"
+2. ถ้าเป็นการสร้างบิล/ทำบิล/เพิ่มบิล → action_type = "create" (ต้องมี data)
+3. ถ้าเป็นการลบ/ยกเลิกบิล → action_type = "delete" (ต้องมี data ระบุ id ของรายการที่จะลบ)
+
+**คำสั่งที่ถือว่าเป็นการสร้างบิล:**
+- "สร้างบิลห้อง xxx"
+- "ทำบิลห้อง xxx"  
+- "เพิ่มบิลห้อง xxx"
+- "ออกบิลห้อง xxx"
+- "สร้างใบแจ้งหนี้ห้อง xxx"
+- "บิลห้อง xxx ค่าเช่า xxx"
+
+**คำสั่งที่ถือว่าเป็นการลบบิล:**
+- "ลบบิลห้อง xxx"
+- "ยกเลิกบิลห้อง xxx"
+- "ลบรายการล่าสุดของห้อง xxx"
+
+**กรณีขอ "ลบทั้งหมด" หรือ "ล้างข้อมูล":**
+- ห้าม action_type = "delete" เด็ดขาด (อันตราย)
+- ให้ action_type = "view"
+- ตอบกลับว่า "ไม่สามารถลบข้อมูลทั้งหมดพร้อมกันได้เพื่อความปลอดภัย กรุณาระบุห้องที่ต้องการลบ หรือลบทีละรายการ"
+
+**เมื่อ action_type = "create" ต้อง:**
+1. หา room_id จาก room_number ที่ระบุ
+2. หา booking_id จาก bookings ที่ status=active และตรงกับ room_id
+3. หา tenant_id จาก booking นั้น
+4. กำหนด due_date เป็นวันที่ 5 ของเดือนถัดไป
+5. ใช้ rent_amount จาก room.price
+6. คำนวณ water_amount = water_units × water_rate
+7. คำนวณ electricity_amount = electricity_units × electricity_rate
+
+**เมื่อ action_type = "delete" ต้อง:**
+1. หา payment_id ที่ตรงกับเงื่อนไข (เช่น ห้อง xxx, เดือน xxx)
+2. ระบุ id ใน data
+
+**ตัวอย่าง JSON response สำหรับ create:**
+{
+  "answer": "เตรียมข้อมูลบิลห้อง 101 กรุณาตรวจสอบและยืนยัน",
+  "action_type": "create",
+  "data": {
+    "room_id": "xxx-actual-room-id-xxx",
+    "booking_id": "xxx-actual-booking-id-xxx",
+    "tenant_id": "xxx-actual-tenant-id-xxx",
+    "due_date": "2025-12-05",
+    "rent_amount": 3000,
+    "water_units": 5,
+    "water_rate": 18,
+    "water_amount": 90,
+    "electricity_units": 50,
+    "electricity_rate": 7,
+    "electricity_amount": 350,
+    "internet_amount": 200,
+    "common_fee_amount": 0,
+    "parking_fee_amount": 0,
+    "other_amount": 0
+  }
+}
+
+**สำคัญมาก:** 
+- ต้องใช้ ID จริงจากข้อมูลที่ให้ไว้ ห้ามใช้ placeholder
+- ถ้าหาห้องหรือ booking ไม่เจอ ให้ action_type = "view" และแจ้งว่าไม่พบข้อมูล
+- ห้ามตอบว่า "สำเร็จ" หรือ "เรียบร้อย" ให้ตอบว่า "เตรียมข้อมูล...กรุณายืนยัน"
+
+ตอบเป็นภาษาไทย กระชับชัดเจน
+`;
 
       const response = await Promise.race([
         base44.integrations.Core.InvokeLLM({
@@ -2014,7 +2160,26 @@ export default function PaymentsPage() {
         })
         .slice(0, 10);
 
-      const prompt = getBulkAIPrompt(selectedPaymentIds.length, bulkAIQuery, selectedPaymentsData, format(new Date(), 'yyyy-MM-dd'));
+      const prompt = `คุณเป็นผู้ช่วย AI สำหรับระบบจัดการหอพัก ตอบเป็นภาษาไทยเท่านั้น
+
+วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
+ผู้ใช้ต้องการดำเนินการกับการชำระเงินที่เลือก ${selectedPaymentIds.length} รายการ
+คำสั่งผู้ใช้: "${bulkAIQuery}"
+ตัวอย่างการชำระเงินที่เลือก: ${JSON.stringify(selectedPaymentsData)}
+
+กรุณาวิเคราะห์ว่าเป็นการดำเนินการอะไร:
+- ถ้าแก้ไขสถานะ: action="update_status" พร้อม new_status ("paid", "pending", "overdue")
+- ถ้าแก้ไขวันครบกำหนด: action="update_status" พร้อม due_date (รูปแบบ YYYY-MM-DD เช่น "2025-12-11")
+  - "เปลี่ยนวันครบกำหนดเป็นวันนี้" → due_date = "${format(new Date(), 'yyyy-MM-dd')}"
+  - "เปลี่ยนเป็นพรุ่งนี้" → due_date = "${format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')}"
+- ถ้าส่งแจ้งเตือน/บิลทาง LINE: action="send_line" 
+  - พร้อม message_type: "reminder" (แจ้งเตือนชำระ) หรือ "receipt" (ใบเสร็จ)
+- ถ้าลบ: action="delete"
+- ถ้าไม่เข้าใจ: action="none"
+
+สำคัญ: description และ confirmation_message ต้องเป็นภาษาไทย
+
+Return JSON.`;
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -2232,49 +2397,558 @@ export default function PaymentsPage() {
 
       <div className="px-4 md:px-8 py-3 md:py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-3 md:space-y-6">
-          <div className="flex justify-center md:justify-start -mt-2 md:-mt-4 relative z-20"><div className="flex items-center bg-white/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto max-w-full"><button onClick={() => setBookingTypeFilter('all')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'all' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>ทั้งหมด</button><button onClick={() => setBookingTypeFilter('monthly')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายเดือน</button><button onClick={() => setBookingTypeFilter('daily')} className={`px-5 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${bookingTypeFilter === 'daily' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>รายวัน</button></div></div>
           <Card className="hidden md:block bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
-              <PaymentsAISection
-                searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleAISearch={handleAISearch} handleStopAISearch={handleStopAISearch}
-                aiSearching={aiSearching} aiAction={aiAction} handleAIActionConfirm={handleAIActionConfirm} handleAIActionCancel={handleAIActionCancel}
-                aiActionLoading={aiActionLoading} aiResult={aiResult} payments={payments} getEffectiveStatus={getEffectiveStatus} calculateLateFee={calculateLateFee} handlePaymentClick={handlePaymentClick}
-              />
-            </CardContent>
-          </Card>
-          <PaymentsReviewBanner
-            viewMode={viewMode} roomViewPayments={roomViewPayments} payments={payments} paymentsLoading={paymentsLoading} roomViewFetching={roomViewFetching}
-            rooms={rooms} tenants={tenants} setSlipPreview={setSlipPreview} setConfirmPaymentDialog={setConfirmPaymentDialog} updateStatusMutation={updateStatusMutation}
-            setSelectedPayment={setSelectedPayment} setShowDetailDialog={setShowDetailDialog}
-          />
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg sticky top-[73px] md:top-[85px] z-30">
-            <CardContent className="p-3">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1"><label className="text-xs font-semibold text-slate-700 mb-1 block">ค้นหา</label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><Input placeholder="ค้นหาห้อง หรือผู้เช่า..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white/90 shadow-inner border-slate-200" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>)}</div></div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-                  <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
-                    <Select value={dateRangeType} onValueChange={setDateRangeType}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="this_month">เดือนนี้</SelectItem><SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem><SelectItem value="3_months">3 เดือน</SelectItem><SelectItem value="6_months">6 เดือน</SelectItem><SelectItem value="12_months">12 เดือน</SelectItem><SelectItem value="this_year">ปีนี้</SelectItem><SelectItem value="last_year">ปีที่แล้ว</SelectItem><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="custom">กำหนดเอง</SelectItem></SelectContent>
-                    </Select>
+              <div className="relative">
+                <AISearchBox
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAISearch={handleAISearch}
+                  onStopSearch={handleStopAISearch}
+                  aiSearching={aiSearching}
+                  placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+                />
+
+                {aiSearching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl mt-4">
+                    <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                      <p className="text-slate-700 font-medium">AI กำลังวิเคราะห์...</p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทั้งหมด</SelectItem><SelectItem value="pending">รอชำระ</SelectItem><SelectItem value="partial_paid">ชำระบางส่วน</SelectItem><SelectItem value="overdue">เกินกำหนด</SelectItem><SelectItem value="paid">ชำระแล้ว</SelectItem></SelectContent></Select>
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]"><label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
-                    <Select value={sortBy} onValueChange={setSortBy}><SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="due_date">วันครบกำหนด</SelectItem><SelectItem value="room">หมายเลขห้อง</SelectItem><SelectItem value="created_date">วันที่สร้าง</SelectItem><SelectItem value="amount">ยอดเงิน</SelectItem></SelectContent></Select>
-                  </div>
-                  {dateRangeType === 'custom' && (
-                    <div className="flex flex-col gap-1"><label className="text-xs font-semibold text-slate-700">วันที่</label>
-                      <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"><CalendarIcon className="w-4 h-4" />{format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}</Button></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end"><CalendarComponent mode="range" selected={customRange} onSelect={(r) => { if (r?.from && r?.to) setCustomRange(r); }} numberOfMonths={2} locale={th} /></PopoverContent>
-                      </Popover>
+                )}
+              </div>
+
+              {aiAction && (
+                <AIActionConfirmation
+                  action={aiAction}
+                  onConfirm={handleAIActionConfirm}
+                  onCancel={handleAIActionCancel}
+                  isLoading={aiActionLoading}
+                  allowSlipUpload={true}
+                />
+              )}
+
+              {aiResult && !aiAction && (
+                <AIResultCard aiResult={aiResult}>
+                  {aiResult.payments && aiResult.payments.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-semibold text-purple-800">รายการที่เกี่ยวข้อง ({aiResult.payments.length} รายการ):</p>
+                      {aiResult.payments.map((item, idx) => {
+                        const payment = payments.find(p => p.id === item.payment_id);
+                        if (!payment) return null;
+
+                        const effectiveStatus = getEffectiveStatus(payment);
+                        const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
+                        const totalWithLateFee = (payment.total_amount || 0) + lateFee;
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            className="bg-white/70 rounded-lg p-3 border border-purple-200 hover:shadow-md transition-all cursor-pointer hover:border-purple-300"
+                            onClick={() => handlePaymentClick(payment)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <DoorOpen className="w-4 h-4 text-purple-600" />
+                                  <span className="font-semibold text-slate-800">
+                                    ห้อง {payment.room_number || 'N/A'}
+                                  </span>
+                                  {effectiveStatus === 'paid' && <Badge className="bg-green-100 text-green-700 text-xs">ชำระแล้ว</Badge>}
+                                  {effectiveStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-700 text-xs">รอชำระ</Badge>}
+                                  {effectiveStatus === 'overdue' && <Badge className="bg-red-100 text-red-700 text-xs">เกินกำหนด</Badge>}
+                                  {effectiveStatus === 'partial_paid' && <Badge className="bg-orange-100 text-orange-700 text-xs">ชำระบางส่วน ({((payment.paid_amount || 0) / (payment.total_amount || 1) * 100).toFixed(0)}%)</Badge>}
+                                </div>
+                                <p className="text-sm text-slate-600 mb-2">{item.reason || `ผู้เช่า: ${payment.tenant_name || 'N/A'}`}</p>
+                                <div className="text-xs text-slate-500 space-y-0.5">
+                                  <p className="font-semibold text-blue-700">ยอดเงิน: ฿{totalWithLateFee.toLocaleString()}</p>
+                                  {payment.due_date && (
+                                    <p>ครบกำหนด: {format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th })}</p>
+                                  )}
+                                  {payment.payment_date && (
+                                    <p>วันที่ชำระ: {format(parseISO(payment.payment_date), 'd MMM yyyy', { locale: th })}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
-              </div>
+                </AIResultCard>
+              )}
             </CardContent>
           </Card>
+
+          {(() => {
+            const paymentsForReview = viewMode === 'room' ? roomViewPayments : payments;
+            const needReviewPayments = paymentsForReview.filter(p => p.status !== 'paid' && p.notes?.includes('⚠️ รอตรวจสอบ') && !p.notes?.includes('✅ ยืนยันชำระแล้ว'));
+            const isLoadingReview = viewMode === 'room' ? roomViewFetching : paymentsLoading;
+            if (needReviewPayments.length === 0 || isLoadingReview) return null;
+
+            return (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-amber-100 p-2 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-amber-900 mb-2">
+                          🔍 รอตรวจสอบสลิป ({needReviewPayments.length} รายการ)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {needReviewPayments.map(p => {
+                            const room = rooms.find(r => r.id === p.room_id);
+                            const tenant = tenants.find(t => t.id === p.tenant_id);
+                            const notesParts = p.notes?.split('⚠️ รอตรวจสอบ:')[1]?.trim() || '';
+                            const roomMatch = notesParts.match(/ห้อง\s+(\S+)/);
+                            const roomNumber = roomMatch ? roomMatch[1] : (room?.room_number || 'N/A');
+                            const reason = notesParts.replace(/^ห้อง\s+\S+\s*-?\s*/, '').split('\n')[0]?.trim() || 'ตรวจสอบไม่ผ่าน';
+                            
+                            return (
+                              <div
+                                key={p.id}
+                                className="p-3 bg-white rounded-lg border border-amber-200 shadow-sm"
+                              >
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="font-bold text-amber-900 text-sm">
+                                    ห้อง {roomNumber}
+                                  </span>
+                                  <Badge className="bg-amber-200 text-amber-800 text-xs">
+                                    {(p.total_amount || 0).toLocaleString()}฿
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-amber-800 mb-0.5">{tenant?.full_name || 'N/A'}</p>
+                                <p className="text-xs text-amber-700 mb-2">{reason}</p>
+                                {p.payment_slip_url && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSlipPreview({ open: true, url: p.payment_slip_url, title: `สลิป ห้อง ${roomNumber}` });
+                                    }}
+                                    className="w-full cursor-pointer"
+                                  >
+                                    <img src={p.payment_slip_url} alt="สลิป" className="w-full max-h-24 object-contain rounded border border-amber-200 bg-slate-50 mb-2 hover:opacity-80 transition-opacity" />
+                                  </button>
+                                )}
+                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                   type="button"
+                                   className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     e.preventDefault();
+                                     setConfirmPaymentDialog({ open: true, payment: p });
+                                   }}
+                                   disabled={updateStatusMutation.isPending}
+                                  >
+                                   {updateStatusMutation.isPending ? (
+                                     <Loader2 className="w-3 h-3 animate-spin" />
+                                   ) : (
+                                     <Check className="w-3 h-3" />
+                                   )}
+                                   <span>ยืนยันชำระ</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-xs font-medium transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      console.log('🔘 Review Banner: Details clicked', { paymentId: p.id });
+                                      setSelectedPayment(p);
+                                      setShowDetailDialog(true);
+                                    }}
+                                  >
+                                    ดูรายละเอียด
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })()}
+
+
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setStatusFilter('all')}
+              className="cursor-pointer"
+            >
+              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                        <CreditCard className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ยอดรวมทั้งหมด</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalAmounts.all.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.all} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+              className="cursor-pointer"
+            >
+              <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300 ${statusFilter === 'pending' ? 'ring-2 ring-yellow-500' : ''}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg">
+                        <Clock className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">รอชำระ</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalAmounts.pending.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.pending} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              onClick={() => setStatusFilter(statusFilter === 'overdue' ? 'all' : 'overdue')}
+              className="cursor-pointer"
+            >
+              <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300 ${statusFilter === 'overdue' ? 'ring-2 ring-red-500' : ''}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400 to-red-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg">
+                        <XCircle className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">เกินกำหนด</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalAmounts.overdue.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.overdue} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              onClick={() => setStatusFilter(statusFilter === 'paid' ? 'all' : 'paid')}
+              className="cursor-pointer"
+            >
+              <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300 ${statusFilter === 'paid' ? 'ring-2 ring-green-500' : ''}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ชำระแล้ว</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalAmounts.paid.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.paid} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+
+
+          <div className="grid grid-cols-2 gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3 md:flex md:justify-center">
+            {canAdd && (
+              <div className="flex-1">
+                <GenerateMonthlyBillsButton
+                  branchId={selectedBranchId}
+                  roomsNeedingBills={roomsNeedingBills}
+                  compact={true}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+                  }}
+                />
+              </div>
+            )}
+            {canSendCommsManual && (
+              <Button
+                onClick={() => openReminderDialog()}
+                disabled={sendingAll || tenantsWithLine === 0}
+                size="sm"
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10 flex-1"
+              >
+                {sendingAll ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    กำลังส่ง...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3 h-3 mr-1" />
+                    ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            {canSendCommsManual && (
+              <p className="text-xs text-slate-500">
+                บิลรอบนี้: {(() => {
+                  const now = new Date();
+                  const currentDay = now.getDate();
+                  let cycleStart, cycleEnd;
+                  
+                  if (currentDay >= 20) {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                  } else {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                  }
+                  
+                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                  const billsThisCycle = payments.filter(p => {
+                    if (!p.due_date) return false;
+                    try {
+                      const dueDate = parseISO(p.due_date);
+                      return dueDate >= cycleStart && dueDate < cycleEnd;
+                    } catch { return false; }
+                  }).length;
+                  return `${billsThisCycle}/${occupiedRooms}`;
+                })()}
+              </p>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedPaymentIds([]);
+                }}
+                className="shadow-sm h-8"
+              >
+                {isSelectionMode ? <><X className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">ยกเลิก</span></> : <><CheckSquare className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">เลือกหลายรายการ</span></>}
+              </Button>
+              
+              <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
+              <Button
+                variant={viewMode === 'room' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('room')}
+                className={`h-8 px-3 ${viewMode === 'room' ? 'bg-blue-600 text-white' : ''}`}
+              >
+                <DoorOpen className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+                className={`h-8 px-3 ${viewMode === 'card' ? 'bg-blue-600 text-white' : ''}`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className={`h-8 px-3 ${viewMode === 'table' ? 'bg-blue-600 text-white' : ''}`}
+              >
+                <TableIcon className="w-4 h-4" />
+              </Button>
+              </div>
+            </div>
+          </div>
+
+          {viewMode !== 'room' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                        <label className="text-xs font-semibold text-slate-700">ค้นหา</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Input
+                            placeholder="ค้นหา ห้อง, ชื่อผู้เช่า, เบอร์โทร..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 bg-white/90 shadow-md border-slate-300 rounded-xl text-xs"
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-slate-100 rounded-full p-1"
+                            >
+                              <X className="w-3 h-3 text-slate-400" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                        <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                        <Select value={dateRangeType} onValueChange={setDateRangeType}>
+                          <SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="this_month">เดือนนี้</SelectItem>
+                            <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
+                            <SelectItem value="3_months">3 เดือน</SelectItem>
+                            <SelectItem value="6_months">6 เดือน</SelectItem>
+                            <SelectItem value="12_months">12 เดือน</SelectItem>
+                            <SelectItem value="this_year">ปีนี้</SelectItem>
+                            <SelectItem value="last_year">ปีที่แล้ว</SelectItem>
+                            <SelectItem value="all">ทั้งหมด</SelectItem>
+                            <SelectItem value="custom">กำหนดเอง</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">ทั้งหมด</SelectItem>
+                            <SelectItem value="pending">รอชำระ</SelectItem>
+                            <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
+                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                          <SelectTrigger className="w-full text-xs bg-white/90 shadow-md border-slate-300 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="due_date">วันครบกำหนด</SelectItem>
+                            <SelectItem value="room">หมายเลขห้อง</SelectItem>
+                            <SelectItem value="created_date">วันที่สร้าง</SelectItem>
+                            <SelectItem value="amount">ยอดเงิน</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {dateRangeType === 'custom' && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-slate-700">วันที่</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"
+                              >
+                                <CalendarIcon className="w-4 h-4" />
+                                {format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <CalendarComponent
+                                mode="range"
+                                selected={customRange}
+                                onSelect={(range) => {
+                                  if (range?.from && range?.to) {
+                                    setCustomRange(range);
+                                  }
+                                }}
+                                numberOfMonths={2}
+                                locale={th}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
           {viewMode === 'card' && paymentsLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
@@ -2363,8 +3037,13 @@ export default function PaymentsPage() {
                                 <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                                   <Receipt className="w-5 h-5 md:w-6 md:h-6 text-white" />
                                 </div>
-                                <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1 flex-wrap"><DoorOpen className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" /><h3 className="text-base md:text-xl font-bold text-slate-800">ห้อง {room?.room_number || 'N/A'}</h3><div className="flex items-center gap-1 md:gap-2 flex-wrap">
-                                     <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">{payment.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</Badge>
+                                <div className="flex-1 min-w-0">
+                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                   <DoorOpen className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" />
+                                   <h3 className="text-base md:text-xl font-bold text-slate-800">
+                                     ห้อง {room?.room_number || 'N/A'}
+                                   </h3>
+                                   <div className="flex items-center gap-1 md:gap-2 flex-wrap">
                                      {getStatusBadge(effectiveStatus, payment)}
                                      {payment.bill_sent_date && effectiveStatus !== 'paid' && (
                                        <Badge className="bg-purple-100 text-purple-700 text-xs hidden md:inline-flex" title={`ส่งบิลแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}`}>
@@ -2874,7 +3553,8 @@ export default function PaymentsPage() {
                                     </div>
                                   </td>
                                 )}
-                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{payment.room_number || 'N/A'}<span className="block text-xs text-blue-600 mt-0.5">{payment.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</span></td><td className="px-4 py-3 text-sm text-slate-600">{payment.tenant_name || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{payment.room_number || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm text-slate-600">{payment.tenant_name || 'N/A'}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600">
                                   {(() => {
                                     if (!payment.due_date) return 'N/A';
@@ -3519,10 +4199,22 @@ export default function PaymentsPage() {
                                        )}
 
           {displayLimit < filteredPayments.length && viewMode !== 'room' && (
-            <div ref={loadMoreRef} className="py-8 text-center"><div className="inline-flex items-center gap-2 text-slate-600"><div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" /><span>กำลังโหลดเพิ่ม...</span></div></div>
+            <div ref={loadMoreRef} className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>กำลังโหลดเพิ่ม...</span>
+              </div>
+            </div>
           )}
+
           {displayLimit >= filteredPayments.length && filteredPayments.length > 50 && viewMode !== 'room' && (
-            <Card className="bg-white/80 backdrop-blur-sm"><CardContent className="p-4 text-center"><p className="text-sm text-slate-600">แสดงครบทั้งหมด {filteredPayments.length} รายการ</p></CardContent></Card>
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  แสดงครบทั้งหมด {filteredPayments.length} รายการ
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           <Dialog open={showDialog} onOpenChange={(open) => { 
@@ -3917,22 +4609,214 @@ export default function PaymentsPage() {
         )}
       </AnimatePresence>
 
-      <PaymentDetailDialog
-        showDetailDialog={showDetailDialog}
-        setShowDetailDialog={setShowDetailDialog}
-        selectedPayment={selectedPayment}
-        getRoomInfo={getRoomInfo}
-        getTenantInfo={getTenantInfo}
-        getEffectiveStatus={getEffectiveStatus}
-        calculateLateFee={calculateLateFee}
-        setSlipPreview={setSlipPreview}
-        canConfirmPaid={canConfirmPaid}
-        setConfirmPaymentDialog={setConfirmPaymentDialog}
-        updateStatusMutation={updateStatusMutation}
-        canEdit={canEdit}
-        handleEdit={handleEdit}
-        getStatusBadge={getStatusBadge}
-      />
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดการชำระเงิน</DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (() => {
+            const room = selectedPayment.room_number ? 
+              { room_number: selectedPayment.room_number } : 
+              getRoomInfo(selectedPayment.room_id);
+            const tenant = selectedPayment.tenant_name ? 
+              { full_name: selectedPayment.tenant_name,
+                line_user_id: selectedPayment.tenant_line_user_id,
+                facebook_user_id: selectedPayment.tenant_facebook_user_id
+              } : 
+              getTenantInfo(selectedPayment.tenant_id);
+            const effectiveStatus = getEffectiveStatus(selectedPayment);
+            const lateFee = (selectedPayment.late_fee_amount && selectedPayment.late_fee_amount > 0) ? 0 : calculateLateFee(selectedPayment);
+            const totalWithLateFee = (selectedPayment.total_amount || 0) + lateFee;
+
+            return (
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500 mb-1">ห้อง</p>
+                      <p className="font-bold text-slate-800">{room?.room_number || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">ผู้เช่า</p>
+                      <p className="font-bold text-slate-800">{tenant?.full_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">วันครบกำหนด</p>
+                      <p className="font-bold text-slate-800">
+                        {selectedPayment.due_date ? format(parseISO(selectedPayment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">สถานะ</p>
+                      {getStatusBadge(effectiveStatus, selectedPayment)}
+                    </div>
+                  </div>
+                </div>
+
+                {effectiveStatus === 'partial_paid' && (
+                  <Card className="bg-orange-50 border-orange-200">
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                        <Calculator className="w-5 h-5" />
+                        สถานะการชำระเงิน
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
+                          <span className="font-bold text-slate-800">{totalWithLateFee.toLocaleString()} ฿</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">ชำระไปแล้ว:</span>
+                          <span className="font-bold text-green-700">
+                            {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="text-red-700 font-semibold">ยังค้างชำระอีก:</span>
+                          <span className="font-bold text-xl text-red-700">
+                            {(totalWithLateFee - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-slate-800">รายการค่าใช้จ่าย</h3>
+                  {selectedPayment.security_deposit_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">เงินประกันห้อง:</span><span className="font-medium">{selectedPayment.security_deposit_amount.toLocaleString()} ฿</span></div>)}
+                  {selectedPayment.advance_rent_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">ค่าเช่าล่วงหน้า:</span><span className="font-medium">{selectedPayment.advance_rent_amount.toLocaleString()} ฿</span></div>)}
+                  {selectedPayment.rent_amount > 0 && (<div className="flex justify-between text-sm"><span className="text-slate-600">ค่าเช่า:</span><span className="font-medium">{selectedPayment.rent_amount.toLocaleString()} ฿</span></div>)}
+                  {selectedPayment.electricity_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าไฟ ({selectedPayment.electricity_units} หน่วย @ {selectedPayment.electricity_rate} ฿):</span>
+                      <span className="font-medium">{selectedPayment.electricity_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {selectedPayment.water_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าน้ำ ({selectedPayment.water_units} หน่วย @ {selectedPayment.water_rate} ฿):</span>
+                      <span className="font-medium">{selectedPayment.water_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {selectedPayment.internet_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าอินเทอร์เน็ต:</span>
+                      <span className="font-medium">{selectedPayment.internet_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {selectedPayment.common_fee_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าส่วนกลาง:</span>
+                      <span className="font-medium">{selectedPayment.common_fee_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {selectedPayment.parking_fee_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าจอดรถ:</span>
+                      <span className="font-medium">{selectedPayment.parking_fee_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {selectedPayment.other_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">ค่าใช้จ่ายอื่นๆ:</span>
+                      <span className="font-medium">{selectedPayment.other_amount.toLocaleString()} ฿</span>
+                    </div>
+                  )}
+                  {(() => {
+                    const displayLateFee = selectedPayment.late_fee_amount > 0 ? selectedPayment.late_fee_amount : lateFee;
+                    if (displayLateFee > 0) {
+                      return (
+                        <div className="flex justify-between text-sm text-red-600 font-semibold">
+                          <span>ค่าปรับล่าช้า:</span>
+                          <span>+{displayLateFee.toLocaleString()} ฿</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <div className="flex justify-between pt-3 border-t">
+                    <span className="font-bold text-lg">รวมทั้งสิ้น:</span>
+                    <span className="font-bold text-2xl text-blue-600">{totalWithLateFee.toLocaleString()} ฿</span>
+                  </div>
+                </div>
+
+                {selectedPayment.payment_slip_url && (
+                  <div>
+                    <h3 className="font-semibold text-slate-800 mb-2">หลักฐานการโอน</h3>
+                    <button
+                      onClick={() => setSlipPreview({ open: true, url: selectedPayment.payment_slip_url, title: `สลิป ห้อง ${room?.room_number || 'N/A'}` })}
+                      className="w-full"
+                    >
+                      <img 
+                        src={selectedPayment.payment_slip_url} 
+                        alt="สลิป" 
+                        className="w-full max-h-64 object-contain rounded-lg border hover:opacity-80 transition-opacity"
+                      />
+                    </button>
+                  </div>
+                )}
+
+                {selectedPayment.notes && (
+                  <div>
+                    <h3 className="font-semibold text-slate-800 mb-2">หมายเหตุ</h3>
+                    <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3">{selectedPayment.notes}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4 border-t">
+                  {effectiveStatus !== 'paid' && canConfirmPaid && (
+                    <Button
+                      type="button"
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setConfirmPaymentDialog({ open: true, payment: selectedPayment });
+                        setShowDetailDialog(false);
+                      }}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      {updateStatusMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                      )}
+                      ยืนยันชำระ
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleEdit(selectedPayment);
+                        setShowDetailDialog(false);
+                      }}
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      แก้ไข
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowDetailDialog(false);
+                    }}
+                  >
+                    ปิด
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <SlipPreviewDialog
         open={slipPreview.open}

@@ -144,103 +144,32 @@ Deno.serve(async (req) => {
         totalRequired = nights * (room.price || 0);
       }
 
-      const depositAmount = parseFloat(booking.deposit_amount || 0);
-      const securityDeposit = booking_type === 'monthly' ? parseFloat(payload.security_deposit || 0) : 0;
-      const advanceRent = booking_type === 'monthly' ? parseFloat(payload.advance_rent || 0) : 0;
-      const commonFee = booking_type === 'monthly' ? parseFloat(payload.common_fee_included || 0) : 0;
-      const otherAmount = booking_type === 'monthly' ? parseFloat(payload.other_amount || 0) : 0;
-      const dueDate = check_in_date || new Date().toISOString().split('T')[0];
-
       if (totalRequired === 0) {
-        totalRequired = depositAmount;
+        totalRequired = booking.deposit_amount;
       }
 
-      if (depositAmount > 0) {
-        await base44.asServiceRole.entities.Payment.create({
-          branch_id: branch_id,
-          booking_id: booking.id,
-          room_id: room_id,
-          payment_category: 'booking_deposit',
-          due_date: dueDate,
-          late_fee_locked: true,
-          total_amount: depositAmount,
-          paid_amount: depositAmount,
-          status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0],
-          payment_slip_url: booking.deposit_slip_url || '',
-          payment_method: 'transfer',
-          line_user_id: payload.line_user_id || '',
-          notes: `เงินจองห้อง/มัดจำห้อง ${room.room_number} - ${guest_name}`
-        });
-      }
+      const isPartial = booking.deposit_amount < totalRequired;
+      const status = isPartial ? 'partial_paid' : 'paid';
 
-      const actualRemaining = Math.max(0, totalRequired - depositAmount);
-
-      if (actualRemaining > 0) {
-        let remainingDepositToDeduct = depositAmount;
-        let pendingSecDep = securityDeposit;
-        let pendingAdvRent = advanceRent;
-        let pendingCommon = commonFee;
-        let pendingOther = otherAmount;
-
-        if (remainingDepositToDeduct > 0) {
-          if (remainingDepositToDeduct >= pendingSecDep) {
-            remainingDepositToDeduct -= pendingSecDep;
-            pendingSecDep = 0;
-          } else {
-            pendingSecDep -= remainingDepositToDeduct;
-            remainingDepositToDeduct = 0;
-          }
-        }
-        if (remainingDepositToDeduct > 0) {
-          if (remainingDepositToDeduct >= pendingAdvRent) {
-            remainingDepositToDeduct -= pendingAdvRent;
-            pendingAdvRent = 0;
-          } else {
-            pendingAdvRent -= remainingDepositToDeduct;
-            remainingDepositToDeduct = 0;
-          }
-        }
-        if (remainingDepositToDeduct > 0) {
-          if (remainingDepositToDeduct >= pendingCommon) {
-            remainingDepositToDeduct -= pendingCommon;
-            pendingCommon = 0;
-          } else {
-            pendingCommon -= remainingDepositToDeduct;
-            remainingDepositToDeduct = 0;
-          }
-        }
-        if (remainingDepositToDeduct > 0) {
-          if (remainingDepositToDeduct >= pendingOther) {
-            remainingDepositToDeduct -= pendingOther;
-            pendingOther = 0;
-          } else {
-            pendingOther -= remainingDepositToDeduct;
-            remainingDepositToDeduct = 0;
-          }
-        }
-
-        await base44.asServiceRole.entities.Payment.create({
-          branch_id: branch_id,
-          booking_id: booking.id,
-          room_id: room_id,
-          payment_category: 'security_deposit',
-          due_date: dueDate,
-          late_fee_locked: true,
-          security_deposit_amount: pendingSecDep,
-          advance_rent_amount: pendingAdvRent,
-          common_fee_amount: pendingCommon,
-          other_amount: pendingOther,
-          total_amount: actualRemaining,
-          status: 'pending',
-          line_user_id: payload.line_user_id || '',
-          notes: `ยอดคงเหลือจากการจองห้อง ${room.room_number} - ${guest_name}\n` +
-                 (pendingSecDep > 0 ? `เงินประกัน: ${pendingSecDep.toLocaleString()} บาท\n` : '') +
-                 (pendingAdvRent > 0 ? `ค่าเช่าล่วงหน้า: ${pendingAdvRent.toLocaleString()} บาท\n` : '') +
-                 (pendingCommon > 0 ? `ค่าส่วนกลาง: ${pendingCommon.toLocaleString()} บาท\n` : '') +
-                 (pendingOther > 0 ? `ค่าอื่นๆ: ${pendingOther.toLocaleString()} บาท` : '')
-        });
-      }
+      await base44.asServiceRole.entities.Payment.create({
+        branch_id: branch_id,
+        booking_id: booking.id,
+        room_id: room_id,
+        payment_category: 'booking_deposit',
+        due_date: check_in_date || new Date().toISOString().split('T')[0],
+        total_amount: totalRequired,
+        paid_amount: booking.deposit_amount,
+        security_deposit_amount: booking_type === 'monthly' ? (payload.security_deposit || 0) : 0,
+        advance_rent_amount: booking_type === 'monthly' ? (payload.advance_rent || 0) : 0,
+        common_fee_amount: booking_type === 'monthly' ? (payload.common_fee_included || 0) : 0,
+        other_amount: booking_type === 'monthly' ? (payload.other_amount || 0) : 0,
+        status: status,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_slip_url: booking.deposit_slip_url || '',
+        payment_method: 'transfer',
+        line_user_id: payload.line_user_id || '',
+        notes: notes
+      });
     }
 
     // 5. Send notification to admins (optional - using service role for SendEmail)

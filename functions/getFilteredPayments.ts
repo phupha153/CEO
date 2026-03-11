@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
     const { 
       branch_id, 
       status_filter = 'all',
-      booking_type_filter = 'all',
       date_range_type = 'this_month',
       custom_range,
       search_query = '',
@@ -174,28 +173,22 @@ Deno.serve(async (req) => {
     const enrichedPayments = payments.map(payment => {
       const tenant = tenantsMap.get(payment.tenant_id);
       let tenantName = tenant?.full_name;
-      let bookingType = null;
       
-      if (payment.booking_id) {
+      if (!tenantName && payment.booking_id) {
         const tempBooking = tempBookingsMap.get(payment.booking_id);
         const activeBooking = activeBookingsMap.get(payment.booking_id);
         
-        if (tempBooking) {
-          if (!tenantName && tempBooking.guest_name) tenantName = tempBooking.guest_name + " (จองออนไลน์)";
-          bookingType = tempBooking.booking_type;
-        } else if (activeBooking) {
-          if (!tenantName && activeBooking.guest_name) tenantName = activeBooking.guest_name;
-          bookingType = activeBooking.booking_type;
+        if (tempBooking && tempBooking.guest_name) {
+          tenantName = tempBooking.guest_name + " (จองออนไลน์)";
+        } else if (activeBooking && activeBooking.guest_name) {
+          tenantName = activeBooking.guest_name;
         }
       }
 
-      const roomInfo = roomsMap.get(payment.room_id);
-
       return {
         ...payment,
-        room_number: roomInfo?.room_number || 'N/A',
-        room_type: roomInfo?.room_type,
-        booking_type: bookingType || roomInfo?.room_type || 'monthly', // Fallback to room type
+        room_number: roomsMap.get(payment.room_id)?.room_number || 'N/A',
+        room_type: roomsMap.get(payment.room_id)?.room_type,
         tenant_name: tenantName || 'N/A',
         tenant_phone: tenant?.phone,
         tenant_line_user_id: tenant?.line_user_id || null,
@@ -235,11 +228,6 @@ Deno.serve(async (req) => {
         
         return effectiveStatus === status_filter;
       });
-    }
-
-    // Booking Type filter (daily vs monthly)
-    if (booking_type_filter !== 'all') {
-      filtered = filtered.filter(payment => payment.booking_type === booking_type_filter);
     }
 
     // Search filter
