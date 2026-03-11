@@ -10,17 +10,19 @@ export default function AISearchBox({
   onStopSearch,
   aiSearching, 
   placeholder = "ค้นหา หรือถามคำถาม AI...",
-  disabled = false 
+  disabled = false,
+  filterNode = null
 }) {
   return (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 pointer-events-none z-10" />
-      <Input
-        type="text"
-        placeholder={placeholder}
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="pl-9 md:pl-12 pr-20 md:pr-24 h-9 md:h-12 rounded-xl md:rounded-2xl bg-white border-slate-200 shadow-sm text-sm md:text-base placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+    <div className="relative flex items-center gap-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 pointer-events-none z-10" />
+        <Input
+          type="text"
+          placeholder={placeholder}
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-9 md:pl-12 pr-20 md:pr-24 h-9 md:h-12 rounded-xl md:rounded-2xl bg-white border-slate-200 shadow-sm text-sm md:text-base placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         onKeyDown={(e) => {
           if (e.key === 'Enter' && searchQuery.trim() && !disabled && !aiSearching) {
             onAISearch();
