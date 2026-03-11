@@ -393,10 +393,6 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    if (!configs || configs.length === 0 || !selectedBranchId) return;
-  }, []);
-
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
   const currentDateMemo = useMemo(() => {
