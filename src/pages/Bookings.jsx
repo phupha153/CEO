@@ -752,30 +752,23 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
       // สร้าง Payment ถ้าติ๊กถูก
       if (shouldCreatePayment) {
-      const securityDeposit = bookingData.security_deposit || 0;
-      const advanceRent = bookingData.advance_rent || 0;
-      const commonFee = bookingData.common_fee_included || 0;
-      const totalRemaining = securityDeposit + advanceRent + commonFee;
-
-      if (totalRemaining > 0) {
-        const dueDate = bookingData.check_out_date || bookingData.contract_deadline || bookingData.check_in_date;
-          
+        const dAmt = parseFloat(bookingData.deposit_amount || 0);
+        const rem = parseFloat(bookingData.security_deposit || 0) + parseFloat(bookingData.advance_rent || 0) + parseFloat(bookingData.common_fee_included || 0) - dAmt;
+        const due = bookingData.check_out_date || bookingData.contract_deadline || bookingData.check_in_date;
+        if (dAmt > 0) {
           await base44.entities.Payment.create({
-            branch_id: selectedBranchId,
-            booking_id: newBooking.id,
-            room_id: newBooking.room_id,
-            payment_category: 'booking_deposit',
-            due_date: dueDate,
-            late_fee_locked: true,  // ล็อคค่าปรับสำหรับบิลการจอง
-            security_deposit_amount: securityDeposit,
-            advance_rent_amount: advanceRent,
-            common_fee_amount: commonFee,
-            total_amount: totalRemaining,
-            status: 'pending',
-            notes: `รายการชำระจากการจองห้อง ${room.room_number} - ${bookingData.guest_name}\n` +
-                   `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
-                   `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
-                   `ค่าส่วนกลาง: ${commonFee.toLocaleString()} บาท`
+            branch_id: selectedBranchId, booking_id: newBooking.id, room_id: newBooking.room_id,
+            payment_category: 'booking_deposit', due_date: due, payment_date: new Date().toISOString(),
+            late_fee_locked: true, total_amount: dAmt, paid_amount: dAmt, status: 'paid',
+            payment_method: bookingData.deposit_payment_method || 'transfer', payment_slip_url: bookingData.deposit_slip_url || '',
+            notes: `เงินมัดจำห้อง ${room.room_number}`
+          });
+        }
+        if (rem > 0) {
+          await base44.entities.Payment.create({
+            branch_id: selectedBranchId, booking_id: newBooking.id, room_id: newBooking.room_id,
+            payment_category: 'security_deposit', due_date: due, late_fee_locked: true,
+            total_amount: rem, status: 'pending', notes: `ยอดคงเหลือจองห้อง ${room.room_number}`
           });
         }
       }
