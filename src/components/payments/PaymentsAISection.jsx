@@ -10,11 +10,12 @@ import AIResultCard from "../shared/AIResultCard";
 export default function PaymentsAISection({
   searchQuery, setSearchQuery, handleAISearch, handleStopAISearch, aiSearching,
   aiAction, handleAIActionConfirm, handleAIActionCancel, aiActionLoading,
-  aiResult, payments, getEffectiveStatus, calculateLateFee, handlePaymentClick
+  aiResult, payments, getEffectiveStatus, calculateLateFee, handlePaymentClick,
+  filterNode = null
 }) {
   return (
     <>
-      <div className="relative">
+      <div className="relative w-full">
         <AISearchBox
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -22,6 +23,7 @@ export default function PaymentsAISection({
           onStopSearch={handleStopAISearch}
           aiSearching={aiSearching}
           placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+          filterNode={filterNode}
         />
 
         {aiSearching && (
