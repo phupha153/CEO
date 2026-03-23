@@ -112,10 +112,12 @@ Deno.serve(async (req) => {
 
         // ✅ Parse request body
         let paymentId;
+        let replyToken;
         try {
             const body = await req.json();
             paymentId = body.paymentId;
-            console.log('📝 Request body parsed:', { paymentId });
+            replyToken = body.replyToken;
+            console.log('📝 Request body parsed:', { paymentId, hasReplyToken: !!replyToken });
         } catch (jsonError) {
             console.error('JSON parse error:', jsonError);
             return Response.json({ 
@@ -572,22 +574,54 @@ Deno.serve(async (req) => {
         };
 
         console.log('📤 Sending LINE message to:', tenant.line_user_id);
+        console.log('🔑 Reply Token:', replyToken ? 'YES' : 'NO');
 
-        const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
+        let endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        let body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: tenant.line_user_id, messages: [flexMessage] };
+
+        console.log(`🚀 Sending to: ${endpoint}`);
+
+        let lineResponse = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${lineToken}`
             },
-            body: JSON.stringify({
-                to: tenant.line_user_id,
-                messages: [flexMessage]
-            })
+            body: JSON.stringify(body)
         });
 
-        const lineResponseText = await lineResponse.text();
-        console.log('📨 LINE API Response Status:', lineResponse.status);
-        console.log('📨 LINE API Response Body:', lineResponseText);
+        let lineResponseText = await lineResponse.text();
+        console.log(`📨 LINE API Response (${endpoint.includes('reply') ? 'REPLY' : 'PUSH'}):`, lineResponse.status, lineResponseText);
+
+        // ⭐ Fallback mechanism: If Reply fails (e.g., token expired), try Push
+        if (!lineResponse.ok && replyToken) {
+            console.error(`❌ Reply failed: ${lineResponse.status} - ${lineResponseText}`);
+            
+            // Check specifically for Invalid Reply Token (400)
+            if (lineResponse.status === 400 && lineResponseText.includes('Invalid reply token')) {
+                console.log('⚠️ Reply token expired/invalid, falling back to PUSH');
+                
+                endpoint = 'https://api.line.me/v2/bot/message/push';
+                body = { to: tenant.line_user_id, messages: [flexMessage] };
+                
+                lineResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lineToken}`
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                lineResponseText = await lineResponse.text();
+                console.log('📨 PUSH Fallback Response:', lineResponse.status, lineResponseText);
+            }
+        }
 
         if (!lineResponse.ok) {
             let errorData;
@@ -605,7 +639,8 @@ Deno.serve(async (req) => {
             }, { status: lineResponse.status });
         }
 
-        console.log('✅ LINE message sent successfully');
+        const usedMethod = replyToken && endpoint.includes('reply') ? 'REPLY' : 'PUSH';
+        console.log(`✅ LINE message sent successfully via ${usedMethod}`);
 
         // ⭐ บันทึกว่าส่งใบเสร็จแล้ว
         try {
