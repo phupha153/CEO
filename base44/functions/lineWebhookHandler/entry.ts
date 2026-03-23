@@ -1426,19 +1426,14 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         if (tenant?.id) { try { await base44.asServiceRole.functions.invoke('calculatePaymentScores', { tenant_id: tenant.id }); } catch (e) {} }
+        let rT = replyToken;
         if (partialInfo && remainingSlipAmount <= 0) {
-            try {
-                const rmRes = await base44.asServiceRole.entities.Room.filter({ id: partialInfo.room_id });
-                const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
-                const b = (await base44.asServiceRole.entities.Branch.list()).find(b => b.id === (partialInfo.branch_id || branchId));
-                if (b?.owner_id) await base44.asServiceRole.integrations.Core.SendEmail({ to: b.owner_id, subject: `แจ้งเตือน: ยอดโอนไม่ครบ (ห้อง ${roomNum})`, body: `เรียนเจ้าของหอพัก,\n\nมีการโอนเงินเข้ามาสำหรับห้อง ${roomNum} ผ่าน LINE แต่มียอดไม่ครบถ้วน\n\nยอดที่ต้องชำระ: ${partialInfo.expected.toLocaleString()} บาท\nยอดที่โอนเข้ามา: ${slipAmount.toLocaleString()} บาท\nขาดอีก: ${partialInfo.shortfall.toLocaleString()} บาท\n\nกรุณาตรวจสอบสลิปในระบบ` });
-            } catch (e) {}
-            await sendMessage(base44, lineUserId, `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`, branchId, replyToken);
-        } else if (remainingSlipAmount > 0) await sendMessage(base44, lineUserId, `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต\nขอบคุณค่ะ 🙏`, branchId, replyToken);
+            try { const rmRes = await base44.asServiceRole.entities.Room.filter({ id: partialInfo.room_id }); const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ'; const b = (await base44.asServiceRole.entities.Branch.list()).find(b => b.id === (partialInfo.branch_id || branchId)); if (b?.owner_id) await base44.asServiceRole.integrations.Core.SendEmail({ to: b.owner_id, subject: `แจ้งเตือน: ยอดโอนไม่ครบ (ห้อง ${roomNum})`, body: `เรียนเจ้าของหอพัก,\n\nมีการโอนเงินเข้ามาสำหรับห้อง ${roomNum} ผ่าน LINE แต่มียอดไม่ครบถ้วน\n\nยอดที่ต้องชำระ: ${partialInfo.expected.toLocaleString()} บาท\nยอดที่โอนเข้ามา: ${slipAmount.toLocaleString()} บาท\nขาดอีก: ${partialInfo.shortfall.toLocaleString()} บาท\n\nกรุณาตรวจสอบสลิปในระบบ` }); } catch (e) {}
+            await sendMessage(base44, lineUserId, `💰 รับเงินแล้ว ${slipAmount.toLocaleString()}฿\n✅ หักยอดค้าง: ${partialInfo.paidNow.toLocaleString()}฿\n💵 ยอดที่เหลือ: ${partialInfo.expected.toLocaleString()}฿${partialInfo.lateFee > 0 ? ` (รวมค่าปรับ ${partialInfo.lateFee.toLocaleString()}฿)` : ''}\n⚠️ ขาดอีก: ${partialInfo.shortfall.toLocaleString()}฿\nกรุณาโอนเพิ่มค่ะ 🙏`, branchId, rT); rT = null;
+        } else if (remainingSlipAmount > 0) { await sendMessage(base44, lineUserId, `✅ ตรวจสอบสำเร็จ!\n💰 ยอดเงิน: ${slipAmount.toLocaleString()}฿\n📅 วันที่: ${transDate.split('T')[0]}\n✓ ตัดยอดแล้ว\n💵 ส่วนเกิน ${remainingSlipAmount.toLocaleString()}฿ เก็บเป็นเครดิต\nขอบคุณค่ะ 🙏`, branchId, rT); rT = null; }
         for (const item of processedIds) {
             if (item.status === 'paid') {
-                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id }); } 
-                catch (e) { console.error(`❌ Receipt failed ${item.id}:`, e.message); }
+                try { await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: item.id, replyToken: rT }); rT = null; } catch (e) {}
             }
         }
     } catch (error) {
