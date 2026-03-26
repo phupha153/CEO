@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import PageHeader from "../components/shared/PageHeader";
 import ExcelUploader from "../components/shared/ExcelUploader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
+import MeterHistoryDialog from "../components/meter/MeterHistoryDialog";
 import * as XLSX from "xlsx";
 
 export default function MeterReadings() {
@@ -474,9 +475,39 @@ export default function MeterReadings() {
         throw new Error('คุณไม่มีสิทธิ์บันทึกมิเตอร์');
       }
 
+      const readingDate = new Date().toISOString().split('T')[0];
+      const existingReading = meterReadings.find(r => 
+        r.room_id === data.room_id && r.reading_date === readingDate
+      );
+
+      if (existingReading) {
+        const waterPrevious = data.water_previous !== undefined && data.water_previous !== null && data.water_previous !== '' 
+          ? parseFloat(data.water_previous) : existingReading.water_previous;
+        const electricityPrevious = data.electricity_previous !== undefined && data.electricity_previous !== null && data.electricity_previous !== '' 
+          ? parseFloat(data.electricity_previous) : existingReading.electricity_previous;
+          
+        const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' 
+          ? parseFloat(data.water_current) : existingReading.water_current;
+        const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' 
+          ? parseFloat(data.electricity_current) : existingReading.electricity_current;
+
+        const waterUnits = waterCurrent - waterPrevious;
+        const electricityUnits = electricityCurrent - electricityPrevious;
+
+        return await base44.entities.MeterReading.update(existingReading.id, {
+          water_previous: waterPrevious,
+          water_current: waterCurrent,
+          electricity_previous: electricityPrevious,
+          electricity_current: electricityCurrent,
+          water_units: waterUnits,
+          electricity_units: electricityUnits,
+          notes: data.notes || existingReading.notes || ''
+        });
+      }
+
       // ใช้ค่า water_previous & electricity_previous จาก data ที่ส่งมา หรือ auto-detect จากประวัติ
-      let waterPrevious = data.water_previous ? parseFloat(data.water_previous) : null;
-      let electricityPrevious = data.electricity_previous ? parseFloat(data.electricity_previous) : null;
+      let waterPrevious = data.water_previous !== undefined && data.water_previous !== null && data.water_previous !== '' ? parseFloat(data.water_previous) : null;
+      let electricityPrevious = data.electricity_previous !== undefined && data.electricity_previous !== null && data.electricity_previous !== '' ? parseFloat(data.electricity_previous) : null;
 
       // ถ้าไม่ได้ส่งมา ให้ดึงจากประวัติ
       if (waterPrevious === null || waterPrevious === '') {
@@ -489,15 +520,15 @@ export default function MeterReadings() {
         electricityPrevious = latestReading?.electricity_current || 0;
       }
 
-      const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
-      const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
+      const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' ? parseFloat(data.water_current) : waterPrevious;
+      const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' ? parseFloat(data.electricity_current) : electricityPrevious;
 
       const waterUnits = waterCurrent - waterPrevious;
       const electricityUnits = electricityCurrent - electricityPrevious;
 
       const readingData = {
         room_id: data.room_id,
-        reading_date: new Date().toISOString().split('T')[0],
+        reading_date: readingDate,
         water_previous: waterPrevious,
         water_current: waterCurrent,
         electricity_previous: electricityPrevious,
@@ -508,12 +539,19 @@ export default function MeterReadings() {
         branch_id: selectedBranchId
       };
 
-      return base44.entities.MeterReading.create(readingData);
+      return await base44.entities.MeterReading.create(readingData);
     },
     onSuccess: (newReading, variables) => {
       // ⚡ Optimistic update - ไม่ต้องรอ
       queryClient.setQueryData(['meterReadings', selectedBranchId], (old) => {
-        return [newReading, ...(old || [])];
+        if (!old) return [newReading];
+        const existsIndex = old.findIndex(r => r.id === newReading.id);
+        if (existsIndex >= 0) {
+          const newCache = [...old];
+          newCache[existsIndex] = newReading;
+          return newCache;
+        }
+        return [newReading, ...old];
       });
       
       setCardReadings(prev => {
@@ -546,6 +584,34 @@ export default function MeterReadings() {
     mutationFn: async (data) => {
       if (!canAdd) {
         throw new Error('คุณไม่มีสิทธิ์บันทึกมิเตอร์');
+      }
+
+      const existingReading = meterReadings.find(r => 
+        r.room_id === data.room_id && r.reading_date === data.reading_date
+      );
+
+      if (existingReading) {
+        const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' 
+          ? parseFloat(data.water_current) : existingReading.water_current;
+        const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' 
+          ? parseFloat(data.electricity_current) : existingReading.electricity_current;
+        const waterPrevious = data.water_previous !== null && data.water_previous !== undefined && data.water_previous !== '' 
+          ? parseFloat(data.water_previous) : existingReading.water_previous;
+        const electricityPrevious = data.electricity_previous !== null && data.electricity_previous !== undefined && data.electricity_previous !== '' 
+          ? parseFloat(data.electricity_previous) : existingReading.electricity_previous;
+
+        const waterUnits = waterCurrent - waterPrevious;
+        const electricityUnits = electricityCurrent - electricityPrevious;
+
+        return await base44.entities.MeterReading.update(existingReading.id, {
+          water_previous: waterPrevious,
+          water_current: waterCurrent,
+          electricity_previous: electricityPrevious,
+          electricity_current: electricityCurrent,
+          water_units: waterUnits,
+          electricity_units: electricityUnits,
+          notes: data.notes || existingReading.notes || ''
+        });
       }
 
       const waterCurrent = parseFloat(data.water_current);
@@ -606,40 +672,80 @@ export default function MeterReadings() {
       }
       const results = [];
       for (const data of readingsData) {
-        // ใช้ค่า water_previous และ electricity_previous จาก data ที่ส่งมา
-        const waterPrevious = data.water_previous !== undefined && data.water_previous !== '' 
-          ? parseFloat(data.water_previous) 
-          : 0;
-        const electricityPrevious = data.electricity_previous !== undefined && data.electricity_previous !== '' 
-          ? parseFloat(data.electricity_previous) 
-          : 0;
-        
-        // ค่าปัจจุบัน
-        const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' 
-          ? parseFloat(data.water_current) 
-          : waterPrevious;
-        const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' 
-          ? parseFloat(data.electricity_current) 
-          : electricityPrevious;
+        const existingReading = meterReadings.find(r => 
+          r.room_id === data.room_id && r.reading_date === data.reading_date
+        );
 
-        const waterUnits = waterCurrent - waterPrevious;
-        const electricityUnits = electricityCurrent - electricityPrevious;
+        if (existingReading) {
+          const waterPrevious = data.water_previous !== undefined && data.water_previous !== null && data.water_previous !== '' 
+            ? parseFloat(data.water_previous) : existingReading.water_previous;
+          const electricityPrevious = data.electricity_previous !== undefined && data.electricity_previous !== null && data.electricity_previous !== '' 
+            ? parseFloat(data.electricity_previous) : existingReading.electricity_previous;
+            
+          const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' 
+            ? parseFloat(data.water_current) : existingReading.water_current;
+          const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' 
+            ? parseFloat(data.electricity_current) : existingReading.electricity_current;
 
-        const readingData = {
-          room_id: data.room_id,
-          reading_date: data.reading_date,
-          notes: data.notes || '',
-          water_previous: waterPrevious,
-          water_current: waterCurrent,
-          electricity_previous: electricityPrevious,
-          electricity_current: electricityCurrent,
-          water_units: waterUnits,
-          electricity_units: electricityUnits,
-          branch_id: selectedBranchId
-        };
+          const waterUnits = waterCurrent - waterPrevious;
+          const electricityUnits = electricityCurrent - electricityPrevious;
 
-        const result = await base44.entities.MeterReading.create(readingData);
-        results.push(result);
+          const result = await base44.entities.MeterReading.update(existingReading.id, {
+            water_previous: waterPrevious,
+            water_current: waterCurrent,
+            electricity_previous: electricityPrevious,
+            electricity_current: electricityCurrent,
+            water_units: waterUnits,
+            electricity_units: electricityUnits,
+            notes: data.notes || existingReading.notes || ''
+          });
+          results.push(result);
+        } else {
+          // ใช้ค่า water_previous และ electricity_previous จาก data ที่ส่งมา
+          let waterPrevious = data.water_previous !== undefined && data.water_previous !== null && data.water_previous !== '' 
+            ? parseFloat(data.water_previous) 
+            : null;
+          let electricityPrevious = data.electricity_previous !== undefined && data.electricity_previous !== null && data.electricity_previous !== '' 
+            ? parseFloat(data.electricity_previous) 
+            : null;
+            
+          // ถ้าไม่ได้ส่งมา ให้ดึงจากประวัติล่าสุด
+          if (waterPrevious === null) {
+            const latestReading = meterReadings.find(r => r.room_id === data.room_id);
+            waterPrevious = latestReading?.water_current || 0;
+          }
+          if (electricityPrevious === null) {
+            const latestReading = meterReadings.find(r => r.room_id === data.room_id);
+            electricityPrevious = latestReading?.electricity_current || 0;
+          }
+          
+          // ค่าปัจจุบัน
+          const waterCurrent = data.water_current !== null && data.water_current !== undefined && data.water_current !== '' 
+            ? parseFloat(data.water_current) 
+            : waterPrevious;
+          const electricityCurrent = data.electricity_current !== null && data.electricity_current !== undefined && data.electricity_current !== '' 
+            ? parseFloat(data.electricity_current) 
+            : electricityPrevious;
+
+          const waterUnits = waterCurrent - waterPrevious;
+          const electricityUnits = electricityCurrent - electricityPrevious;
+
+          const readingData = {
+            room_id: data.room_id,
+            reading_date: data.reading_date,
+            notes: data.notes || '',
+            water_previous: waterPrevious,
+            water_current: waterCurrent,
+            electricity_previous: electricityPrevious,
+            electricity_current: electricityCurrent,
+            water_units: waterUnits,
+            electricity_units: electricityUnits,
+            branch_id: selectedBranchId
+          };
+
+          const result = await base44.entities.MeterReading.create(readingData);
+          results.push(result);
+        }
       }
       return results;
     },
@@ -2925,195 +3031,19 @@ export default function MeterReadings() {
       </Dialog>
 
       {/* Detail Dialog - ประวัติการบันทึก */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              ประวัติการบันทึกมิเตอร์ - ห้อง {selectedReading?.room?.room_number}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedReading && (
-            <div className="space-y-4">
-              {selectedReading.tenant && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <p className="font-semibold text-slate-800">ผู้เช่า: {selectedReading.tenant.full_name}</p>
-                    <p className="text-sm text-slate-600">โทร: {selectedReading.tenant.phone}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="space-y-3">
-                {selectedReading.readings.map((meterReading, index) => (
-                  <Card key={meterReading.id} className={index === 0 ? 'border-2 border-blue-500' : ''}>
-                    <CardContent className="p-4">
-                      {/* โหมดแก้ไข */}
-                      {editingReading?.id === meterReading.id ? (
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <p className="font-semibold text-slate-800">แก้ไขมิเตอร์</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingReading(null)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-xs text-blue-600">น้ำครั้งก่อน</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editingReading.water_previous}
-                                onChange={(e) => setEditingReading({...editingReading, water_previous: e.target.value})}
-                                className="h-9"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-blue-600">น้ำปัจจุบัน</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editingReading.water_current}
-                                onChange={(e) => setEditingReading({...editingReading, water_current: e.target.value})}
-                                className="h-9"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-yellow-600">ไฟครั้งก่อน</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editingReading.electricity_previous}
-                                onChange={(e) => setEditingReading({...editingReading, electricity_previous: e.target.value})}
-                                className="h-9"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-yellow-600">ไฟปัจจุบัน</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editingReading.electricity_current}
-                                onChange={(e) => setEditingReading({...editingReading, electricity_current: e.target.value})}
-                                className="h-9"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setEditingReading(null)}>
-                              ยกเลิก
-                            </Button>
-                            <Button 
-                              size="sm"
-                              disabled={updateMutation.isPending}
-                              onClick={() => {
-                                updateMutation.mutate({
-                                  id: editingReading.id,
-                                  data: {
-                                    water_previous: editingReading.water_previous,
-                                    water_current: editingReading.water_current,
-                                    electricity_previous: editingReading.electricity_previous,
-                                    electricity_current: editingReading.electricity_current
-                                  }
-                                });
-                                setEditingReading(null);
-                              }}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              {updateMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-800">
-                                {format(parseISO(meterReading.reading_date), 'd MMMM yyyy', { locale: th })}
-                              </p>
-                              {index === 0 && <Badge className="mt-1 bg-blue-100 text-blue-700">ล่าสุด</Badge>}
-                            </div>
-                            
-                            <div className="flex gap-1">
-                              {/* ปุ่มแก้ไข - เจ้าของและ Developer แก้ได้เสมอ */}
-                              {(canEditHistory || userRole === 'owner' || userRole === 'developer') && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingReading({
-                                    id: meterReading.id,
-                                    water_previous: meterReading.water_previous,
-                                    water_current: meterReading.water_current,
-                                    electricity_previous: meterReading.electricity_previous,
-                                    electricity_current: meterReading.electricity_current
-                                  })}
-                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </Button>
-                              )}
-                              {/* ปุ่มลบ */}
-                              {canDelete && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteReading(meterReading, selectedReading.room.room_number)}
-                                  disabled={deleteMutation.isPending}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-blue-600">
-                                <Droplets className="w-4 h-4" />
-                                <span className="font-semibold">น้ำ</span>
-                              </div>
-                              <div className="text-sm space-y-1 pl-6">
-                                <p>ครั้งก่อน: <span className="font-medium">{meterReading.water_previous}</span></p>
-                                <p>ครั้งนี้: <span className="font-medium">{meterReading.water_current}</span></p>
-                                <p className="text-blue-600 font-bold">ใช้ไป: {meterReading.water_units} หน่วย</p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-yellow-600">
-                                <Zap className="w-4 h-4" />
-                                <span className="font-semibold">ไฟ</span>
-                              </div>
-                              <div className="text-sm space-y-1 pl-6">
-                                <p>ครั้งก่อน: <span className="font-medium">{meterReading.electricity_previous}</span></p>
-                                <p>ครั้งนี้: <span className="font-medium">{meterReading.electricity_current}</span></p>
-                                <p className="text-yellow-600 font-bold">ใช้ไป: {meterReading.electricity_units} หน่วย</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {meterReading.notes && (
-                            <div className="mt-3 pt-3 border-t">
-                              <p className="text-sm text-slate-600">{meterReading.notes}</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <MeterHistoryDialog 
+        showDetailDialog={showDetailDialog}
+        setShowDetailDialog={setShowDetailDialog}
+        selectedReading={selectedReading}
+        editingReading={editingReading}
+        setEditingReading={setEditingReading}
+        canEditHistory={canEditHistory}
+        userRole={userRole}
+        canDelete={canDelete}
+        handleDeleteReading={handleDeleteReading}
+        updateMutation={updateMutation}
+        deleteMutation={deleteMutation}
+      />
 
       {/* Fixed Save Button for Table View */}
       {viewMode === 'table' && Object.keys(bulkReadings).length > 0 && (
