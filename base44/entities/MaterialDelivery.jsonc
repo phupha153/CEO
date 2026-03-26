@@ -1,0 +1,100 @@
+{
+  "name": "MaterialDelivery",
+  "type": "object",
+  "properties": {
+    "branch_id": {
+      "type": "string",
+      "description": "ID \u0e2a\u0e32\u0e02\u0e32"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "ID \u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32 (\u0e16\u0e49\u0e32\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a\u0e0a\u0e37\u0e48\u0e2d\u0e43\u0e19\u0e23\u0e30\u0e1a\u0e1a)"
+    },
+    "room_id": {
+      "type": "string",
+      "description": "ID \u0e2b\u0e2b\u0e49\u0e2d\u0e07 (\u0e16\u0e49\u0e32\u0e23\u0e30\u0e1a\u0e38)"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e23\u0e31\u0e1a\u0e17\u0e35\u0e48\u0e2a\u0e41\u0e01\u0e19\u0e08\u0e32\u0e01\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e21\u0e32\u0e2a\u0e48\u0e07"
+    },
+    "delivery_time": {
+      "type": "string",
+      "description": "\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e21\u0e32\u0e2a\u0e48\u0e07"
+    },
+    "delivery_company": {
+      "type": "string",
+      "description": "\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e02\u0e19\u0e2a\u0e48\u0e07 (\u0e40\u0e0a\u0e48\u0e19 Kerry, Flash, Thailand Post)"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "\u0e40\u0e25\u0e02\u0e1e\u0e31\u0e2a\u0e14\u0e38"
+    },
+    "package_type": {
+      "type": "string",
+      "enum": [
+        "document",
+        "parcel",
+        "box",
+        "food",
+        "other"
+      ],
+      "default": "parcel",
+      "description": "\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e1e\u0e31\u0e2a\u0e14\u0e38"
+    },
+    "image_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e\u0e43\u0e1a\u0e19\u0e33\u0e2a\u0e48\u0e07/\u0e1e\u0e31\u0e2a\u0e14\u0e38"
+    },
+    "scanned_text": {
+      "type": "string",
+      "description": "\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e17\u0e35\u0e48\u0e2a\u0e41\u0e01\u0e19\u0e44\u0e14\u0e49\u0e08\u0e32\u0e01\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "notified",
+        "picked_up"
+      ],
+      "default": "received",
+      "description": "\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e1e\u0e31\u0e2a\u0e14\u0e38 (\u0e23\u0e31\u0e1a\u0e41\u0e25\u0e49\u0e27/\u0e41\u0e08\u0e49\u0e07\u0e41\u0e25\u0e49\u0e27/\u0e23\u0e31\u0e1a\u0e44\u0e1b\u0e41\u0e25\u0e49\u0e27)"
+    },
+    "notification_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u0e2a\u0e48\u0e07\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e41\u0e25\u0e49\u0e27\u0e2b\u0e23\u0e37\u0e2d\u0e22\u0e31\u0e07"
+    },
+    "notification_sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u0e27\u0e31\u0e19\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19"
+    },
+    "picked_up_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u0e27\u0e31\u0e19\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e21\u0e32\u0e23\u0e31\u0e1a\u0e1e\u0e31\u0e2a\u0e14\u0e38"
+    },
+    "received_by": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e1e\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e17\u0e35\u0e48\u0e23\u0e31\u0e1a\u0e1e\u0e31\u0e2a\u0e14\u0e38"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38"
+    }
+  },
+  "required": [
+    "branch_id",
+    "recipient_name",
+    "delivery_date"
+  ]
+}
