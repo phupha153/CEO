@@ -184,9 +184,16 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐ ดึง Config แค่ครั้งเดียว เพื่อหลีกเลี่ยง race condition
-        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        // ⭐ ดึง Config โดย filter เฉพาะ key ที่เกี่ยวข้อง (ป้องกัน list() ที่อาจ return น้อยกว่า 1000)
+        const [branchConfigRes, globalConfigRes] = await Promise.all([
+            base44.asServiceRole.entities.Config.filter({ branch_id: payment.branch_id }, '', 200),
+            base44.asServiceRole.entities.Config.filter({ branch_id: null }, '', 200),
+        ]);
+        const configs = [
+            ...(Array.isArray(branchConfigRes) ? branchConfigRes : []),
+            ...(Array.isArray(globalConfigRes) ? globalConfigRes : []),
+        ];
+        console.log(`📦 Configs loaded: ${configs.length} total (branch: ${Array.isArray(branchConfigRes) ? branchConfigRes.length : 0}, global: ${Array.isArray(globalConfigRes) ? globalConfigRes.length : 0})`);
 
         // ⭐ Debug: แสดงว่าพบ token ใน configs หรือไม่
         const lineConfigsForBranch = configs.filter(c => c.key === 'line_channel_access_token');
@@ -305,7 +312,7 @@ Deno.serve(async (req) => {
         };
 
         // ⭐ สร้างลิงก์ PublicReceipt
-        const frontendUrl = getConfig('frontend_url', null) || Deno.env.get('FRONTEND_URL');
+        const frontendUrl = (getConfig('frontend_url', null) || Deno.env.get('FRONTEND_URL') || '').replace(/\/+$/, '');
         
         if (!frontendUrl) {
             console.error('❌ Missing FRONTEND_URL config');
