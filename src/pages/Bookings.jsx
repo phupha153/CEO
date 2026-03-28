@@ -1198,7 +1198,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const sortedRooms = useMemo(() => {
     return [...rooms].sort((a, b) => {
       if (a.floor !== b.floor) return a.floor - b.floor;
-      return a.room_number.localeCompare(b.room_number);
+      const roomA = a.room_number || '';
+      const roomB = b.room_number || '';
+      return roomA.localeCompare(roomB);
     });
   }, [rooms]);
 
