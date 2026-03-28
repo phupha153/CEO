@@ -1972,7 +1972,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   };
 
   const filteredTenants = useMemo(() => {
-    let result = tenants;
+    let result = Array.isArray(tenants) ? tenants : [];
 
     // Filter by search query
     if (debouncedSearch.trim()) {
