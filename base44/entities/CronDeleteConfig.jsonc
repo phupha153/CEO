@@ -1,0 +1,68 @@
+{
+  "name": "CronDeleteConfig",
+  "type": "object",
+  "properties": {
+    "selected_branches": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 branch_id \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e43\u0e2b\u0e49 Cron Job \u0e25\u0e1a\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e14\u0e2a\u0e2d\u0e1a"
+    },
+    "delete_entities": {
+      "type": "object",
+      "properties": {
+        "Payment": {
+          "type": "boolean",
+          "default": true
+        },
+        "MeterReading": {
+          "type": "boolean",
+          "default": true
+        },
+        "Booking": {
+          "type": "boolean",
+          "default": false
+        },
+        "Tenant": {
+          "type": "boolean",
+          "default": false
+        },
+        "Room": {
+          "type": "boolean",
+          "default": false
+        },
+        "MaintenanceRequest": {
+          "type": "boolean",
+          "default": true
+        },
+        "Expense": {
+          "type": "boolean",
+          "default": true
+        },
+        "Contract": {
+          "type": "boolean",
+          "default": false
+        },
+        "MaterialDelivery": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "description": "\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e43\u0e2b\u0e49 Cron Job \u0e25\u0e1a"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u0e27\u0e31\u0e19\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e41\u0e01\u0e49\u0e44\u0e02\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "\u0e1c\u0e39\u0e49\u0e41\u0e01\u0e49\u0e44\u0e02\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14"
+    }
+  },
+  "required": [
+    "selected_branches",
+    "delete_entities"
+  ]
+}

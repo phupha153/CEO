@@ -1,0 +1,248 @@
+{
+  "name": "Contract",
+  "type": "object",
+  "properties": {
+    "branch_id": {
+      "type": "string",
+      "description": "ID \u0e2a\u0e32\u0e02\u0e32"
+    },
+    "contract_no": {
+      "type": "string",
+      "description": "\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\u0e2a\u0e31\u0e0d\u0e0d\u0e32 (\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1a RNT-YYYYMM-####)"
+    },
+    "contract_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e17\u0e33\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "lessor_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d-\u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25\u0e1c\u0e39\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "lessor_id": {
+      "type": "string",
+      "description": "\u0e40\u0e25\u0e02\u0e1a\u0e31\u0e15\u0e23\u0e1b\u0e23\u0e30\u0e0a\u0e32\u0e0a\u0e19\u0e1c\u0e39\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e0a\u0e48\u0e32 (13 \u0e2b\u0e25\u0e31\u0e01)"
+    },
+    "lessor_phone": {
+      "type": "string",
+      "description": "\u0e40\u0e1a\u0e2d\u0e23\u0e4c\u0e42\u0e17\u0e23\u0e1c\u0e39\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "lessor_address": {
+      "type": "string",
+      "description": "\u0e17\u0e35\u0e48\u0e2d\u0e22\u0e39\u0e48\u0e1c\u0e39\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "lessee_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d-\u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25\u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "lessee_id": {
+      "type": "string",
+      "description": "\u0e40\u0e25\u0e02\u0e1a\u0e31\u0e15\u0e23\u0e1b\u0e23\u0e30\u0e0a\u0e32\u0e0a\u0e19\u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32 (13 \u0e2b\u0e25\u0e31\u0e01)"
+    },
+    "lessee_phone": {
+      "type": "string",
+      "description": "\u0e40\u0e1a\u0e2d\u0e23\u0e4c\u0e42\u0e17\u0e23\u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "lessee_address": {
+      "type": "string",
+      "description": "\u0e17\u0e35\u0e48\u0e2d\u0e22\u0e39\u0e48\u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "ID \u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32\u0e43\u0e19\u0e23\u0e30\u0e1a\u0e1a (\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e01\u0e31\u0e1a Tenant)"
+    },
+    "room_id": {
+      "type": "string",
+      "description": "ID \u0e2b\u0e49\u0e2d\u0e07 (\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e01\u0e31\u0e1a Room)"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "ID \u0e01\u0e32\u0e23\u0e08\u0e2d\u0e07 (\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e01\u0e31\u0e1a Booking)"
+    },
+    "building": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e2d\u0e32\u0e04\u0e32\u0e23/\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23"
+    },
+    "room_no": {
+      "type": "string",
+      "description": "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e25\u0e02\u0e2b\u0e49\u0e2d\u0e07"
+    },
+    "floor": {
+      "type": "string",
+      "description": "\u0e0a\u0e31\u0e49\u0e19"
+    },
+    "full_address": {
+      "type": "string",
+      "description": "\u0e17\u0e35\u0e48\u0e2d\u0e22\u0e39\u0e48\u0e40\u0e15\u0e47\u0e21\u0e02\u0e2d\u0e07\u0e2b\u0e49\u0e2d\u0e07\u0e40\u0e0a\u0e48\u0e32"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e40\u0e23\u0e34\u0e48\u0e21\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "rent_monthly": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e23\u0e32\u0e22\u0e40\u0e14\u0e37\u0e2d\u0e19 (\u0e1a\u0e32\u0e17)"
+    },
+    "deposit": {
+      "type": "number",
+      "description": "\u0e40\u0e07\u0e34\u0e19\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19 (\u0e1a\u0e32\u0e17)"
+    },
+    "pay_day": {
+      "type": "integer",
+      "description": "\u0e27\u0e31\u0e19\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e0a\u0e33\u0e23\u0e30 (\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e40\u0e14\u0e37\u0e2d\u0e19)"
+    },
+    "water_rate": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e19\u0e49\u0e33\u0e15\u0e48\u0e2d\u0e2b\u0e19\u0e48\u0e27\u0e22 (\u0e1a\u0e32\u0e17)"
+    },
+    "elec_rate": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e44\u0e1f\u0e15\u0e48\u0e2d\u0e2b\u0e19\u0e48\u0e27\u0e22 (\u0e1a\u0e32\u0e17)"
+    },
+    "common_fee": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e2a\u0e48\u0e27\u0e19\u0e01\u0e25\u0e32\u0e07 (\u0e1a\u0e32\u0e17)"
+    },
+    "internet_fee": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e2d\u0e34\u0e19\u0e40\u0e17\u0e2d\u0e23\u0e4c\u0e40\u0e19\u0e47\u0e15 (\u0e1a\u0e32\u0e17)"
+    },
+    "late_fee_per_day": {
+      "type": "number",
+      "description": "\u0e04\u0e48\u0e32\u0e1b\u0e23\u0e31\u0e1a\u0e25\u0e48\u0e32\u0e0a\u0e49\u0e32\u0e15\u0e48\u0e2d\u0e27\u0e31\u0e19 (\u0e1a\u0e32\u0e17)"
+    },
+    "allow_pets": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e43\u0e2b\u0e49\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e2a\u0e31\u0e15\u0e27\u0e4c"
+    },
+    "no_smoking": {
+      "type": "boolean",
+      "default": true,
+      "description": "\u0e2b\u0e49\u0e32\u0e21\u0e2a\u0e39\u0e1a\u0e1a\u0e38\u0e2b\u0e23\u0e35\u0e48"
+    },
+    "termination_notice_days": {
+      "type": "integer",
+      "default": 30,
+      "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e41\u0e08\u0e49\u0e07\u0e25\u0e48\u0e27\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e01\u0e48\u0e2d\u0e19\u0e1a\u0e2d\u0e01\u0e40\u0e25\u0e34\u0e01"
+    },
+    "deposit_return_days": {
+      "type": "integer",
+      "default": 7,
+      "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e04\u0e37\u0e19\u0e40\u0e07\u0e34\u0e19\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19\u0e2b\u0e25\u0e31\u0e07\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "late_payment_grace_days": {
+      "type": "integer",
+      "default": 7,
+      "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e04\u0e49\u0e32\u0e07\u0e0a\u0e33\u0e23\u0e30\u0e17\u0e35\u0e48\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e01\u0e48\u0e2d\u0e19\u0e1a\u0e2d\u0e01\u0e40\u0e25\u0e34\u0e01"
+    },
+    "furniture_rent": {
+      "type": "number",
+      "default": 0,
+      "description": "\u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e40\u0e1f\u0e2d\u0e23\u0e4c\u0e19\u0e34\u0e40\u0e08\u0e2d\u0e23\u0e4c\u0e15\u0e48\u0e2d\u0e40\u0e14\u0e37\u0e2d\u0e19"
+    },
+    "advance_rent": {
+      "type": "number",
+      "default": 0,
+      "description": "\u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e25\u0e48\u0e27\u0e07\u0e2b\u0e19\u0e49\u0e32"
+    },
+    "contract_clauses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "clause_number": {
+            "type": "integer",
+            "description": "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e25\u0e02\u0e02\u0e49\u0e2d"
+          },
+          "title": {
+            "type": "string",
+            "description": "\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d\u0e02\u0e49\u0e2d\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+          },
+          "content": {
+            "type": "string",
+            "description": "\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32\u0e02\u0e49\u0e2d\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+          }
+        },
+        "required": [
+          "clause_number",
+          "content"
+        ]
+      },
+      "description": "\u0e02\u0e49\u0e2d\u0e2a\u0e31\u0e0d\u0e0d\u0e32\u0e17\u0e31\u0e49\u0e07 15 \u0e02\u0e49\u0e2d (\u0e41\u0e01\u0e49\u0e44\u0e02\u0e44\u0e14\u0e49)"
+    },
+    "additional_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u0e01\u0e0e\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e02\u0e49\u0e2d 8.8 (\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e44\u0e14\u0e49\u0e2b\u0e25\u0e32\u0e22\u0e02\u0e49\u0e2d)"
+    },
+    "contract_content": {
+      "type": "string",
+      "description": "\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32\u0e2a\u0e31\u0e0d\u0e0d\u0e32\u0e41\u0e1a\u0e1a HTML \u0e17\u0e35\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e41\u0e01\u0e49\u0e44\u0e02\u0e44\u0e14\u0e49"
+    },
+    "tenant_signature": {
+      "type": "string",
+      "description": "\u0e25\u0e32\u0e22\u0e40\u0e0b\u0e47\u0e19\u0e1c\u0e39\u0e49\u0e40\u0e0a\u0e48\u0e32 (Base64)"
+    },
+    "landlord_signature": {
+      "type": "string",
+      "description": "\u0e25\u0e32\u0e22\u0e40\u0e0b\u0e47\u0e19\u0e1c\u0e39\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e0a\u0e48\u0e32 (Base64)"
+    },
+    "witness1_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e1e\u0e22\u0e32\u0e19\u0e04\u0e19\u0e17\u0e35\u0e48 1"
+    },
+    "witness1_signature": {
+      "type": "string",
+      "description": "\u0e25\u0e32\u0e22\u0e40\u0e0b\u0e47\u0e19\u0e1e\u0e22\u0e32\u0e19\u0e04\u0e19\u0e17\u0e35\u0e48 1 (Base64)"
+    },
+    "witness2_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e1e\u0e22\u0e32\u0e19\u0e04\u0e19\u0e17\u0e35\u0e48 2"
+    },
+    "witness2_signature": {
+      "type": "string",
+      "description": "\u0e25\u0e32\u0e22\u0e40\u0e0b\u0e47\u0e19\u0e1e\u0e22\u0e32\u0e19\u0e04\u0e19\u0e17\u0e35\u0e48 2 (Base64)"
+    },
+    "remarks": {
+      "type": "string",
+      "description": "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL \u0e44\u0e1f\u0e25\u0e4c PDF \u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "signed",
+        "active",
+        "expired",
+        "terminated"
+      ],
+      "default": "draft",
+      "description": "\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e2a\u0e31\u0e0d\u0e0d\u0e32"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38\u0e20\u0e32\u0e22\u0e43\u0e19"
+    }
+  },
+  "required": [
+    "branch_id",
+    "contract_date",
+    "lessor_name",
+    "lessee_name",
+    "start_date",
+    "rent_monthly"
+  ]
+}

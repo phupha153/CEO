@@ -225,55 +225,48 @@ Deno.serve(async (req) => {
         let skip = 0;
         let hasMore = true;
         
-        // ดึงแยกแต่ละ status เพราะ Base44 SDK ไม่รองรับ $in operator
-        const STATUSES_TO_CHECK = ['pending', 'overdue', 'partial_paid'];
-        hasMore = false; // ไม่ใช้ while loop แล้ว
-        
-        for (const statusToCheck of STATUSES_TO_CHECK) {
-            let statusSkip = 0;
-            let statusHasMore = true;
+        while (hasMore) {
+            // ดึงเฉพาะ pending payments
+            const batch = await entityService.Payment.filter(
+                { status: 'pending' }, 
+                '-created_date', 
+                BATCH_SIZE, 
+                skip
+            );
             
-            while (statusHasMore) {
-                const batch = await entityService.Payment.filter(
-                    { status: statusToCheck }, 
-                    '-created_date', 
-                    BATCH_SIZE, 
-                    statusSkip
+            if (Array.isArray(batch) && batch.length > 0) {
+                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ และไม่รวมกรณีโอนผิดบัญชีหรือยังไม่ตั้งค่าบัญชี
+                const filtered = batch.filter(p => 
+                    p.payment_slip_url && 
+                    p.branch_id &&
+                    p.notes && 
+                    p.notes.includes('รอตรวจสอบ') &&
+                    !p.notes.includes('โอนเงินไปผิดบัญชี') &&
+                    !p.notes.includes('ยังไม่ได้ตั้งค่าบัญชีธนาคาร')
                 );
+                pendingWithSlip = pendingWithSlip.concat(filtered);
                 
-                if (Array.isArray(batch) && batch.length > 0) {
-                    const filtered = batch.filter(p => 
-                        p.payment_slip_url && 
-                        p.branch_id &&
-                        p.notes && 
-                        p.notes.includes('รอตรวจสอบ') &&
-                        !p.notes.includes('โอนเงินไปผิดบัญชี') &&
-                        !p.notes.includes('รอตรวจสอบด้วยตนเอง') &&
-                        !p.notes.includes('ยังไม่ได้ตั้งค่าบัญชีธนาคาร')
-                        );
-                    pendingWithSlip = pendingWithSlip.concat(filtered);
-                    
-                    statusSkip += batch.length;
-                    console.log(`📦 [${statusToCheck}] Batch: ${batch.length}, with slip: ${filtered.length}, total: ${pendingWithSlip.length}`);
-                    
-                    if (batch.length < BATCH_SIZE) statusHasMore = false;
-                } else {
-                    statusHasMore = false;
-                }
+                skip += batch.length;
+                console.log(`📦 Batch: ${batch.length} pending, ${filtered.length} with slip to recheck, total: ${pendingWithSlip.length}`);
                 
-                if (pendingWithSlip.length >= 100) {
-                    statusHasMore = false;
+                if (batch.length < BATCH_SIZE) {
                     hasMore = false;
-                    console.log('✅ Found enough payments to recheck (100), stopping');
-                    break;
                 }
-                if (statusSkip > 5000) {
-                    statusHasMore = false;
-                    console.log(`⚠️ Max scan reached for status: ${statusToCheck}`);
-                }
-                skip += batch?.length || 0;
+            } else {
+                hasMore = false;
             }
-            if (pendingWithSlip.length >= 100) break;
+            
+            // หยุดถ้าเจอที่ต้อง recheck มากพอแล้ว (ประหยัดเวลา)
+            if (pendingWithSlip.length >= 100) {
+                console.log('✅ Found enough payments to recheck, stopping fetch');
+                hasMore = false;
+            }
+            
+            // ป้องกัน infinite loop - แต่ไม่ต้องดึงมากกว่า 5000 pending
+            if (skip > 5000) {
+                console.log('⚠️ Max pending payments scanned, stopping');
+                hasMore = false;
+            }
         }
         
         const pendingRecheckPayments = pendingWithSlip;

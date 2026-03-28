@@ -165,7 +165,40 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
+        // ✅ สร้างรูปใบเสร็จใหม่ทุกครั้ง (เหมือน LINE)
+        console.log('🔄 Generating fresh receipt image...');
+        
+        try {
+            if (payment.receipt_image_url) {
+                await base44.asServiceRole.entities.Payment.update(paymentId, {
+                    receipt_image_url: null
+                });
+                console.log('🗑️ Cleared old receipt_image_url');
+            }
+            
+            const generateResponse = await base44.asServiceRole.functions.invoke('generateReceiptImage', {
+                paymentId: paymentId
+            });
 
+            console.log('generateReceiptImage response:', generateResponse.data);
+
+            if (generateResponse.data.success && generateResponse.data.receipt_image_url) {
+                payment.receipt_image_url = generateResponse.data.receipt_image_url;
+                console.log('✅ Receipt image generated:', payment.receipt_image_url);
+            } else {
+                console.error('❌ Failed to generate receipt image:', generateResponse.data);
+                return Response.json({ 
+                    success: false,
+                    error: 'ไม่สามารถสร้างรูปใบเสร็จได้'
+                }, { status: 500 });
+            }
+        } catch (genError) {
+            console.error('❌ Error calling generateReceiptImage:', genError);
+            return Response.json({ 
+                success: false,
+                error: 'เกิดข้อผิดพลาดในการสร้างรูปใบเสร็จ'
+            }, { status: 500 });
+        }
 
         // ⭐ ดึง tenant โดยตรง (เหมือน LINE)
         console.log('📥 Fetching tenant directly by ID:', payment.tenant_id);
@@ -284,6 +317,7 @@ Deno.serve(async (req) => {
         message += `✅ ชำระเงินเรียบร้อยแล้ว\n\n`;
         message += `ขอบคุณที่ชำระเงินตรงเวลา\n`;
         message += `ผู้รับเงิน: ${config.lessorName}\n\n`;
+        message += `📄 ดูใบเสร็จรูปภาพ:\n${payment.receipt_image_url}\n\n`;
         message += `เอกสารนี้สร้างโดยระบบอัตโนมัติ\nกรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน`;
 
         console.log('📤 Sending Facebook message to:', tenant.facebook_user_id);
