@@ -1283,7 +1283,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             });
             
             await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                `📸 ได้รับสลิปแล้ว!`,
                 branchId,
                 replyToken
             );
@@ -1328,7 +1328,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const rmRes = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, { payment_slip_url: slipImageUrl, notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNum} - ยังไม่ได้ตั้งค่าบัญชี` });
-            await sendMessage(base44, lineUserId, `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`, branchId, replyToken);
+            await sendMessage(base44, lineUserId, `📸 ได้รับสลิปแล้ว!`, branchId, replyToken);
             return;
         }
 

@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
                     const tenant1 = Array.isArray(tenantRes1) ? tenantRes1[0] : tenantRes1;
                     if (tenant1?.line_user_id) {
                         await sendLineMessage(base44, tenant1.line_user_id, 
-                            `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
+                            `📸 ได้รับสลิปแล้ว!`,
                             payment.branch_id,
                             configs
                         );
