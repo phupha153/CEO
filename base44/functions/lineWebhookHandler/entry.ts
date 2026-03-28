@@ -1293,7 +1293,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         // ⭐⭐⭐ เช็คเลขบัญชีก่อนเช็คยอด (แบบเดียวกับ verifySlip - ไม่เช็คชื่อ)
         // บังคับดึงข้อมูล Config ใหม่เสมอ ป้องกัน Cache และคัดกรอง config ที่ว่างทิ้ง
         const rCfg = await base44.asServiceRole.entities.Config.list('', 2000);
-        let configs = Array.isArray(rCfg) ? rCfg : [];
+        let configs = Array.isArray(rCfg) ? rCfg : (rCfg?.data || []);
 
         const getConfigValue = (key) => {
             const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
