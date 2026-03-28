@@ -2798,8 +2798,8 @@ const tenantSchema = {
               console.log('🔍 [Room View] Rooms with active booking:', roomsWithActiveBooking.size);
 
               // จัดกลุ่มห้องตามชั้น - ใช้ห้องที่มี booking active + tenant ที่มีอยู่จริง
-              const roomsByFloor = rooms
-                .filter(room => {
+              const roomsByFloor = (Array.isArray(rooms) ? rooms : [])
+                .filter(room => {
                   if (!roomsWithActiveBooking.has(room.id)) return false;
                   
                   // ⭐ เช็คว่า booking ของห้องนี้มี tenant ที่มีอยู่จริงหรือไม่
