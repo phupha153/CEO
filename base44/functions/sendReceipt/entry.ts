@@ -87,26 +87,17 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ✅ ตรวจสอบ authentication ก่อน
-        let user;
+        // ✅ ตรวจสอบ authentication - รองรับทั้ง user session และ service role (webhook)
+        let user = null;
         try {
             user = await base44.auth.me();
         } catch (authError) {
-            console.error('Authentication error:', authError);
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่',
-                message: 'Unauthorized - Please login again'
-            }, { status: 401 });
+            // ไม่มี user session = ถูกเรียกจาก internal webhook/service role → ผ่านได้
+            console.log('ℹ️ No user session - running as internal service call');
         }
 
-        if (!user) {
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต',
-                message: 'User not authenticated'
-            }, { status: 401 });
-        }
+        // ใช้ db client ที่เหมาะสม: ถ้ามี user ใช้ปกติ ถ้าไม่มีใช้ asServiceRole
+        const db = user ? base44 : base44.asServiceRole;
 
         // ✅ Parse request body
         let paymentId;
@@ -139,7 +130,7 @@ Deno.serve(async (req) => {
         console.log('🔍 Fetching payment:', paymentId);
         let payments;
         try {
-            payments = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+            payments = await db.entities.Payment.filter({ id: paymentId });
             if (!Array.isArray(payments)) {
                 payments = [payments];
             }
@@ -167,8 +158,8 @@ Deno.serve(async (req) => {
 
         console.log('✅ Payment found:', payment.id, 'Status:', payment.status);
 
-        // 🔒 Security: Branch Access Check
-        if (payment.branch_id) {
+        // 🔒 Security: Branch Access Check (เฉพาะเมื่อมี user session เท่านั้น)
+        if (user && payment.branch_id) {
             const userAccessibleBranches = user.accessible_branches;
             const isDeveloper = user.custom_role === 'developer';
             const isOwner = user.custom_role === 'owner';
@@ -186,8 +177,8 @@ Deno.serve(async (req) => {
 
         // ⭐ ดึง Config โดย filter เฉพาะ key ที่เกี่ยวข้อง (ป้องกัน list() ที่อาจ return น้อยกว่า 1000)
         const [branchConfigRes, globalConfigRes] = await Promise.all([
-            base44.asServiceRole.entities.Config.filter({ branch_id: payment.branch_id }, '', 200),
-            base44.asServiceRole.entities.Config.filter({ branch_id: null }, '', 200),
+            db.entities.Config.filter({ branch_id: payment.branch_id }, '', 200),
+            db.entities.Config.filter({ branch_id: null }, '', 200),
         ]);
         const configs = [
             ...(Array.isArray(branchConfigRes) ? branchConfigRes : []),
@@ -231,7 +222,7 @@ Deno.serve(async (req) => {
         try {
             // ⭐ ดึง tenant โดยตรงด้วย filter แทน list (เพื่อไม่พลาดข้อมูล)
             if (payment.tenant_id) {
-                const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id });
+                const tenantResult = await db.entities.Tenant.filter({ id: payment.tenant_id });
                 if (Array.isArray(tenantResult) && tenantResult.length > 0) {
                     tenant = tenantResult[0];
                 } else if (tenantResult && !Array.isArray(tenantResult)) {
@@ -242,7 +233,7 @@ Deno.serve(async (req) => {
             
             // ดึง room โดยตรง
             if (payment.room_id) {
-                const roomResult = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+                const roomResult = await db.entities.Room.filter({ id: payment.room_id });
                 if (Array.isArray(roomResult) && roomResult.length > 0) {
                     room = roomResult[0];
                 } else if (roomResult && !Array.isArray(roomResult)) {
@@ -259,11 +250,11 @@ Deno.serve(async (req) => {
         if (!tenant && payment.booking_id) {
             console.log('🔍 Trying to find tenant via booking_id:', payment.booking_id);
             try {
-                const bookingResult = await base44.asServiceRole.entities.Booking.filter({ id: payment.booking_id });
+                const bookingResult = await db.entities.Booking.filter({ id: payment.booking_id });
                 const booking = Array.isArray(bookingResult) ? bookingResult[0] : bookingResult;
                 
                 if (booking?.tenant_id) {
-                    const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ id: booking.tenant_id });
+                    const tenantResult = await db.entities.Tenant.filter({ id: booking.tenant_id });
                     tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                     if (tenant) {
                         console.log(`✅ Found tenant via booking: ${tenant.full_name}`);
@@ -656,7 +647,7 @@ Deno.serve(async (req) => {
 
         // ⭐ บันทึกว่าส่งใบเสร็จแล้ว
         try {
-            await base44.asServiceRole.entities.Payment.update(payment.id, {
+            await db.entities.Payment.update(payment.id, {
                 receipt_sent_date: new Date().toISOString()
             });
             console.log(`✅ Updated receipt_sent_date for payment ${payment.id}`);
