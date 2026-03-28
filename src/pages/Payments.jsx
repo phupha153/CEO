@@ -3648,7 +3648,7 @@ Return JSON.`;
                         ))}
                       </div>
                     ) : (() => {
-                      const roomsByFloor = rooms.reduce((acc, room) => {
+                      const roomsByFloor = (Array.isArray(rooms) ? rooms : []).reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
                         acc[floor].push(room);
@@ -4153,7 +4153,7 @@ Return JSON.`;
                   >
                     <SelectTrigger><SelectValue placeholder="เลือกห้อง" /></SelectTrigger>
                     <SelectContent>
-                      {rooms
+                      {(Array.isArray(rooms) ? rooms : [])
                         .filter(r => r.status === 'occupied')
                         .sort((a, b) => {
                           if (a.floor !== b.floor) return a.floor - b.floor;
