@@ -134,7 +134,8 @@ export default function BookingsPage() {
         filters: { branch_id: selectedBranchId },
         limit: 5000
       });
-      return response.data.data;
+      const result = response?.data?.data;
+      return Array.isArray(result) ? result : [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -164,7 +165,8 @@ export default function BookingsPage() {
         sort: '-room_number',
         limit: 5000
       });
-      return response.data.data;
+      const result = response?.data?.data;
+      return Array.isArray(result) ? result : [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
