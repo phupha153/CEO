@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -70,9 +70,13 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // Fetch Configs once
-        const configRes = await base44.asServiceRole.entities.Config.list();
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        // Fetch Configs once (using filter to get all necessary configs)
+        const branchIds = [...new Set(recipients.map(r => r.branchId || r.metadata?.branchId).filter(Boolean))];
+        const globalConfigsPromise = base44.asServiceRole.entities.Config.filter({ branch_id: null });
+        const branchConfigsPromises = branchIds.map(id => base44.asServiceRole.entities.Config.filter({ branch_id: id }));
+        
+        const allConfigResults = await Promise.all([globalConfigsPromise, ...branchConfigsPromises]);
+        const configs = allConfigResults.flat();
         
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {

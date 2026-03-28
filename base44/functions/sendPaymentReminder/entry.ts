@@ -69,13 +69,16 @@ function numberToThaiText(number) {
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        const [branchConfigs, globalConfigs] = await Promise.all([
+            branchId ? base44.asServiceRole.entities.Config.filter({ branch_id: branchId }) : Promise.resolve([]),
+            base44.asServiceRole.entities.Config.filter({ branch_id: null })
+        ]);
+        const configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
 
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
         if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
+            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId && c.value && c.value.trim() !== '');
+            if (branchToken) {
                 console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
                 return branchToken.value.trim();
             }
@@ -85,8 +88,8 @@ async function getLineToken(base44, branchId = null) {
         }
 
         // กรณี Global token (เผื่อไว้ แต่ระบบนี้เน้น Branch)
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
+        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id && c.value && c.value.trim() !== '');
+        if (globalToken) {
             console.log('✅ Using global token from Config database');
             return globalToken.value.trim();
         }
@@ -140,28 +143,26 @@ Deno.serve(async (req) => {
         // 🔧 Helper function: ประกาศก่อนใช้งานเพื่อป้องกัน hoisting error
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-                if (branchConfig?.value) return branchConfig.value;
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+                if (branchConfig) return branchConfig.value.trim();
             }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value || defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            return globalConfig ? globalConfig.value.trim() : defaultValue;
         };
 
         if (paymentId) {
             // ถ้าระบุ paymentId
-            const [paymentResults, configResults] = await Promise.all([
-                base44.asServiceRole.entities.Payment.filter({ id: paymentId }),
-                base44.asServiceRole.entities.Config.list('', 1000)
-            ]);
-
+            const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
             const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
             allPayments = payment ? [payment] : [];
-            configs = Array.isArray(configResults) ? configResults : (configResults?.data || []);
 
             if (payment) {
-                const [tenantResults, roomResults] = await Promise.all([
+                const targetBranchId = payment.branch_id;
+                const [tenantResults, roomResults, branchConfigs, globalConfigs] = await Promise.all([
                     payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
-                    payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([])
+                    payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+                    targetBranchId ? base44.asServiceRole.entities.Config.filter({ branch_id: targetBranchId }) : Promise.resolve([]),
+                    base44.asServiceRole.entities.Config.filter({ branch_id: null })
                 ]);
 
                 const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
@@ -169,11 +170,13 @@ Deno.serve(async (req) => {
 
                 allTenants = tenant ? [tenant] : [];
                 allRooms = room ? [room] : [];
+                configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
             }
         } else if (branch_id) {
             // ดึงเฉพาะ branch นั้น + Pagination
-            const [configResults, ...data] = await Promise.all([
-                base44.asServiceRole.entities.Config.list('', 1000),
+            const [branchConfigs, globalConfigs, tenantsData, roomsData] = await Promise.all([
+                base44.asServiceRole.entities.Config.filter({ branch_id }),
+                base44.asServiceRole.entities.Config.filter({ branch_id: null }),
                 (async () => {
                     const result = [];
                     let offset = 0;
@@ -202,9 +205,9 @@ Deno.serve(async (req) => {
                 })()
             ]);
 
-            configs = Array.isArray(configResults) ? configResults : (configResults?.data || []);
-            allTenants = data[0] || [];
-            allRooms = data[1] || [];
+            configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
+            allTenants = tenantsData || [];
+            allRooms = roomsData || [];
 
             // 🛡️ Safety Check: Validate Bank Config
             const bankNameConf = getConfigValue('bank_name', branch_id);
@@ -402,6 +405,7 @@ Deno.serve(async (req) => {
             const qrCodeUrl = (qrCodeUrlRaw && qrCodeUrlRaw.trim().startsWith('https')) ? qrCodeUrlRaw.trim() : null;
 
             if (!bankName || !bankAccountNumber || !bankAccountName) {
+                console.error(`❌ INNER MISSING_BANK_CONFIG for payment ${payment.id}. Branch: ${branchId}. bank: ${bankName}, acc: ${bankAccountNumber}, name: ${bankAccountName}`);
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
