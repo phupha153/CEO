@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Cron job: Delete TEST data from ALL branches with continuous recursive calls
 Deno.serve(async (req) => {
