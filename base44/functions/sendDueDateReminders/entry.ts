@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // ⭐ สร้าง timestamp เวลาไทย (UTC+7)
 function getThailandTimestamp() {
@@ -36,7 +36,8 @@ Deno.serve(async (req) => {
         console.log('📊 Limit per run:', limit);
 
         // 1. ดึงการตั้งค่าจาก Config
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configsResponse = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configsResponse) ? configsResponse : (configsResponse?.data || []);
         
         // ⭐ สรุปสถานะการเปิด/ปิดแจ้งเตือนวันครบกำหนดแต่ละสาขา
         const branchReminderConfigs = configs.filter(c => c.key === 'send_due_date_reminder');
