@@ -218,7 +218,7 @@ export default function TenantsPage() {
         filters: { branch_id: selectedBranchId },
         limit: 10000
       });
-      return response.data?.data || [];
+      return Array.isArray(response.data?.data) ? response.data.data : [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -237,7 +237,7 @@ export default function TenantsPage() {
         filters: { branch_id: selectedBranchId },
         limit: 10000
       });
-      return response.data?.data || [];
+      return Array.isArray(response.data?.data) ? response.data.data : [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -257,7 +257,7 @@ export default function TenantsPage() {
         sort: '-room_number',
         limit: 10000
       });
-      return response.data?.data || [];
+      return Array.isArray(response.data?.data) ? response.data.data : [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -1668,7 +1668,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     
     setAiSearching(true);
     try {
-      const selectedTenantsData = tenants.filter(t => selectedTenants.includes(t.id)).map(t => ({
+      const selectedTenantsData = (Array.isArray(tenants) ? tenants : []).filter(t => selectedTenants.includes(t.id)).map(t => ({
         full_name: t.full_name,
         status: t.status,
         prepaid_balance: t.prepaid_balance,
@@ -1955,65 +1955,45 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     }
   };
 
-  const filteredTenants = useMemo(() => {
-    let result = Array.isArray(tenants) ? tenants : [];
+  const filteredTenants = useMemo(() => {
+    let result = Array.isArray(tenants) ? tenants : [];
 
-    // Filter by search query
-    if (debouncedSearch.trim()) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(tenant => {
-        const activeBookings = getActiveBookings(tenant.id);
-        const roomNumbers = activeBookings.map(b => getRoomInfo(b.room_id)?.room_number).filter(Boolean).join(' ');
-        return tenant.full_name?.toLowerCase().includes(query) ||
-               tenant.phone?.toLowerCase().includes(query) ||
-               tenant.email?.toLowerCase().includes(query) ||
-               tenant.line_id?.toLowerCase().includes(query) ||
-               roomNumbers.toLowerCase().includes(query);
-      });
-    }
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter(t => {
+        const activeBookings = getActiveBookings(t.id);
+        const roomNumbers = activeBookings.map(b => getRoomInfo(b.room_id)?.room_number).filter(Boolean).join(' ');
+        return t.full_name?.toLowerCase().includes(query) ||
+               t.phone?.toLowerCase().includes(query) ||
+               t.email?.toLowerCase().includes(query) ||
+               t.line_id?.toLowerCase().includes(query) ||
+               roomNumbers.toLowerCase().includes(query);
+      });
+    }
 
-    // Filter by selected statuses
-    if (selectedStatuses.length > 0) {
-      result = result.filter(tenant => {
-        // Explicit tenant status (active/moved_out)
-        const tenantStatus = tenant.status || 'active';
-        if (selectedStatuses.includes(tenantStatus)) return true;
+    if (selectedStatuses.length > 0) {
+      result = result.filter(t => {
+        const status = t.status || 'active';
+        if (selectedStatuses.includes(status)) return true;
+        const activeBookings = getActiveBookings(t.id);
+        if (activeBookings.length > 0) {
+          if (selectedStatuses.includes('expiring_soon') && activeBookings.some(isContractExpiringSoon)) return true;
+          const hasNearPayment = activeBookings.some(b => getPaymentStatus(b)?.isNearDue);
+          if (selectedStatuses.includes('near_payment') && hasNearPayment) return true;
+          const hasOverduePayment = activeBookings.some(b => getPaymentStatus(b)?.isOverdue);
+          if (selectedStatuses.includes('payment_overdue') && hasOverduePayment) return true;
+        }
+        return false;
+      });
+    }
 
-        // Dynamic statuses based on bookings/payments
-        const activeBookings = getActiveBookings(tenant.id);
-        if (activeBookings.length > 0) {
-          if (selectedStatuses.includes('expiring_soon') && activeBookings.some(isContractExpiringSoon)) {
-            return true;
-          }
+    if (aiResult?.tenants?.length > 0) {
+      const aiTenantIds = new Set(aiResult.tenants.map(t => t.tenant_id));
+      result = result.filter(t => aiTenantIds.has(t.id));
+    }
 
-          const hasNearPayment = activeBookings.some(booking => {
-            const paymentInfo = getPaymentStatus(booking);
-            return paymentInfo?.isNearDue;
-          });
-          if (selectedStatuses.includes('near_payment') && hasNearPayment) {
-            return true;
-          }
-
-          const hasOverduePayment = activeBookings.some(booking => {
-            const paymentInfo = getPaymentStatus(booking);
-            return paymentInfo?.isOverdue;
-          });
-          if (selectedStatuses.includes('payment_overdue') && hasOverduePayment) {
-            return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    // If AI result has specific tenants, override with those (except when AI returns empty tenants, then it's just general info)
-    if (aiResult?.tenants?.length > 0) {
-      const aiTenantIds = new Set(aiResult.tenants.map(t => t.tenant_id));
-      result = result.filter(tenant => aiTenantIds.has(tenant.id));
-    }
-
-    return result;
-    }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
+    return Array.isArray(result) ? result : [];
+  }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
     useEffect(() => {
     const observer = new IntersectionObserver(
