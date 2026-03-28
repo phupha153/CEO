@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     }
 
     const { 
-      branch_id, 
+      branch_id: requested_branch_id, 
       status_filter = 'all',
       date_range_type = 'this_month',
       custom_range,
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
     const logs = [];
 
-    if (!branch_id) {
+    if (!requested_branch_id) {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
@@ -57,10 +57,13 @@ Deno.serve(async (req) => {
     const isOwnerOrDev = userRole === 'owner' || userRole === 'developer';
     const canAccessAllBranches = isOwnerOrDev && (!accessibleBranches || accessibleBranches.length === 0 || accessibleBranches === 'all' || normalizedBranches.length === 0);
 
-    if (!canAccessAllBranches && !normalizedBranches.includes(branch_id)) {
-      console.warn(`⚠️ Branch access denied: ${user.email} → branch ${branch_id}`);
+    if (!canAccessAllBranches && !normalizedBranches.includes(requested_branch_id)) {
+      console.warn(`⚠️ Branch access denied: ${user.email} → branch ${requested_branch_id}`);
       return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
     }
+
+    // Assign back to branch_id for the rest of the function
+    const branch_id = requested_branch_id;
 
     // ✅ Step 1: Fetch configs (Cached in-memory)
     const CONFIGS_CACHE = globalThis.__configs_cache || (globalThis.__configs_cache = {});
@@ -146,6 +149,9 @@ Deno.serve(async (req) => {
       const fromDateStr = formatToDateString(dateRange.from);
       const toDateStr = formatToDateString(dateRange.to);
 
+      // Base44 filter function for dates checks string prefix or full ISO, 
+      // but if the data is just "2026-03-31", $gte with "2026-03-31T00:00" might fail 
+      // depending on implementation. Let's make sure we just pass the YYYY-MM-DD prefix
       filterQuery.due_date = {
         $gte: fromDateStr,
         $lte: toDateStr
