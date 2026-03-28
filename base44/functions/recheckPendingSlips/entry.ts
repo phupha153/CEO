@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         while (hasMore) {
             // ดึงเฉพาะ pending payments
             const batch = await entityService.Payment.filter(
-                { status: 'pending' }, 
+                { status: { $in: ['pending', 'overdue', 'partial_paid'] } }, 
                 '-created_date', 
                 BATCH_SIZE, 
                 skip

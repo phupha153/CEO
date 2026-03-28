@@ -589,7 +589,7 @@ Deno.serve(async (req) => {
                                             let pictureUrl = null;
 
                                             try {
-                                                const lineToken = botToken || await getLineToken(base44, branchId);
+                                                const lineToken = base44.botToken || await getLineToken(base44, branchId);
                                                 if (lineToken) {
                                                     const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
                                                         headers: { 'Authorization': `Bearer ${lineToken}` }
