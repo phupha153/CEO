@@ -960,10 +960,9 @@ export default function PaymentsPage() {
 
     const targetDueYearMonth = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`;
 
-    const monthlyRooms = rooms.filter(r => r.room_type === 'monthly');
-    const roomsWithBooking = monthlyRooms.filter(room => 
-      bookings.some(b => b.room_id === room.id && b.status === 'active')
-    );
+    const safeBookings = Array.isArray(bookings) ? bookings : [];
+    const monthlyRooms = (Array.isArray(rooms) ? rooms : []).filter(r => r.room_type === 'monthly');
+    const roomsWithBooking = monthlyRooms.filter(room => safeBookings.some(b => b.room_id === room.id && b.status === 'active'));
 
     let count = 0;
     for (const room of roomsWithBooking) {
