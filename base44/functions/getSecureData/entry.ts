@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -9,79 +9,46 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ⭐ คำนวณ userRole
     const userRole = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
-    
-    console.log('🔍 getSecureData - User Access:', {
-      email: user.email,
-      base_role: user.role,
-      custom_role: user.custom_role,
-      calculated_role: userRole,
-      plan_status: user.plan_status
-    });
 
-    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
+    const { entity, filters = {}, sort = '-created_date', limit = 500 } = await req.json();
 
     if (!entity) {
       return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
     }
 
-    // ตรวจสอบสิทธิ์เข้าถึงสาขา
+    // 🔒 SECURITY: branch_id ต้องมีเสมอ
+    if (!filters.branch_id) {
+      return Response.json({ error: 'Missing branch_id filter' }, { status: 400 });
+    }
+
+    // 🔒 SECURITY: ตรวจสอบสิทธิ์เข้าถึงสาขา
     const accessibleBranches = user.accessible_branches;
+    const isDeveloperOrOwner = userRole === 'developer' || userRole === 'owner';
 
-    // Developer/Owner ที่ไม่มี accessible_branches set = เข้าถึงทุกสาขา
-    const canAccessAllBranches = (userRole === 'developer' || userRole === 'owner') ? true : (!!accessibleBranches && accessibleBranches.length > 0);
-
-    console.log('🔍 getSecureData - Access Check:', {
-      userRole,
-      accessibleBranches,
-      canAccessAllBranches,
-      requested_branch_id: filters.branch_id
-    });
-
-    // ถ้ามี branch_id ใน filters ให้เช็คสิทธิ์
-    if (filters.branch_id && !canAccessAllBranches) {
+    if (!isDeveloperOrOwner) {
+      // Non-developer: ต้องมี accessible_branches และสาขาที่ขอต้องอยู่ในลิสต์
       if (!accessibleBranches || !accessibleBranches.includes(filters.branch_id)) {
-        console.error('❌ Access denied - User:', user.email, 'Role:', userRole, 'Requested branch:', filters.branch_id, 'Accessible:', accessibleBranches);
+        console.error('❌ Access denied:', user.email, 'branch:', filters.branch_id, 'accessible:', accessibleBranches);
         return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
       }
     }
 
-    // ถ้าไม่มี branch_id แต่ user มีข้อจำกัดสาขา ให้กรองเฉพาะสาขาที่เข้าถึงได้
-    let finalFilters = { ...filters };
-    if (!filters.branch_id && !canAccessAllBranches && accessibleBranches && accessibleBranches.length > 0) {
-      // ⚠️ SDK ไม่รองรับ $in operator - ต้องดึงทั้งหมดแล้วกรองเอง
-      // แต่ถ้ามีแค่ 1 สาขา ให้ใส่ branch_id ตรงๆ
-      if (accessibleBranches.length === 1) {
-        finalFilters.branch_id = accessibleBranches[0];
-      }
-      // ถ้ามีหลายสาขา จะต้องดึงทั้งหมดแล้วกรองเอง (ทำด้านล่าง)
-    }
+    // ✅ Cap limit ไม่เกิน 2000 เพื่อป้องกัน memory overflow
+    const safeLimit = Math.min(limit, 2000);
 
-    // ดึงข้อมูล
-    let data;
-    if (finalFilters.branch_id) {
-      // มี branch_id เฉพาะ - ใช้ filter
-      data = await base44.asServiceRole.entities[entity].filter(finalFilters, sort, limit);
-    } else {
-      // ไม่มี branch_id เฉพาะ - ดึงทั้งหมดแล้วกรอง
-      data = await base44.asServiceRole.entities[entity].list(sort, limit);
-      
-      // กรองเฉพาะสาขาที่เข้าถึงได้
-      if (!canAccessAllBranches && accessibleBranches && accessibleBranches.length > 0) {
-        data = data.filter(item => 
-          item.branch_id && accessibleBranches.includes(item.branch_id)
-        );
-      }
-    }
+    console.log('✅ getSecureData:', { entity, branch_id: filters.branch_id, userRole, limit: safeLimit });
 
-    return Response.json({ 
+    // ✅ ใช้ filter เสมอ — มี branch_id เป็น mandatory แล้ว
+    const data = await base44.asServiceRole.entities[entity].filter(filters, sort, safeLimit);
+
+    return Response.json({
       data,
       meta: {
         count: data.length,
         entity,
         user_role: userRole,
-        accessible_branches: canAccessAllBranches ? 'all' : accessibleBranches
+        branch_id: filters.branch_id
       }
     });
 
