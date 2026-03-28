@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { format } from 'npm:date-fns@3.0.0';
 
 function numberToThaiText(number) {
@@ -134,8 +134,7 @@ Deno.serve(async (req) => {
         console.log('📋 Target:', targetBranchId || 'ALL');
 
         // 1. Fetch Configs
-        const configRes = await base44.asServiceRole.entities.Config.list();
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        const configs = await base44.asServiceRole.entities.Config.list() || [];
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);

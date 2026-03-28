@@ -9,8 +9,7 @@ async function getFacebookConfig(base44, branchId = null) {
     try {
         const now = Date.now();
         if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
-            const configRes = await base44.asServiceRole.entities.Config.list();
-            configCache = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+            configCache = await base44.asServiceRole.entities.Config.list();
             configCacheTime = now;
         }
         

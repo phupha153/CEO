@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 Deno.serve(async (req) => {
   try {
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       plan_status: user.plan_status
     });
 
-    const { entity, filters = {}, sort = '-created_date', limit = 1000 } = await req.json();
+    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
 
     if (!entity) {
       return Response.json({ error: 'Missing entity parameter' }, { status: 400 });

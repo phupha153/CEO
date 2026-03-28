@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Edit2, Trash2, User, Calendar, Home, AlertTriangle, FileText, DollarSign, Clock, Car, Users, Star, Search, X, Loader2, Upload, Sparkles, Wallet, Camera, LogOut, ScrollText, Eye, Grid3x3, TableIcon, Download, CheckSquare, XCircle, Check, CheckCircle2, RotateCcw, Facebook, SlidersHorizontal } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Plus, Edit2, Trash2, Phone, Mail, User, Calendar, Home, AlertTriangle, FileText, DollarSign, Clock, Car, Users, Star, Search, X, Loader2, Upload, Sparkles, Wallet, Camera, LogOut, ScrollText, Eye, RefreshCw, Grid3x3, TableIcon, Download, CheckSquare, Square, XCircle, ChevronRight, Check, MessageSquare, CheckCircle2, RotateCcw, Facebook, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, differenceInDays, addMonths, startOfMonth } from "date-fns";
 import { th } from "date-fns/locale";
@@ -140,10 +141,25 @@ export default function TenantsPage() {
   const queryClient = useQueryClient();
   const selectedBranchId = localStorage.getItem('selected_branch_id');
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะ configs ของสาขานี้ + global
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.Config.filter({ branch_id: selectedBranchId }, '', 1000),
+        base44.entities.Config.filter({ branch_id: null }, '', 1000)
+      ]);
+      return [...branchConfigs, ...globalConfigs];
+    },
+    enabled: !!selectedBranchId,
+    staleTime: 60 * 60 * 1000,
+  });
+
   useEffect(() => {
-    if (selectedBranchId) {
-      queryClient.invalidateQueries(['tenants', selectedBranchId]);
-    }
+    if (selectedBranchId) {
+      queryClient.invalidateQueries(['tenants', selectedBranchId]);
+    }
   }, [selectedBranchId, queryClient]);
 
   const { data: currentUser } = useQuery({
@@ -210,11 +226,16 @@ export default function TenantsPage() {
 
 
   const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenants', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
-    },
+    queryKey: ['tenants', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: { branch_id: selectedBranchId },
+        limit: 10000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 2 * 60 * 1000,
@@ -224,25 +245,36 @@ export default function TenantsPage() {
   });
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
-    },
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: { branch_id: selectedBranchId },
+        limit: 10000
+      });
+      return response.data.data;
+    },
+    enabled: canView && !!selectedBranchId,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   const { data: rooms = [] } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
-    },
+    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: '-room_number',
+        limit: 10000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -1652,7 +1684,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     
     setAiSearching(true);
     try {
-      const selectedTenantsData = (Array.isArray(tenants) ? tenants : []).filter(t => selectedTenants.includes(t.id)).map(t => ({
+      const selectedTenantsData = tenants.filter(t => selectedTenants.includes(t.id)).map(t => ({
         full_name: t.full_name,
         status: t.status,
         prepaid_balance: t.prepaid_balance,
@@ -1939,45 +1971,65 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     }
   };
 
-  const filteredTenants = useMemo(() => {
-    let result = Array.isArray(tenants) ? tenants : [];
+  const filteredTenants = useMemo(() => {
+    let result = tenants;
 
-    if (debouncedSearch.trim()) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(t => {
-        const activeBookings = getActiveBookings(t.id);
-        const roomNumbers = activeBookings.map(b => getRoomInfo(b.room_id)?.room_number).filter(Boolean).join(' ');
-        return t.full_name?.toLowerCase().includes(query) ||
-               t.phone?.toLowerCase().includes(query) ||
-               t.email?.toLowerCase().includes(query) ||
-               t.line_id?.toLowerCase().includes(query) ||
-               roomNumbers.toLowerCase().includes(query);
-      });
-    }
+    // Filter by search query
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter(tenant => {
+        const activeBookings = getActiveBookings(tenant.id);
+        const roomNumbers = activeBookings.map(b => getRoomInfo(b.room_id)?.room_number).filter(Boolean).join(' ');
+        return tenant.full_name?.toLowerCase().includes(query) ||
+               tenant.phone?.toLowerCase().includes(query) ||
+               tenant.email?.toLowerCase().includes(query) ||
+               tenant.line_id?.toLowerCase().includes(query) ||
+               roomNumbers.toLowerCase().includes(query);
+      });
+    }
 
-    if (selectedStatuses.length > 0) {
-      result = result.filter(t => {
-        const status = t.status || 'active';
-        if (selectedStatuses.includes(status)) return true;
-        const activeBookings = getActiveBookings(t.id);
-        if (activeBookings.length > 0) {
-          if (selectedStatuses.includes('expiring_soon') && activeBookings.some(isContractExpiringSoon)) return true;
-          const hasNearPayment = activeBookings.some(b => getPaymentStatus(b)?.isNearDue);
-          if (selectedStatuses.includes('near_payment') && hasNearPayment) return true;
-          const hasOverduePayment = activeBookings.some(b => getPaymentStatus(b)?.isOverdue);
-          if (selectedStatuses.includes('payment_overdue') && hasOverduePayment) return true;
-        }
-        return false;
-      });
-    }
+    // Filter by selected statuses
+    if (selectedStatuses.length > 0) {
+      result = result.filter(tenant => {
+        // Explicit tenant status (active/moved_out)
+        const tenantStatus = tenant.status || 'active';
+        if (selectedStatuses.includes(tenantStatus)) return true;
 
-    if (aiResult?.tenants?.length > 0) {
-      const aiTenantIds = new Set(aiResult.tenants.map(t => t.tenant_id));
-      result = result.filter(t => aiTenantIds.has(t.id));
-    }
+        // Dynamic statuses based on bookings/payments
+        const activeBookings = getActiveBookings(tenant.id);
+        if (activeBookings.length > 0) {
+          if (selectedStatuses.includes('expiring_soon') && activeBookings.some(isContractExpiringSoon)) {
+            return true;
+          }
 
-    return Array.isArray(result) ? result : [];
-  }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
+          const hasNearPayment = activeBookings.some(booking => {
+            const paymentInfo = getPaymentStatus(booking);
+            return paymentInfo?.isNearDue;
+          });
+          if (selectedStatuses.includes('near_payment') && hasNearPayment) {
+            return true;
+          }
+
+          const hasOverduePayment = activeBookings.some(booking => {
+            const paymentInfo = getPaymentStatus(booking);
+            return paymentInfo?.isOverdue;
+          });
+          if (selectedStatuses.includes('payment_overdue') && hasOverduePayment) {
+            return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    // If AI result has specific tenants, override with those (except when AI returns empty tenants, then it's just general info)
+    if (aiResult?.tenants?.length > 0) {
+      const aiTenantIds = new Set(aiResult.tenants.map(t => t.tenant_id));
+      result = result.filter(tenant => aiTenantIds.has(tenant.id));
+    }
+
+    return result;
+    }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
     useEffect(() => {
     const observer = new IntersectionObserver(
@@ -2053,6 +2105,45 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       };
     });
     }, [displayedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
+const tenantSchema = {
+    type: "object",
+    additionalProperties: true,
+    properties: {
+      "ชื่อ-นามสกุล": { type: "string" },
+      "เบอร์โทร": { type: "string" }, // ⭐ String type - API จัดการ parsing เอง
+      "เพศ": { type: "string" },
+      "อายุ": { type: "string" },
+      "LINE ID": { type: "string" },
+      "เลขบัตรประชาชน": { type: "string" },
+      "อีเมล": { type: "string" },
+      "ที่อยู่": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "หมายเหตุ": { type: "string" },
+      "เลขห้อง": { type: "string" },
+      "วันเริ่มสัญญา": { type: "string" },
+      "วันสิ้นสุดสัญญา": { type: "string" },
+      "เงินมัดจำ": { type: "string" },
+      "สถานะการจอง": { type: "string" }
+    }
+};
+  const templateData = [{
+    "ชื่อ-นามสกุล": "สมชาย ใจดี",
+    "เบอร์โทร": "0812345678",
+    "เพศ": "male",
+    "อายุ": 30,
+    "LINE ID": "somchai123",
+    "เลขบัตรประชาชน": "1234567890123",
+    "อีเมล": "somchai@email.com",
+    "ที่อยู่": "123 ถนนสุขุมวิท กรุงเทพฯ",
+    "เบอร์ติดต่อฉุกเฉิน": "0898765432",
+    "หมายเหตุ": "ผู้เช่าดี จ่ายตรงเวลา",
+    "เลขห้อง": "101",
+    "วันเริ่มสัญญา": "2025-01-01",
+    "วันสิ้นสุดสัญญา": "2026-01-01",
+    "เงินมัดจำ": 5000,
+    "สถานะการจอง": "active"
+  }];
+
 
     const handleDownloadExistingTenants = () => {
     // เตรียมข้อมูลสำหรับ Excel
@@ -2378,12 +2469,13 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </div>
                     
                     <div className="space-y-3">
-                      <div className="flex gap-2 p-4 rounded-lg bg-blue-50 border border-blue-200">
-                        <div className="text-blue-800 text-sm w-full">
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertCircle className="w-4 h-4 text-blue-600" />
+                        <AlertDescription className="text-blue-800 text-sm">
                           <p className="font-semibold mb-1">📊 สร้าง TenantRating จาก Payment Scores</p>
                           <p className="text-xs">ผู้เช่าที่มี payment_scores แต่ยังไม่มี TenantRating จะถูกสร้างอัตโนมัติ</p>
-                        </div>
-                      </div>
+                        </AlertDescription>
+                      </Alert>
 
                       <Button
                         onClick={async () => {
@@ -3307,22 +3399,22 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                             </div>
                           ))}
                         </div>
-                        </CardContent>
-                        </Card>
-                        )}
+                      </CardContent>
+                    </Card>
+                  )}
 
-                        {selectedTenant.notes && (
-                        <Card className="bg-amber-50 border-amber-200">
-                        <CardContent className="p-4">
+                  {selectedTenant.notes && (
+                    <Card className="bg-amber-50 border-amber-200">
+                      <CardContent className="p-4">
                         <Label className="text-slate-600">หมายเหตุ</Label>
                         <p className="text-slate-800 mt-1">{selectedTenant.notes}</p>
-                        </CardContent>
-                        </Card>
-                        )}
+                      </CardContent>
+                    </Card>
+                  )}
 
-                        </TabsContent>
+                  </TabsContent>
 
-                        <TabsContent value="contract" className="space-y-6">
+                  <TabsContent value="contract" className="space-y-6">
                     {(() => {
                       const activeBookings = getActiveBookings(selectedTenant.id);
                       if (activeBookings.length > 0) {
@@ -4570,10 +4662,10 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
               </DialogHeader>
 
         <ExcelUploader
-        entityName="Tenant"
-        schema={{}}
-        templateData={[]}
-        templateFilename={`tenant_template_${selectedBranchName}.csv`}
+  entityName="Tenant"
+  schema={tenantSchema}  // 👈 เอา // ออก ให้เป็นแบบนี้ครับ
+  templateData={templateData}
+  templateFilename={`tenant_template_${selectedBranchName}.csv`}
   onSuccess={() => {
     queryClient.invalidateQueries(['tenants', selectedBranchId]);
     setShowUploadDialog(false);

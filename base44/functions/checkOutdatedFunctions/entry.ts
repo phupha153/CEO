@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 /**
  * 🔍 ตรวจสอบ Functions ที่ใช้ SDK เวอร์ชันเก่า

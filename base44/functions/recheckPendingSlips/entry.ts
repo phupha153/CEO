@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (รองรับ masked accounts)
@@ -140,11 +140,11 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
 
         const getConfigValue = (key, defaultValue = null) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
-            if (branchConfig) return branchConfig.value;
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
             
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
-            return globalConfig ? globalConfig.value : defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
         };
 
         const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         while (hasMore) {
             // ดึงเฉพาะ pending payments
             const batch = await entityService.Payment.filter(
-                { status: { $in: ['pending', 'overdue', 'partial_paid'] } }, 
+                { status: 'pending' }, 
                 '-created_date', 
                 BATCH_SIZE, 
                 skip
@@ -281,19 +281,19 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร (ดึงใหม่ทั้งหมด 2000 รายการ)
-        const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
+        const configs = await base44.asServiceRole.entities.Config.list();
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
                 if (branchConfig) return branchConfig.value;
             }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
             return globalConfig?.value || null;
         };
 
-        // ไม่ดึง Tenant ล่วงหน้า เพื่อลด memory (จะ fetch แบบ filter แยกตาม payment)
+        // ดึง Tenant ทั้งหมดสำหรับส่ง LINE (ใช้ service role เสมอ)
+        const tenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 5000);
 
         let successCount = 0;
         let failCount = 0;
@@ -479,11 +479,10 @@ Deno.serve(async (req) => {
                         notes: `${payment.notes || ''}\n\n⚠️ รอตรวจสอบ: ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                     });
 
-                    const tenantRes1 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
-                    const tenant1 = Array.isArray(tenantRes1) ? tenantRes1[0] : tenantRes1;
-                    if (tenant1?.line_user_id) {
-                        await sendLineMessage(base44, tenant1.line_user_id, 
-                            `📸 ได้รับสลิปแล้ว!`,
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
+                            `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
                             payment.branch_id,
                             configs
                         );
@@ -567,10 +566,9 @@ Deno.serve(async (req) => {
                     });
                     
                     // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
-                    const tenantRes2 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
-                    const tenant2 = Array.isArray(tenantRes2) ? tenantRes2[0] : tenantRes2;
-                    if (tenant2?.line_user_id) {
-                        await sendLineMessage(base44, tenant2.line_user_id, 
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
                             `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
                             payment.branch_id,
                             configs
@@ -607,10 +605,9 @@ Deno.serve(async (req) => {
                         notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
                     });
                     
-                    const tenantRes3 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
-                    const tenant3 = Array.isArray(tenantRes3) ? tenantRes3[0] : tenantRes3;
-                    if (tenant3?.line_user_id) {
-                        await sendLineMessage(base44, tenant3.line_user_id, 
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
                             `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
                             payment.branch_id,
                             configs
@@ -644,9 +641,8 @@ Deno.serve(async (req) => {
                 console.log(`   ✅ Payment updated to PAID`);
 
                 // ส่งใบเสร็จให้ลูกค้าผ่าน LINE
-                const tenantRes4 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
-                const tenant4 = Array.isArray(tenantRes4) ? tenantRes4[0] : tenantRes4;
-                if (tenant4?.line_user_id) {
+                const tenant = tenants.find(t => t.id === payment.tenant_id);
+                if (tenant?.line_user_id) {
                     try {
                         // เรียก sendReceipt function
                         const receiptResponse = await base44.asServiceRole.functions.invoke('sendReceipt', { 
@@ -657,7 +653,7 @@ Deno.serve(async (req) => {
                             console.log(`   📄 Receipt sent successfully`);
                         } else {
                             // Fallback ส่งข้อความธรรมดา
-                            await sendLineMessage(base44, tenant4.line_user_id, 
+                            await sendLineMessage(base44, tenant.line_user_id, 
                                 `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                                 payment.branch_id,
                                 configs
@@ -666,7 +662,7 @@ Deno.serve(async (req) => {
                     } catch (receiptError) {
                         console.error(`   ⚠️ Failed to send receipt:`, receiptError.message);
                         // Fallback
-                        await sendLineMessage(base44, tenant4.line_user_id, 
+                        await sendLineMessage(base44, tenant.line_user_id, 
                             `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                             payment.branch_id,
                             configs

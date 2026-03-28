@@ -294,7 +294,7 @@ export default function Dashboard() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -323,7 +323,7 @@ export default function Dashboard() {
     queryKey: ['maintenance', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
+      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId && showMaintenance,
     ...retryConfig,

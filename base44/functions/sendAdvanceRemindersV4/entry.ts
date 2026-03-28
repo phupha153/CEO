@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 // =========================================================
 // ⚙️ CONFIGURATION (ตั้งค่าความแรงตรงนี้)
@@ -360,8 +360,7 @@ Deno.serve(async (req) => {
         // 🔒 CRON MODE: Skip user-based branch access check
         // Cron jobs run as service role and process all enabled branches
 
-        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
-        const allConfigs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        const allConfigs = await base44.asServiceRole.entities.Config.list();
         const getConfig = (key, branchId, defaultVal) => {
             const specific = allConfigs.find(c => c.key === key && c.branch_id === branchId);
             if (specific) return specific.value;

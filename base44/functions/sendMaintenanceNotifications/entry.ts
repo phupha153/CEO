@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -8,8 +8,7 @@ Deno.serve(async (req) => {
         
         const { branch_id, test_mode = false } = await req.json().catch(() => ({}));
 
-        const configRes = await base44.asServiceRole.entities.Config.list();
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        const configs = await base44.asServiceRole.entities.Config.list();
         
         const getConfig = (key) => {
             const config = configs.find(c => c.key === key && (!c.branch_id || c.branch_id === branch_id));

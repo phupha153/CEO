@@ -1,4 +1,4 @@
-import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.6';
 
 /**
  * Webhook endpoint สำหรับรับข้อมูลจาก CRM

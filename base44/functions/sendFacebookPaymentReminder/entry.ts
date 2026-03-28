@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 function numberToThaiText(number) {
     if (!number || number === 0) return 'ศูนย์บาทถ้วน';
@@ -50,8 +50,7 @@ function numberToThaiText(number) {
 
 async function getFacebookConfig(base44, branchId = null) {
     try {
-        const configRes = await base44.asServiceRole.entities.Config.list();
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+        const configs = await base44.asServiceRole.entities.Config.list();
         
         const findConfig = (key) => {
             if (branchId) {
