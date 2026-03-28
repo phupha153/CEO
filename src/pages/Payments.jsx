@@ -2697,7 +2697,7 @@ Return JSON.`;
                     cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
                   }
                   
-                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                  const occupiedRooms = (Array.isArray(rooms) ? rooms : []).filter(r => r.status === 'occupied').length;
                   const billsThisCycle = payments.filter(p => {
                     if (!p.due_date) return false;
                     try {
