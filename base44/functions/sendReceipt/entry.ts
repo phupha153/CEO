@@ -1,10 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
-async function getLineToken(base44, branchId = null) {
+async function getLineToken(base44, configs, branchId = null) {
     try {
-        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
-        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
-        
         // ลำดับความสำคัญ: branch-specific → global from Config → Environment Variable
         
         // 1. ลองหา token เฉพาะสาขาก่อน
@@ -187,7 +184,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        const lineToken = await getLineToken(base44, payment.branch_id);
+        // ⭐ ดึง Config แค่ครั้งเดียว เพื่อหลีกเลี่ยง race condition
+        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
+
+        const lineToken = await getLineToken(base44, configs, payment.branch_id);
         if (!lineToken) {
             console.error('❌ LINE token not available');
             return Response.json({ 
@@ -211,7 +212,6 @@ Deno.serve(async (req) => {
         console.log('📥 Fetching tenant directly by ID:', payment.tenant_id);
         let tenant = null;
         let room = null;
-        let configs = [];
         
         try {
             // ⭐ ดึง tenant โดยตรงด้วย filter แทน list (เพื่อไม่พลาดข้อมูล)
@@ -235,10 +235,6 @@ Deno.serve(async (req) => {
                 }
                 console.log(`✅ Room by ID: ${room?.room_number || 'not found'}`);
             }
-            
-            // ดึง configs
-            const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
-            configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             
         } catch (fetchError) {
             console.error('❌ Error fetching direct data:', fetchError);
