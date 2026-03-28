@@ -127,8 +127,8 @@ Deno.serve(async (req) => {
     const skip = (page - 1) * limit;
     
     // ⭐ ถ้ามี date range = โหลดเฉพาะช่วงนั้น (ประหยัดหน่วยความจำ)
-    // ถ้าไม่มี = จำกัดแค่ 5,000 records ล่าสุด (เพิ่มจาก 1000)
-    const fetchLimit = dateRange ? 20000 : 5000;
+    // ลด limit ลงเพื่อป้องกัน Rate Limit / Payload Too Large
+    const fetchLimit = dateRange ? 1500 : 1000;
     
     let payments = await base44.asServiceRole.entities.Payment.filter(
       filterQuery,
@@ -156,22 +156,28 @@ Deno.serve(async (req) => {
     ]);
 
     // ✅ Create Maps for O(1) lookup
-    const roomsMap = new Map(rooms.map(r => [r.id, r]));
-    const tenantsMap = new Map(tenants.map(t => [t.id, t]));
-    const tempBookingsMap = new Map(tempBookings.map(b => [b.id, b]));
-    const activeBookingsMap = new Map(activeBookings.map(b => [b.id, b]));
+    const roomsList = Array.isArray(rooms) ? rooms : (rooms?.data || []);
+    const tenantsList = Array.isArray(tenants) ? tenants : (tenants?.data || []);
+    const tempBookingsList = Array.isArray(tempBookings) ? tempBookings : (tempBookings?.data || []);
+    const activeBookingsList = Array.isArray(activeBookings) ? activeBookings : (activeBookings?.data || []);
+    const paymentsList = Array.isArray(payments) ? payments : (payments?.data || []);
+
+    const roomsMap = new Map(roomsList.map(r => [r.id, r]));
+    const tenantsMap = new Map(tenantsList.map(t => [t.id, t]));
+    const tempBookingsMap = new Map(tempBookingsList.map(b => [b.id, b]));
+    const activeBookingsMap = new Map(activeBookingsList.map(b => [b.id, b]));
 
     const step4Data = {
-      rooms_count: rooms.length,
-      tenants_count: tenants.length,
-      temp_bookings_count: tempBookings.length,
-      active_bookings_count: activeBookings.length
+      rooms_count: roomsList.length,
+      tenants_count: tenantsList.length,
+      temp_bookings_count: tempBookingsList.length,
+      active_bookings_count: activeBookingsList.length
     };
     console.log('🔍 Step 4 - Rooms & Tenants & Bookings:', step4Data);
     if (debug) logs.push({ step: 'Step 4: Rooms & Tenants & Bookings', data: step4Data });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
-    const enrichedPayments = payments.map(payment => {
+    const enrichedPayments = paymentsList.map(payment => {
       const tenant = tenantsMap.get(payment.tenant_id);
       let tenantName = tenant?.full_name;
       
