@@ -661,7 +661,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   const getActiveBooking = (roomId) => {
     // ⭐ หาจากทั้ง TemporaryBooking และ Booking
     // 1. ลองหาจาก TemporaryBooking ก่อน
-    const tempRoomBookings = temporaryBookings.filter(b => b.room_id === roomId);
+    const tempRoomBookings = (Array.isArray(temporaryBookings) ? temporaryBookings : []).filter(b => b.room_id === roomId);
     const tempActiveWithTenant = tempRoomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
       const tenant = getTenantInfo(b.tenant_id);
@@ -674,7 +674,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
     
     // 2. ถ้าไม่มี TemporaryBooking ลองหาจาก Booking (เก่า)
-    const oldRoomBookings = bookings.filter(b => b.room_id === roomId);
+    const oldRoomBookings = (Array.isArray(bookings) ? bookings : []).filter(b => b.room_id === roomId);
     const oldActiveWithTenant = oldRoomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
       const tenant = getTenantInfo(b.tenant_id);
