@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (รองรับ masked accounts)
@@ -282,7 +282,8 @@ Deno.serve(async (req) => {
         }
 
         // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -292,8 +293,7 @@ Deno.serve(async (req) => {
             return globalConfig?.value || null;
         };
 
-        // ดึง Tenant ทั้งหมดสำหรับส่ง LINE (ใช้ service role เสมอ)
-        const tenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 5000);
+        // ไม่ดึง Tenant ล่วงหน้า เพื่อลด memory (จะ fetch แบบ filter แยกตาม payment)
 
         let successCount = 0;
         let failCount = 0;
@@ -479,9 +479,10 @@ Deno.serve(async (req) => {
                         notes: `${payment.notes || ''}\n\n⚠️ รอตรวจสอบ: ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                     });
 
-                    const tenant = tenants.find(t => t.id === payment.tenant_id);
-                    if (tenant?.line_user_id) {
-                        await sendLineMessage(base44, tenant.line_user_id, 
+                    const tenantRes1 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
+                    const tenant1 = Array.isArray(tenantRes1) ? tenantRes1[0] : tenantRes1;
+                    if (tenant1?.line_user_id) {
+                        await sendLineMessage(base44, tenant1.line_user_id, 
                             `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
                             payment.branch_id,
                             configs
@@ -566,9 +567,10 @@ Deno.serve(async (req) => {
                     });
                     
                     // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
-                    const tenant = tenants.find(t => t.id === payment.tenant_id);
-                    if (tenant?.line_user_id) {
-                        await sendLineMessage(base44, tenant.line_user_id, 
+                    const tenantRes2 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
+                    const tenant2 = Array.isArray(tenantRes2) ? tenantRes2[0] : tenantRes2;
+                    if (tenant2?.line_user_id) {
+                        await sendLineMessage(base44, tenant2.line_user_id, 
                             `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
                             payment.branch_id,
                             configs

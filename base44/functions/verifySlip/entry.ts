@@ -167,8 +167,8 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        const payments = await base44.asServiceRole.entities.Payment.list();
-        const payment = payments.find(p => p.id === paymentId);
+        const paymentRes = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const payment = Array.isArray(paymentRes) ? paymentRes[0] : paymentRes;
 
         if (!payment) {
             console.error('Payment not found:', paymentId);
