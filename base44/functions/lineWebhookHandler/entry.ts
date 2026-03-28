@@ -71,11 +71,11 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
 
         const getConfigValue = (key, defaultValue = null) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+            if (branchConfig) return branchConfig.value;
             
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            return globalConfig ? globalConfig.value : defaultValue;
         };
 
         const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
@@ -1291,22 +1291,14 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐⭐⭐ เช็คเลขบัญชีก่อนเช็คยอด (แบบเดียวกับ verifySlip - ไม่เช็คชื่อ)
-        const now2 = Date.now();
-        let configs;
-        if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
-            const rCfg = await base44.asServiceRole.entities.Config.list('', 1000);
-            configCache = configs = Array.isArray(rCfg) ? rCfg : [];
-            configCacheTime = now2;
-            console.log(`✅ Refreshed config cache (${configs.length} items)`);
-        } else {
-            configs = configCache;
-            console.log(`✅ Using cached config (${configs.length} items)`);
-        }
+        // บังคับดึงข้อมูล Config ใหม่เสมอ ป้องกัน Cache และคัดกรอง config ที่ว่างทิ้ง
+        const rCfg = await base44.asServiceRole.entities.Config.list('', 2000);
+        let configs = Array.isArray(rCfg) ? rCfg : [];
 
         const getConfigValue = (key) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
             if (branchConfig) return branchConfig.value;
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
             return globalConfig?.value || null;
         };
 

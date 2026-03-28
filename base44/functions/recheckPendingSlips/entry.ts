@@ -140,11 +140,11 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
 
         const getConfigValue = (key, defaultValue = null) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+            if (branchConfig) return branchConfig.value;
             
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            return globalConfig ? globalConfig.value : defaultValue;
         };
 
         const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
@@ -281,15 +281,15 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
+        // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร (ดึงใหม่ทั้งหมด 2000 รายการ)
+        const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
                 if (branchConfig) return branchConfig.value;
             }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
             return globalConfig?.value || null;
         };
 

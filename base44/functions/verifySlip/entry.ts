@@ -399,10 +399,10 @@ Deno.serve(async (req) => {
             const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
             const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             const getConfigValue = (key) => {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id && c.value && c.value.trim() !== '');
                 if (branchConfig) return branchConfig.value;
 
-                const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+                const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
                 return globalConfig?.value || null;
             };
 
