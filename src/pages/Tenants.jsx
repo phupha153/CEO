@@ -2658,7 +2658,7 @@ const tenantSchema = {
                 </>
               ) : (
                 <>
-                  ผู้เช่าในสาขานี้: <span className="font-semibold">{tenants.length} คน</span>
+                  ผู้เช่าในสาขานี้: <span className="font-semibold">{filteredTenants.length} คน</span>
                 </>
               )}
             </p>
