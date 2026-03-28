@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
             }
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
-            const configRes = await base44.asServiceRole.entities.Config.list();
+            const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
             const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             const getConfigValue = (key) => {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
@@ -444,7 +444,7 @@ Deno.serve(async (req) => {
 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ รอเจ้าของหอพักตรวจสอบ`,
                     manual_review_required: true,
                     no_config: true
                 });

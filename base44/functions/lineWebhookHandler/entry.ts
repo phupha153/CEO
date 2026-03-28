@@ -157,7 +157,7 @@ async function getLineToken(base44, branchId = null) {
             return cached.token;
         }
 
-        const rCfg = await base44.asServiceRole.entities.Config.list();
+        const rCfg = await base44.asServiceRole.entities.Config.filter({ key: 'line_channel_access_token' }, '', 1000);
         const configs = Array.isArray(rCfg) ? rCfg : [];
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
