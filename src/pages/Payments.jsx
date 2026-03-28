@@ -73,15 +73,9 @@ export default function PaymentsPage() {
     const nowUTC = new Date();
     const thaiOffset = 7 * 60; // UTC+7 = 420 minutes
     const nowThailand = new Date(nowUTC.getTime() + thaiOffset * 60 * 1000);
-    const day = nowThailand.getUTCDate();
     
-    // ถ้าวันที่ >= 25 → เดือนถัดไป, ถ้า < 25 → เดือนปัจจุบัน
-    let targetMonth = nowThailand;
-    if (day >= 25) {
-      targetMonth = new Date(nowThailand.getUTCFullYear(), nowThailand.getUTCMonth() + 1, 1);
-    }
-    
-    return format(targetMonth, 'yyyy-MM');
+    // ไม่ต้องข้ามไปเดือนหน้าอัตโนมัติ เพื่อให้ผู้ใช้เห็นข้อมูลบิลของเดือนนี้เสมอ
+    return format(nowThailand, 'yyyy-MM');
   });
   const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
   const [openRoomDialogs, setOpenRoomDialogs] = useState({});
