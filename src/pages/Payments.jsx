@@ -52,7 +52,7 @@ export default function PaymentsPage() {
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [dateRangeType, setDateRangeType] = useState('this_month');
+  const [dateRangeType, setDateRangeType] = useState('all');
   const [customRange, setCustomRange] = useState({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
@@ -161,7 +161,7 @@ export default function PaymentsPage() {
   };
 
   useEffect(() => {
-    setDateRangeType('this_month');
+    setDateRangeType('all');
     setStatusFilter('all');
     setDisplayLimit(50);
     setSearchQuery('');
