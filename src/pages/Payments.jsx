@@ -319,7 +319,7 @@ export default function PaymentsPage() {
         sort: '-room_number',
         limit: 500
       });
-      return response.data.data;
+      return response.data?.data || [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
