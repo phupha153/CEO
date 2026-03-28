@@ -4160,8 +4160,8 @@ Return JSON.`;
                           return a.room_number.localeCompare(b.room_number);
                         })
                         .map(room => {
-                          const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
-                          const tenant = activeBooking ? tenants.find(t => t.id === activeBooking.tenant_id) : null;
+                          const activeBooking = (Array.isArray(bookings) ? bookings : []).find(b => b.room_id === room.id && b.status === 'active');
+                          const tenant = activeBooking ? (Array.isArray(tenants) ? tenants : []).find(t => t.id === activeBooking.tenant_id) : null;
                           return (
                             <SelectItem key={room.id} value={room.id}>
                               ห้อง {room.room_number} - {tenant?.full_name || 'ไม่พบข้อมูลผู้เช่า'}
