@@ -290,68 +290,41 @@ export default function PaymentsPage() {
     dateRangeType
   });
 
-  const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
+  const { data: rawBookings = [], isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: { branch_id: selectedBranchId, status: 'active' },
-        limit: 500
-      });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Booking', filters: { branch_id: selectedBranchId, status: 'active' }, limit: 500 });
       return response.data?.data || [];
     },
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    placeholderData: (previousData) => previousData,
+    enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
+  const bookings = Array.isArray(rawBookings) ? rawBookings : [];
 
-  const { data: rooms = [], isFetching: roomsFetching } = useQuery({
+  const { data: rawRooms = [], isFetching: roomsFetching } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: '-room_number',
-        limit: 500
-      });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Room', filters: { branch_id: selectedBranchId }, sort: '-room_number', limit: 500 });
       return response.data?.data || [];
     },
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    placeholderData: (previousData) => previousData,
+    enabled: canView && !!selectedBranchId, retry: 2, staleTime: 60000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-
-  const roomsMap = useMemo(() => new Map((Array.isArray(rooms) ? rooms : []).map(r => [r.id, r])), [rooms]);
+  const rooms = Array.isArray(rawRooms) ? rawRooms : [];
+  const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
-  const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
+  const { data: rawTenants = [], isFetching: tenantsFetching } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: { branch_id: selectedBranchId },
-        limit: 500
-      });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Tenant', filters: { branch_id: selectedBranchId }, limit: 500 });
       return response.data?.data || [];
     },
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    placeholderData: (previousData) => previousData,
+    enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-
-  const tenantsMap = useMemo(() => new Map((Array.isArray(tenants) ? tenants : []).map(t => [t.id, t])), [tenants]);
+  const tenants = Array.isArray(rawTenants) ? rawTenants : [];
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
   const { data: meterReadings = [] } = useQuery({
@@ -960,7 +933,7 @@ export default function PaymentsPage() {
 
     const targetDueYearMonth = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`;
 
-    const monthlyRooms = rooms.filter(r => r.room_type === 'monthly');
+    const monthlyRooms = (Array.isArray(rooms) ? rooms : []).filter(r => r.room_type === 'monthly');
     const roomsWithBooking = monthlyRooms.filter(room => 
       bookings.some(b => b.room_id === room.id && b.status === 'active')
     );
