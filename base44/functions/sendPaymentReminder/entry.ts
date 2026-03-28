@@ -69,11 +69,8 @@ function numberToThaiText(number) {
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const [branchConfigs, globalConfigs] = await Promise.all([
-            branchId ? base44.asServiceRole.entities.Config.filter({ branch_id: branchId }) : Promise.resolve([]),
-            base44.asServiceRole.entities.Config.filter({ branch_id: null })
-        ]);
-        const configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
+        const rCfg = await base44.asServiceRole.entities.Config.filter({ key: 'line_channel_access_token' }, '', 1000);
+        const configs = Array.isArray(rCfg) ? rCfg : [];
 
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
         if (branchId) {

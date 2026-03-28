@@ -360,7 +360,7 @@ Deno.serve(async (req) => {
         // 🔒 CRON MODE: Skip user-based branch access check
         // Cron jobs run as service role and process all enabled branches
 
-        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
         const allConfigs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         const getConfig = (key, branchId, defaultVal) => {
             const specific = allConfigs.find(c => c.key === key && c.branch_id === branchId);

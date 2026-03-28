@@ -137,17 +137,14 @@ let configCache = null;
 let configCacheTime = 0;
 const CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
 
-// ⭐ Branch-specific Config Cache (แยก cache ตามสาขา)
 const branchConfigCache = new Map();
-const BRANCH_CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
-const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000; // ⭐ จำกัดไม่ให้เกิน 1000 สาขา
-
-// ⭐ Branches Cache (ลด query ซ้ำซ้อน)
+const BRANCH_CONFIG_CACHE_DURATION = 300000;
+const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000;
 let branchesCache = null;
 let branchesCacheTime = 0;
-const BRANCHES_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
-
+const BRANCHES_CACHE_DURATION = 300000;
 async function getLineToken(base44, branchId = null) {
+    if (base44.botToken) return base44.botToken;
     try {
         const cacheKey = branchId || 'global';
         const cached = branchConfigCache.get(cacheKey);
@@ -258,7 +255,7 @@ Deno.serve(async (req) => {
             
             let destinationBranchId = queryBranchId;
             try { if (queryBranchId) { const bRes = await base44.asServiceRole.entities.Branch.filter({ id: queryBranchId }); const branch = Array.isArray(bRes) ? bRes[0] : bRes; if (branch) { const ownerEmail = branch.owner_id || branch.created_by; const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch'; const d = await base44.asServiceRole.entities.Config.filter({ key: defKey, branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') destinationBranchId = v; } } } catch(e) {}
-
+            base44.botToken = await getLineToken(base44, queryBranchId || (body.destination ? await getBranchIdFromDestination(base44, body.destination) : null));
             for (const event of events) {
                 const lineUserId = event.source?.userId;
                 const replyToken = event.replyToken; // ⭐ ดึง replyToken จาก event
@@ -592,7 +589,7 @@ Deno.serve(async (req) => {
                                             let pictureUrl = null;
 
                                             try {
-                                                const lineToken = await getLineToken(base44, branchId);
+                                                const lineToken = botToken || await getLineToken(base44, branchId);
                                                 if (lineToken) {
                                                     const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
                                                         headers: { 'Authorization': `Bearer ${lineToken}` }
