@@ -1571,12 +1571,7 @@ export default function PaymentsPage() {
         return;
       }
       
-      console.log('✅ Latest tenant data:', {
-        full_name: tenant.full_name,
-        line_user_id: tenant.line_user_id,
-        facebook_user_id: tenant.facebook_user_id
-      });
-      
+      if (payment.status !== 'paid') { toast.error(`ส่งใบเสร็จไม่ได้: สถานะยังเป็น "${payment.status}" (ต้องเป็น paid)`); setSendingReceipt(false); return; }
       const hasFacebook = !!tenant.facebook_user_id;
       const hasLine = !!tenant.line_user_id;
       
