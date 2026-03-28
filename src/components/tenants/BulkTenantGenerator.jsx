@@ -93,15 +93,15 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
 
           {/* ปุ่ม Select All / Deselect All */}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-600 space-y-1">
-              <p>ห้องทั้งหมด: <strong>{rooms.length}</strong> ห้อง</p>
-              <p className="text-xs">
-                <span className="inline-block w-3 h-3 rounded bg-green-500 mr-1"></span>
-                ว่าง: <strong>{rooms.filter(r => r.status === 'available').length}</strong> ห้อง
-                <span className="ml-3 inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span>
-                มีผู้เช่า: <strong>{rooms.filter(r => r.status === 'occupied').length}</strong> ห้อง
-              </p>
-            </div>
+          <div className="text-sm text-slate-600 space-y-1">
+            <p>ห้องทั้งหมด: <strong>{(Array.isArray(rooms) ? rooms : []).length}</strong> ห้อง</p>
+            <p className="text-xs">
+              <span className="inline-block w-3 h-3 rounded bg-green-500 mr-1"></span>
+              ว่าง: <strong>{(Array.isArray(rooms) ? rooms : []).filter(r => r.status === 'available').length}</strong> ห้อง
+              <span className="ml-3 inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span>
+              มีผู้เช่า: <strong>{(Array.isArray(rooms) ? rooms : []).filter(r => r.status === 'occupied').length}</strong> ห้อง
+            </p>
+          </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
