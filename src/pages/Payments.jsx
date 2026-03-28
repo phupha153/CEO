@@ -294,7 +294,7 @@ export default function PaymentsPage() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Booking', filters: { branch_id: selectedBranchId, status: 'active' }, limit: 500 });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Booking', filters: { branch_id: selectedBranchId, status: 'active' }, limit: 1000 });
       return response.data?.data || [];
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
@@ -305,7 +305,7 @@ export default function PaymentsPage() {
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Room', filters: { branch_id: selectedBranchId }, sort: '-room_number', limit: 500 });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Room', filters: { branch_id: selectedBranchId }, sort: '-room_number', limit: 1000 });
       return response.data?.data || [];
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 60000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
@@ -318,7 +318,7 @@ export default function PaymentsPage() {
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Tenant', filters: { branch_id: selectedBranchId }, limit: 500 });
+      const response = await base44.functions.invoke('getSecureData', { entity: 'Tenant', filters: { branch_id: selectedBranchId }, limit: 1000 });
       return response.data?.data || [];
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
