@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
         };
         
         try {
-            const configs = await base44.asServiceRole.entities.CronDeleteConfig.list('-updated_date', 1);
+            const configRes = await base44.asServiceRole.entities.CronDeleteConfig.list('-updated_date', 1);
+            const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             if (configs.length > 0) {
                 selectedBranchIds = configs[0].selected_branches || [];
                 deleteEntities = configs[0].delete_entities || deleteEntities;

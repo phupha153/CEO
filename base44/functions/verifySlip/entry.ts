@@ -396,7 +396,8 @@ Deno.serve(async (req) => {
             }
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
-            const configs = await base44.asServiceRole.entities.Config.list();
+            const configRes = await base44.asServiceRole.entities.Config.list();
+            const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             const getConfigValue = (key) => {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
                 if (branchConfig) return branchConfig.value;

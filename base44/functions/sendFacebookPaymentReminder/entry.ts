@@ -50,7 +50,8 @@ function numberToThaiText(number) {
 
 async function getFacebookConfig(base44, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         
         const findConfig = (key) => {
             if (branchId) {

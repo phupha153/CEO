@@ -2,7 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         
         // ลำดับความสำคัญ: branch-specific → global from Config → Environment Variable
         
@@ -236,8 +237,8 @@ Deno.serve(async (req) => {
             }
             
             // ดึง configs
-            configs = await base44.asServiceRole.entities.Config.list();
-            if (!Array.isArray(configs)) configs = [];
+            const configRes = await base44.asServiceRole.entities.Config.list();
+            configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             
         } catch (fetchError) {
             console.error('❌ Error fetching direct data:', fetchError);

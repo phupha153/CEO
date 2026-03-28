@@ -69,7 +69,8 @@ function numberToThaiText(number) {
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
 
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
         if (branchId) {

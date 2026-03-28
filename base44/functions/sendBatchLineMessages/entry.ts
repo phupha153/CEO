@@ -71,7 +71,8 @@ Deno.serve(async (req) => {
         }
 
         // Fetch Configs once
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {
