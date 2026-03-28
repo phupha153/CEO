@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         console.log('📋 Target:', targetBranchId || 'ALL');
 
         // 1. Fetch Configs
-        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {
@@ -201,16 +201,23 @@ Deno.serve(async (req) => {
         console.log('📦 Step 1: Fetching all data...');
         const stepTimings = {};
 
-        const filter = targetBranchId ? { branch_id: targetBranchId } : {};
+        // ⭐ Helper: normalize entity structure (must be declared before use)
+        const normalizeEntity = (entity) => {
+            if (!entity) return null;
+            if (entity.data && typeof entity.data === 'object') {
+                return { id: entity.id, ...entity.data };
+            }
+            return entity;
+        };
 
-        // ⭐ Fetch Rooms แบบ pagination เต็มรูปแบบ
+        // ⭐ Fetch Rooms แบบ pagination เต็มรูปแบบ (ดึงทั้งหมดก่อน แล้ว filter ด้วย JS หลัง normalize)
         console.log('📦 Step 1a: Fetching ALL rooms...');
         let roomSkip = 0;
         let fetchingRooms = true;
 
         while (fetchingRooms) {
             await retryOperation(async () => {
-                const batch = await base44.asServiceRole.entities.Room.filter(filter, '-room_number', 500, roomSkip);
+                const batch = await base44.asServiceRole.entities.Room.list('-room_number', 500, roomSkip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
                 console.log(`   🏠 Rooms batch: ${batchLength} items (skip: ${roomSkip}, total: ${allRooms.length + batchLength})`);
 
@@ -227,18 +234,22 @@ Deno.serve(async (req) => {
             if (fetchingRooms) await delay(500);
         }
 
-        console.log(`✅ Total rooms: ${allRooms.length}`);
+        // ⭐ normalize ก่อน แล้วค่อย filter branch_id ด้วย JS
+        allRooms = allRooms.map(normalizeEntity).filter(Boolean);
+        if (targetBranchId) {
+            allRooms = allRooms.filter(r => r.branch_id === targetBranchId);
+        }
+        console.log(`✅ Total rooms: ${allRooms.length} (branch filter: ${targetBranchId || 'ALL'})`);
         await delay(200);
 
-        // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ
+        // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ (ดึงทั้งหมดก่อน แล้ว filter ด้วย JS หลัง normalize)
         console.log('📦 Step 1b: Fetching ALL active bookings...');
         let bookingSkip = 0;
         let fetchingBookings = true;
-        const bookingFilter = { ...filter, status: 'active' };
 
         while (fetchingBookings) {
             await retryOperation(async () => {
-                const batch = await base44.asServiceRole.entities.Booking.filter(bookingFilter, '-created_date', 500, bookingSkip);
+                const batch = await base44.asServiceRole.entities.Booking.list('-created_date', 500, bookingSkip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
 
                 if (batchLength > 0) {
@@ -251,23 +262,16 @@ Deno.serve(async (req) => {
                 }
             });
 
-            if (fetchingBookings) await delay(100); // ⭐ OPTIMIZED: Reduced from 200ms
+            if (fetchingBookings) await delay(100);
         }
 
-        console.log(`✅ Total bookings: ${bookings.length}`);
+        // ⭐ normalize ก่อน แล้วค่อย filter branch_id และ status ด้วย JS
+        bookings = bookings.map(normalizeEntity).filter(Boolean).filter(b => b.status === 'active');
+        if (targetBranchId) {
+            bookings = bookings.filter(b => b.branch_id === targetBranchId);
+        }
+        console.log(`✅ Total bookings: ${bookings.length} (branch filter: ${targetBranchId || 'ALL'})`);
         const bookingsMap = new Map(bookings.filter(b => b.status === 'active').map(b => [b.room_id, b])); // ⭐ NEW: Map for O(1) lookup
-        // await delay(500); // ⭐ REMOVED: Unnecessary delay
-
-        const normalizeEntity = (entity) => {
-            if (!entity) return null;
-            if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, ...entity.data };
-            }
-            return entity;
-        };
-
-        allRooms = allRooms.map(normalizeEntity).filter(Boolean);
-        bookings = bookings.map(normalizeEntity).filter(Boolean);
 
         const monthlyRooms = allRooms.filter(room => room.room_type === 'monthly');
         console.log(`🏠 Monthly rooms: ${monthlyRooms.length}`);
