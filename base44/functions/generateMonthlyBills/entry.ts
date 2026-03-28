@@ -133,6 +133,19 @@ Deno.serve(async (req) => {
 
         console.log('📋 Target:', targetBranchId || 'ALL');
 
+        // 🔒 Security: Verify user has access to the target branch
+        if (targetBranchId) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.role === 'admin' || user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+            
+            if (!isDeveloper && !isOwner) {
+                if (!userAccessibleBranches || !userAccessibleBranches.includes(targetBranchId)) {
+                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
+                }
+            }
+        }
+
         // 1. Fetch Configs
         const configRes = await base44.asServiceRole.entities.Config.list('', 2000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
@@ -210,16 +223,20 @@ Deno.serve(async (req) => {
             return entity;
         };
 
-        // ⭐ Fetch Rooms แบบ pagination เต็มรูปแบบ (ดึงทั้งหมดก่อน แล้ว filter ด้วย JS หลัง normalize)
-        console.log('📦 Step 1a: Fetching ALL rooms...');
+        // ⭐ FIX: Use asServiceRole.filter() with explicit branch_id (NOT list())
+        // list() without filter returns only 10 records (default limit). filter() with branch_id returns all records for that branch.
+        console.log('📦 Step 1a: Fetching rooms via asServiceRole.filter(branch_id)...');
+
         let roomSkip = 0;
         let fetchingRooms = true;
 
         while (fetchingRooms) {
             await retryOperation(async () => {
-                const batch = await base44.asServiceRole.entities.Room.list('-room_number', 500, roomSkip);
+                // ⭐ KEY FIX: Always use filter() with branch_id, NEVER list() for cross-tenant data
+                const branchFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+                const batch = await base44.asServiceRole.entities.Room.filter(branchFilter, '-room_number', 500, roomSkip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
-                console.log(`   🏠 Rooms batch: ${batchLength} items (skip: ${roomSkip}, total: ${allRooms.length + batchLength})`);
+                console.log(`   🏠 Rooms batch: ${batchLength} items (skip: ${roomSkip})`);
 
                 if (batchLength > 0) {
                     allRooms = allRooms.concat(batch);
@@ -231,25 +248,23 @@ Deno.serve(async (req) => {
                 }
             });
 
-            if (fetchingRooms) await delay(500);
+            if (fetchingRooms) await delay(300);
         }
 
-        // ⭐ normalize ก่อน แล้วค่อย filter branch_id ด้วย JS
+        // ⭐ Normalize entities
         allRooms = allRooms.map(normalizeEntity).filter(Boolean);
-        if (targetBranchId) {
-            allRooms = allRooms.filter(r => r.branch_id === targetBranchId);
-        }
-        console.log(`✅ Total rooms: ${allRooms.length} (branch filter: ${targetBranchId || 'ALL'})`);
+        console.log(`✅ Total rooms: ${allRooms.length} (asServiceRole.filter fetch)`);
         await delay(200);
 
-        // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ (ดึงทั้งหมดก่อน แล้ว filter ด้วย JS หลัง normalize)
+        // ⭐ FIX: Use asServiceRole.filter() with explicit branch_id for bookings
         console.log('📦 Step 1b: Fetching ALL active bookings...');
         let bookingSkip = 0;
         let fetchingBookings = true;
 
         while (fetchingBookings) {
             await retryOperation(async () => {
-                const batch = await base44.asServiceRole.entities.Booking.list('-created_date', 500, bookingSkip);
+                const branchFilter = targetBranchId ? { branch_id: targetBranchId, status: 'active' } : { status: 'active' };
+                const batch = await base44.asServiceRole.entities.Booking.filter(branchFilter, '-created_date', 500, bookingSkip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
 
                 if (batchLength > 0) {
@@ -265,13 +280,10 @@ Deno.serve(async (req) => {
             if (fetchingBookings) await delay(100);
         }
 
-        // ⭐ normalize ก่อน แล้วค่อย filter branch_id และ status ด้วย JS
-        bookings = bookings.map(normalizeEntity).filter(Boolean).filter(b => b.status === 'active');
-        if (targetBranchId) {
-            bookings = bookings.filter(b => b.branch_id === targetBranchId);
-        }
-        console.log(`✅ Total bookings: ${bookings.length} (branch filter: ${targetBranchId || 'ALL'})`);
-        const bookingsMap = new Map(bookings.filter(b => b.status === 'active').map(b => [b.room_id, b])); // ⭐ NEW: Map for O(1) lookup
+        // ⭐ Normalize bookings
+        bookings = bookings.map(normalizeEntity).filter(Boolean);
+        console.log(`✅ Total bookings: ${bookings.length} (user-scoped fetch)`);
+        const bookingsMap = new Map(bookings.map(b => [b.room_id, b])); // ⭐ NEW: Map for O(1) lookup
 
         const monthlyRooms = allRooms.filter(room => room.room_type === 'monthly');
         console.log(`🏠 Monthly rooms: ${monthlyRooms.length}`);
@@ -353,6 +365,7 @@ Deno.serve(async (req) => {
             await retryOperation(async () => {
                 const [m, t] = await Promise.all([
                     // ✅ ใช้ fetchWithPagination แบบใหม่ + เงื่อนไขหยุดเมื่อเก่ากว่า 90 วัน
+                    // ⭐ FIX: Use asServiceRole.filter() with explicit branch_id
                     fetchWithPagination(
                         base44.asServiceRole.entities.MeterReading, 
                         { branch_id: branchId }, 
@@ -360,7 +373,6 @@ Deno.serve(async (req) => {
                         150, 
                         (item) => (item.reading_date || item.created_date) < meterCutoffStr
                     ),
-                    // ส่วน Tenant ดึงตามปกติ (ไม่ต้องมีเงื่อนไขหยุด เพราะต้องใช้หาคนปัจจุบัน)
                     fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date', 150)
                 ]);
                 meterReadings = meterReadings.concat(m || []);
@@ -420,6 +432,7 @@ Deno.serve(async (req) => {
                     batchNum++;
 
                     await retryOperation(async () => {
+                        // ⭐ FIX: Use asServiceRole.filter() with explicit branch_id
                         const batch = await base44.asServiceRole.entities.Payment.filter(
                             { 
                                 branch_id: branchId,
