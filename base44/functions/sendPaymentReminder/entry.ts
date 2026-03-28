@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
@@ -69,7 +69,7 @@ function numberToThaiText(number) {
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
 
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
@@ -81,8 +81,7 @@ async function getLineToken(base44, branchId = null) {
             }
 
             // ⭐ ไม่มี token ของสาขานี้
-            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
-            return null;
+            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}... falling back to global`);
         }
 
         // กรณี Global token (เผื่อไว้ แต่ระบบนี้เน้น Branch)
@@ -152,7 +151,7 @@ Deno.serve(async (req) => {
             // ถ้าระบุ paymentId
             const [paymentResults, configResults] = await Promise.all([
                 base44.asServiceRole.entities.Payment.filter({ id: paymentId }),
-                base44.asServiceRole.entities.Config.list()
+                base44.asServiceRole.entities.Config.list('', 1000)
             ]);
 
             const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
@@ -174,7 +173,7 @@ Deno.serve(async (req) => {
         } else if (branch_id) {
             // ดึงเฉพาะ branch นั้น + Pagination
             const [configResults, ...data] = await Promise.all([
-                base44.asServiceRole.entities.Config.list(),
+                base44.asServiceRole.entities.Config.list('', 1000),
                 (async () => {
                     const result = [];
                     let offset = 0;
@@ -207,18 +206,18 @@ Deno.serve(async (req) => {
             allTenants = data[0] || [];
             allRooms = data[1] || [];
 
-            // 🛡️ Safety Check: Validate Bank Config (STRICT - NO FALLBACK)
-            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branch_id);
-            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branch_id);
-            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branch_id);
+            // 🛡️ Safety Check: Validate Bank Config
+            const bankNameConf = getConfigValue('bank_name', branch_id);
+            const accNumConf = getConfigValue('bank_account_number', branch_id);
+            const accNameConf = getConfigValue('bank_account_name', branch_id);
 
-            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
-                console.error(`❌ Missing strict bank config for branch ${branch_id} - ABORT`);
+            if (!bankNameConf || !accNumConf || !accNameConf) {
+                console.error(`❌ Missing bank config for branch ${branch_id} - ABORT`);
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
-                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
@@ -395,27 +394,22 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ⭐ STRICT BANK CONFIG CHECK (NO FALLBACKS)
-            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branchId);
-            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branchId);
-            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branchId);
-            const qrCodeConf = configs.find(c => c.key === 'payment_qr_code_url' && c.branch_id === branchId) 
-                            || configs.find(c => c.key === 'payment_qr_code_url' && !c.branch_id);
-            const qrCodeUrl = (qrCodeConf?.value && qrCodeConf.value.trim().startsWith('https')) ? qrCodeConf.value.trim() : null;
+            // ⭐ BANK CONFIG CHECK
+            const bankName = getConfigValue('bank_name', branchId);
+            const bankAccountNumber = getConfigValue('bank_account_number', branchId);
+            const bankAccountName = getConfigValue('bank_account_name', branchId);
+            const qrCodeUrlRaw = getConfigValue('payment_qr_code_url', branchId);
+            const qrCodeUrl = (qrCodeUrlRaw && qrCodeUrlRaw.trim().startsWith('https')) ? qrCodeUrlRaw.trim() : null;
 
-            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
+            if (!bankName || !bankAccountNumber || !bankAccountName) {
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
-                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
-
-            const bankAccountNumber = accNumConf.value;
-            const bankAccountName = accNameConf.value;
-            const bankName = bankNameConf.value;
             const buildingName = getConfigValue('building_name', branchId, 'ที่พัก');
 
             // --- ส่วนสร้างข้อความ ---
