@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -15,12 +15,12 @@ Deno.serve(async (req) => {
 
     // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (Parallel) - เพิ่ม limit สำหรับ Room และ Tenant
     const [payments, rooms, maintenance, bookings, deliveries, tenants] = await Promise.all([
-      base44.asServiceRole.entities.Payment.list('-created_date', 1000),
-      base44.asServiceRole.entities.Room.list('-created_date', 5000),
-      base44.asServiceRole.entities.MaintenanceRequest.list('-created_date', 500),
-      base44.asServiceRole.entities.Booking.list('-created_date', 500),
-      base44.asServiceRole.entities.MaterialDelivery.list('-created_date', 500),
-      base44.asServiceRole.entities.Tenant.list('-created_date', 5000)
+      base44.asServiceRole.entities.Payment.list('-created_date', 1000).then(r => r || []),
+      base44.asServiceRole.entities.Room.list('-created_date', 5000).then(r => r || []),
+      base44.asServiceRole.entities.MaintenanceRequest.list('-created_date', 500).then(r => r || []),
+      base44.asServiceRole.entities.Booking.list('-created_date', 500).then(r => r || []),
+      base44.asServiceRole.entities.MaterialDelivery.list('-created_date', 500).then(r => r || []),
+      base44.asServiceRole.entities.Tenant.list('-created_date', 5000).then(r => r || [])
     ]);
 
     // 🔒 Security: กรองข้อมูลตามสิทธิ์

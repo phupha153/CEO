@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
         console.log('📊 Limit per run:', limit);
 
         // 1. ดึงการตั้งค่าจาก Config
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configs = (await base44.asServiceRole.entities.Config.list()) || [];
         
         // ⭐ สรุปสถานะการเปิด/ปิดแจ้งเตือนวันครบกำหนดแต่ละสาขา
         const branchReminderConfigs = configs.filter(c => c.key === 'send_due_date_reminder');

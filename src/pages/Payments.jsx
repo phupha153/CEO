@@ -299,7 +299,7 @@ export default function PaymentsPage() {
         filters: { branch_id: selectedBranchId, status: 'active' },
         limit: 500
       });
-      return response.data.data;
+      return response.data?.data || [];
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
