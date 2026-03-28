@@ -207,7 +207,7 @@ async function getBranchIdFromDestination(base44, destination) {
     try {
         const now = Date.now();
         if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
-            configCache = await base44.asServiceRole.entities.Config.list();
+            configCache = await base44.asServiceRole.entities.Config.list('', 1000);
             configCacheTime = now;
         }
 
@@ -1294,7 +1294,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const now2 = Date.now();
         let configs;
         if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
-            const rCfg = await base44.asServiceRole.entities.Config.list();
+            const rCfg = await base44.asServiceRole.entities.Config.list('', 1000);
             configCache = configs = Array.isArray(rCfg) ? rCfg : [];
             configCacheTime = now2;
             console.log(`✅ Refreshed config cache (${configs.length} items)`);
@@ -1949,7 +1949,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 
 async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToken = null) {
     // ดึงชื่อหอพักจากการตั้งค่า
-    const configs = await base44.asServiceRole.entities.Config.list();
+    const configs = await base44.asServiceRole.entities.Config.list('', 1000);
     const getConfigValue = (key) => {
         const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
         if (branchConfig?.value) return branchConfig.value;

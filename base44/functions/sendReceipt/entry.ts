@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         
         // ลำดับความสำคัญ: branch-specific → global from Config → Environment Variable
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
             }
             
             // ดึง configs
-            const configRes = await base44.asServiceRole.entities.Config.list();
+            const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
             configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
             
         } catch (fetchError) {
