@@ -775,7 +775,7 @@ export default function PaymentsPage() {
   const pendingOverduePayments = useMemo(() => filteredPayments.filter(p => getEffectiveStatus(p) === 'pending' || getEffectiveStatus(p) === 'overdue'), [filteredPayments, getEffectiveStatus]);
 
   const tenantsWithLine = useMemo(() => {
-    const src = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
+    const src = pendingOverduePayments;
     return src.filter(p => {
       const s = getEffectiveStatus(p);
       return (s === 'pending' || s === 'overdue') && !p.bill_sent_date && (p.tenant_line_user_id || p.tenant_facebook_user_id);
