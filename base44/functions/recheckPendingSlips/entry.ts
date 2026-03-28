@@ -248,8 +248,9 @@ Deno.serve(async (req) => {
                         p.notes && 
                         p.notes.includes('รอตรวจสอบ') &&
                         !p.notes.includes('โอนเงินไปผิดบัญชี') &&
+                        !p.notes.includes('รอตรวจสอบด้วยตนเอง') &&
                         !p.notes.includes('ยังไม่ได้ตั้งค่าบัญชีธนาคาร')
-                    );
+                        );
                     pendingWithSlip = pendingWithSlip.concat(filtered);
                     
                     statusSkip += batch.length;

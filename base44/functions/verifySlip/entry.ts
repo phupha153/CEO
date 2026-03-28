@@ -438,13 +438,13 @@ Deno.serve(async (req) => {
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
-                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
-                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีรับเงินในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบด้วยตนเอง: ห้อง ${roomNumber} (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
+                        `⚠️ รอตรวจสอบด้วยตนเอง: ห้อง ${roomNumber} (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                 });
 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ รอเจ้าของหอพักตรวจสอบ`,
+                    message: `อัปโหลดสลิปสำเร็จ`,
                     manual_review_required: true,
                     no_config: true
                 });
@@ -788,9 +788,9 @@ Deno.serve(async (req) => {
         }
         
         // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
-        const rooms = await base44.asServiceRole.entities.Room.list();
-        const room = rooms.find(r => r.id === payment.room_id);
-        const roomNumber = room?.room_number || 'ไม่ทราบ';
+        const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+        const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+        const roomNumber = roomNum;
         
         // บันทึกสลิปไว้แม้อ่านไม่ได้
         await base44.asServiceRole.entities.Payment.update(paymentId, {
