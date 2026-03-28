@@ -329,7 +329,7 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const roomsMap = useMemo(() => new Map((Array.isArray(rooms) ? rooms : []).map(r => [r.id, r])), [rooms]);
+  const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
   const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
@@ -341,7 +341,7 @@ export default function PaymentsPage() {
         filters: { branch_id: selectedBranchId },
         limit: 500
       });
-      return response.data?.data || [];
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -351,7 +351,7 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const tenantsMap = useMemo(() => new Map((Array.isArray(tenants) ? tenants : []).map(t => [t.id, t])), [tenants]);
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
   const { data: meterReadings = [] } = useQuery({
