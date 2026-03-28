@@ -243,7 +243,8 @@ Deno.serve(async (req) => {
         console.log('📊 Limit per run:', limit);
 
         // 1. ดึงการตั้งค่าจาก Config
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configRes = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
         
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {

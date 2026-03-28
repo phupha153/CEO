@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
 
             const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
             allPayments = payment ? [payment] : [];
-            configs = configResults;
+            configs = Array.isArray(configResults) ? configResults : (configResults?.data || []);
 
             if (payment) {
                 const [tenantResults, roomResults] = await Promise.all([
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
                 })()
             ]);
 
-            configs = configResults;
+            configs = Array.isArray(configResults) ? configResults : (configResults?.data || []);
             allTenants = data[0] || [];
             allRooms = data[1] || [];
 
