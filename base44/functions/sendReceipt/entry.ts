@@ -188,6 +188,14 @@ Deno.serve(async (req) => {
         const configRes = await base44.asServiceRole.entities.Config.list('', 1000);
         const configs = Array.isArray(configRes) ? configRes : (configRes?.data || []);
 
+        // ⭐ Debug: แสดงว่าพบ token ใน configs หรือไม่
+        const lineConfigsForBranch = configs.filter(c => c.key === 'line_channel_access_token');
+        console.log(`🔍 LINE token configs found: ${lineConfigsForBranch.length} total`);
+        lineConfigsForBranch.forEach(c => {
+            console.log(`   - branch_id: ${c.branch_id || 'GLOBAL'}, value: ${c.value ? c.value.substring(0, 15) + '...' : 'EMPTY'}`);
+        });
+        console.log(`🔍 Payment branch_id: ${payment.branch_id}`);
+
         const lineToken = await getLineToken(base44, configs, payment.branch_id);
         if (!lineToken) {
             console.error('❌ LINE token not available');
