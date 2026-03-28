@@ -314,9 +314,9 @@ Deno.serve(async (req) => {
             console.log('Error message:', slip2goErrorMessage);
             
             // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
-            const rooms = await base44.asServiceRole.entities.Room.list();
-            const room = rooms.find(r => r.id === payment.room_id);
-            const roomNumber = room?.room_number || 'ไม่ทราบ';
+            const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+            const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+            const roomNumber = roomNum;
             
             // ⭐ แปลง error code ของ Slip2Go เป็นภาษาไทย
             let errorReason = 'ระบบอ่านยอดไม่ได้';
@@ -377,9 +377,9 @@ Deno.serve(async (req) => {
             if (slipAmount === 0 || isNaN(slipAmount)) {
                 console.error('❌ Invalid slip amount:', slipAmount);
                 
-                const rooms = await base44.asServiceRole.entities.Room.list();
-                const room = rooms.find(r => r.id === payment.room_id);
-                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+                const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+                const roomNumber = roomNum;
                 
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
@@ -429,9 +429,9 @@ Deno.serve(async (req) => {
             if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
                 (!expectedPromptPay || expectedPromptPay.trim() === '') &&
                 (!expectedAccountName || expectedAccountName.trim() === '')) {
-                const rooms = await base44.asServiceRole.entities.Room.list();
-                const room = rooms.find(r => r.id === payment.room_id);
-                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+                const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+                const roomNumber = roomNum;
 
                 console.log('⚠️ NO CONFIG FOUND - Manual review required');
 
@@ -515,9 +515,9 @@ Deno.serve(async (req) => {
             console.log('====================================================\n');
 
             if (!accountMatch) {
-                const rooms = await base44.asServiceRole.entities.Room.list();
-                const room = rooms.find(r => r.id === payment.room_id);
-                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+                const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+                const roomNumber = roomNum;
 
                 const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
 
@@ -528,8 +528,8 @@ Deno.serve(async (req) => {
                         `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
                 });
 
-                const branches = await base44.asServiceRole.entities.Branch.list();
-                const branch = branches.find(b => b.id === payment.branch_id);
+                const bRes = await base44.asServiceRole.entities.Branch.filter({ id: payment.branch_id });
+                const branch = Array.isArray(bRes) ? bRes[0] : bRes;
                 const ownerEmail = branch?.owner_id;
 
                 if (ownerEmail) {
@@ -649,9 +649,9 @@ Deno.serve(async (req) => {
             // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
             if (totalPaid < expectedAmount * 0.95) {
                 // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
-                const rooms = await base44.asServiceRole.entities.Room.list();
-                const room = rooms.find(r => r.id === payment.room_id);
-                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                const rmRes = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
+                const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
+                const roomNumber = roomNum;
                 const shortfall = expectedAmount - totalPaid;
 
                 // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
@@ -666,8 +666,8 @@ Deno.serve(async (req) => {
                         `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
                 });
 
-                const branches = await base44.asServiceRole.entities.Branch.list();
-                const branch = branches.find(b => b.id === payment.branch_id);
+                const bRes = await base44.asServiceRole.entities.Branch.filter({ id: payment.branch_id });
+                const branch = Array.isArray(bRes) ? bRes[0] : bRes;
                 const ownerEmail = branch?.owner_id;
 
                 if (ownerEmail) {

@@ -225,48 +225,54 @@ Deno.serve(async (req) => {
         let skip = 0;
         let hasMore = true;
         
-        while (hasMore) {
-            // ดึงเฉพาะ pending payments
-            const batch = await entityService.Payment.filter(
-                { status: 'pending' }, 
-                '-created_date', 
-                BATCH_SIZE, 
-                skip
-            );
+        // ดึงแยกแต่ละ status เพราะ Base44 SDK ไม่รองรับ $in operator
+        const STATUSES_TO_CHECK = ['pending', 'overdue', 'partial_paid'];
+        hasMore = false; // ไม่ใช้ while loop แล้ว
+        
+        for (const statusToCheck of STATUSES_TO_CHECK) {
+            let statusSkip = 0;
+            let statusHasMore = true;
             
-            if (Array.isArray(batch) && batch.length > 0) {
-                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ และไม่รวมกรณีโอนผิดบัญชีหรือยังไม่ตั้งค่าบัญชี
-                const filtered = batch.filter(p => 
-                    p.payment_slip_url && 
-                    p.branch_id &&
-                    p.notes && 
-                    p.notes.includes('รอตรวจสอบ') &&
-                    !p.notes.includes('โอนเงินไปผิดบัญชี') &&
-                    !p.notes.includes('ยังไม่ได้ตั้งค่าบัญชีธนาคาร')
+            while (statusHasMore) {
+                const batch = await entityService.Payment.filter(
+                    { status: statusToCheck }, 
+                    '-created_date', 
+                    BATCH_SIZE, 
+                    statusSkip
                 );
-                pendingWithSlip = pendingWithSlip.concat(filtered);
                 
-                skip += batch.length;
-                console.log(`📦 Batch: ${batch.length} pending, ${filtered.length} with slip to recheck, total: ${pendingWithSlip.length}`);
-                
-                if (batch.length < BATCH_SIZE) {
-                    hasMore = false;
+                if (Array.isArray(batch) && batch.length > 0) {
+                    const filtered = batch.filter(p => 
+                        p.payment_slip_url && 
+                        p.branch_id &&
+                        p.notes && 
+                        p.notes.includes('รอตรวจสอบ') &&
+                        !p.notes.includes('โอนเงินไปผิดบัญชี') &&
+                        !p.notes.includes('ยังไม่ได้ตั้งค่าบัญชีธนาคาร')
+                    );
+                    pendingWithSlip = pendingWithSlip.concat(filtered);
+                    
+                    statusSkip += batch.length;
+                    console.log(`📦 [${statusToCheck}] Batch: ${batch.length}, with slip: ${filtered.length}, total: ${pendingWithSlip.length}`);
+                    
+                    if (batch.length < BATCH_SIZE) statusHasMore = false;
+                } else {
+                    statusHasMore = false;
                 }
-            } else {
-                hasMore = false;
+                
+                if (pendingWithSlip.length >= 100) {
+                    statusHasMore = false;
+                    hasMore = false;
+                    console.log('✅ Found enough payments to recheck (100), stopping');
+                    break;
+                }
+                if (statusSkip > 5000) {
+                    statusHasMore = false;
+                    console.log(`⚠️ Max scan reached for status: ${statusToCheck}`);
+                }
+                skip += batch?.length || 0;
             }
-            
-            // หยุดถ้าเจอที่ต้อง recheck มากพอแล้ว (ประหยัดเวลา)
-            if (pendingWithSlip.length >= 100) {
-                console.log('✅ Found enough payments to recheck, stopping fetch');
-                hasMore = false;
-            }
-            
-            // ป้องกัน infinite loop - แต่ไม่ต้องดึงมากกว่า 5000 pending
-            if (skip > 5000) {
-                console.log('⚠️ Max pending payments scanned, stopping');
-                hasMore = false;
-            }
+            if (pendingWithSlip.length >= 100) break;
         }
         
         const pendingRecheckPayments = pendingWithSlip;
@@ -607,9 +613,10 @@ Deno.serve(async (req) => {
                         notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
                     });
                     
-                    const tenant = tenants.find(t => t.id === payment.tenant_id);
-                    if (tenant?.line_user_id) {
-                        await sendLineMessage(base44, tenant.line_user_id, 
+                    const tenantRes3 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
+                    const tenant3 = Array.isArray(tenantRes3) ? tenantRes3[0] : tenantRes3;
+                    if (tenant3?.line_user_id) {
+                        await sendLineMessage(base44, tenant3.line_user_id, 
                             `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
                             payment.branch_id,
                             configs
@@ -643,8 +650,9 @@ Deno.serve(async (req) => {
                 console.log(`   ✅ Payment updated to PAID`);
 
                 // ส่งใบเสร็จให้ลูกค้าผ่าน LINE
-                const tenant = tenants.find(t => t.id === payment.tenant_id);
-                if (tenant?.line_user_id) {
+                const tenantRes4 = payment.tenant_id ? await entityService.Tenant.filter({ id: payment.tenant_id }) : [];
+                const tenant4 = Array.isArray(tenantRes4) ? tenantRes4[0] : tenantRes4;
+                if (tenant4?.line_user_id) {
                     try {
                         // เรียก sendReceipt function
                         const receiptResponse = await base44.asServiceRole.functions.invoke('sendReceipt', { 
@@ -655,7 +663,7 @@ Deno.serve(async (req) => {
                             console.log(`   📄 Receipt sent successfully`);
                         } else {
                             // Fallback ส่งข้อความธรรมดา
-                            await sendLineMessage(base44, tenant.line_user_id, 
+                            await sendLineMessage(base44, tenant4.line_user_id, 
                                 `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                                 payment.branch_id,
                                 configs
@@ -664,7 +672,7 @@ Deno.serve(async (req) => {
                     } catch (receiptError) {
                         console.error(`   ⚠️ Failed to send receipt:`, receiptError.message);
                         // Fallback
-                        await sendLineMessage(base44, tenant.line_user_id, 
+                        await sendLineMessage(base44, tenant4.line_user_id, 
                             `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                             payment.branch_id,
                             configs
