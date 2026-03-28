@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (Minified)
@@ -157,8 +157,8 @@ async function getLineToken(base44, branchId = null) {
             return cached.token;
         }
 
-        const configs = await base44.asServiceRole.entities.Config.list();
-
+        const rCfg = await base44.asServiceRole.entities.Config.list();
+        const configs = Array.isArray(rCfg) ? rCfg : [];
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
             if (branchToken?.value?.trim()) {
@@ -1297,8 +1297,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const now2 = Date.now();
         let configs;
         if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
-            configs = await base44.asServiceRole.entities.Config.list();
-            configCache = configs;
+            const rCfg = await base44.asServiceRole.entities.Config.list();
+            configCache = configs = Array.isArray(rCfg) ? rCfg : [];
             configCacheTime = now2;
             console.log(`✅ Refreshed config cache (${configs.length} items)`);
         } else {
