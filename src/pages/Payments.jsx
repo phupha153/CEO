@@ -290,40 +290,34 @@ export default function PaymentsPage() {
     dateRangeType
   });
 
-  const { data: rawBookings = [], isFetching: bookingsFetching } = useQuery({
+  const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Booking', filters: { branch_id: selectedBranchId, status: 'active' }, limit: 1000 });
-      return response.data?.data || [];
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-  const bookings = Array.isArray(rawBookings) ? rawBookings : [];
 
-  const { data: rawRooms = [], isFetching: roomsFetching } = useQuery({
+  const { data: rooms = [], isFetching: roomsFetching } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Room', filters: { branch_id: selectedBranchId }, sort: '-room_number', limit: 1000 });
-      return response.data?.data || [];
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 60000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-  const rooms = Array.isArray(rawRooms) ? rawRooms : [];
   const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
-  const { data: rawTenants = [], isFetching: tenantsFetching } = useQuery({
+  const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', { entity: 'Tenant', filters: { branch_id: selectedBranchId }, limit: 1000 });
-      return response.data?.data || [];
+      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-  const tenants = Array.isArray(rawTenants) ? rawTenants : [];
   const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
@@ -345,21 +339,9 @@ export default function PaymentsPage() {
     queryKey: ['configs', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // 🔒 SECURITY FIX: Use backend function
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Config',
-        filters: { branch_id: selectedBranchId },
-        limit: 1000
-      });
-      
-      // รวมกับ global configs
-      const globalResponse = await base44.functions.invoke('getSecureData', {
-        entity: 'Config',
-        filters: { branch_id: null },
-        limit: 1000
-      });
-      
-      return [...(response.data?.data || []), ...(globalResponse.data?.data || [])];
+      const branchConfigs = await base44.entities.Config.filter({ branch_id: selectedBranchId }, '', 1000);
+      const globalConfigs = await base44.entities.Config.filter({ branch_id: null }, '', 1000);
+      return [...branchConfigs, ...globalConfigs];
     },
     enabled: !!currentUser && !!selectedBranchId,
     ...retryConfig,

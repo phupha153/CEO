@@ -210,15 +210,10 @@ export default function TenantsPage() {
 
 
   const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenants', selectedBranchId, 'secure'],
+    queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: { branch_id: selectedBranchId },
-        limit: 1000
-      });
-      return Array.isArray(response.data?.data) ? response.data.data : [];
+      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -229,15 +224,10 @@ export default function TenantsPage() {
   });
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: { branch_id: selectedBranchId },
-        limit: 1000
-      });
-      return Array.isArray(response.data?.data) ? response.data.data : [];
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
@@ -248,16 +238,10 @@ export default function TenantsPage() {
   });
 
   const { data: rooms = [] } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: '-room_number',
-        limit: 1000
-      });
-      return Array.isArray(response.data?.data) ? response.data.data : [];
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
