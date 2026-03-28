@@ -4606,10 +4606,10 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
               </DialogHeader>
 
         <ExcelUploader
-  entityName="Tenant"
-  schema={{}}  // 👈 เอา // ออก ให้เป็นแบบนี้ครับ
-  templateData={templateData}
-  templateFilename={`tenant_template_${selectedBranchName}.csv`}
+        entityName="Tenant"
+        schema={{}}
+        templateData={[]}
+        templateFilename={`tenant_template_${selectedBranchName}.csv`}
   onSuccess={() => {
     queryClient.invalidateQueries(['tenants', selectedBranchId]);
     setShowUploadDialog(false);
