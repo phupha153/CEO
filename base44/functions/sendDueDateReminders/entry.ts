@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // ⭐ สร้าง timestamp เวลาไทย (UTC+7)
 function getThailandTimestamp() {

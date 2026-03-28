@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     // 1️⃣ เช็คจาก Employee entity ใน CRM ก่อน (ใช้ service role key)
     try {
-      const { createClient } = await import('npm:@base44/sdk@0.8.19');
+      const { createClient } = await import('npm:@base44/sdk@0.8.23');
       const crmClient = createClient({
         appId: CRM_APP_ID,
         serviceRoleKey: CRM_SERVICE_ROLE_KEY,

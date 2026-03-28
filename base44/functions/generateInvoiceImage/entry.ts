@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { calculateLateFee } from './utils/calculateLateFee.js';
 
 // --- Helper Functions ---
