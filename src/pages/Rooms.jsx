@@ -283,21 +283,21 @@ export default function RoomsPage() {
 
   const { data: meterReadings = [] } = useQuery({
     queryKey: ['meterReadings', selectedBranchId],
-    queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 5000),
+    queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts', selectedBranchId],
-    queryFn: () => base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryFn: () => base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-created_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: tenantRatings = [] } = useQuery({
     queryKey: ['tenantRatings', selectedBranchId],
-    queryFn: () => base44.entities.TenantRating.filter({ branch_id: selectedBranchId }, '-rating_date', 5000),
+    queryFn: () => base44.entities.TenantRating.filter({ branch_id: selectedBranchId }, '-rating_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });

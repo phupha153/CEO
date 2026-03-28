@@ -132,7 +132,7 @@ export default function BookingsPage() {
       const response = await base44.functions.invoke('getSecureData', {
         entity: 'Booking',
         filters: { branch_id: selectedBranchId },
-        limit: 5000
+        limit: 1000
       });
       const result = response?.data?.data;
       return Array.isArray(result) ? result : [];
@@ -147,7 +147,7 @@ export default function BookingsPage() {
 
   const { data: temporaryBookings = [] } = useQuery({
     queryKey: ['temporaryBookings', selectedBranchId],
-    queryFn: () => base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryFn: () => base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 1000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -163,7 +163,7 @@ export default function BookingsPage() {
         entity: 'Room',
         filters: { branch_id: selectedBranchId },
         sort: '-room_number',
-        limit: 5000
+        limit: 1000
       });
       const result = response?.data?.data;
       return Array.isArray(result) ? result : [];
@@ -178,7 +178,7 @@ export default function BookingsPage() {
 
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId],
-    queryFn: () => base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryFn: () => base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -189,7 +189,7 @@ export default function BookingsPage() {
 
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['maintenanceRequests', selectedBranchId],
-    queryFn: () => base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryFn: () => base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 1000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,

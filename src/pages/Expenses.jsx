@@ -129,7 +129,7 @@ export default function Expenses() {
       const expenses = await base44.entities.Expense.filter(
         { branch_id: selectedBranchId },
         '-date',
-        10000
+        1000
       );
       return expenses;
     },
