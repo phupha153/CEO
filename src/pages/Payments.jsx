@@ -805,7 +805,7 @@ export default function PaymentsPage() {
   });
 
   const roomsNeedingBills = useMemo(() => {
-    if (!rooms.length || !bookings.length || !configs.length) return 0;
+    if (!rooms.length || !bookings.length) return 0;
 
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
