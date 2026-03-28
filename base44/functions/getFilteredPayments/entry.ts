@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     }
 
     const { 
-      branch_id: requested_branch_id, 
+      branch_id, 
       status_filter = 'all',
       date_range_type = 'this_month',
       custom_range,
@@ -18,13 +18,12 @@ Deno.serve(async (req) => {
       page = 1,
       limit = 50,
       sort_by = 'due_date',
-      debug = false,
-      exclude_dismissed = false
+      debug = false
     } = await req.json();
 
     const logs = [];
 
-    if (!requested_branch_id) {
+    if (!branch_id) {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
@@ -41,29 +40,14 @@ Deno.serve(async (req) => {
     }
 
     // 2. เช็คสิทธิ์เข้าถึงสาขา
-    let normalizedBranches = accessibleBranches || [];
-    if (typeof normalizedBranches === 'string') {
-      if (normalizedBranches === 'all') {
-        normalizedBranches = [];
-      } else {
-        try {
-          normalizedBranches = JSON.parse(normalizedBranches);
-        } catch {
-          normalizedBranches = [normalizedBranches];
-        }
-      }
-    }
+    const hasAccessibleBranchesSet = accessibleBranches !== null && accessibleBranches !== undefined;
+    const hasAccess = (userRole === 'developer' && !hasAccessibleBranchesSet) || 
+                      (accessibleBranches && accessibleBranches.includes(branch_id));
 
-    const isOwnerOrDev = userRole === 'owner' || userRole === 'developer';
-    const canAccessAllBranches = isOwnerOrDev && (!accessibleBranches || accessibleBranches.length === 0 || accessibleBranches === 'all' || normalizedBranches.length === 0);
-
-    if (!canAccessAllBranches && !normalizedBranches.includes(requested_branch_id)) {
-      console.warn(`⚠️ Branch access denied: ${user.email} → branch ${requested_branch_id}`);
+    if (!hasAccess) {
+      console.warn(`⚠️ Branch access denied: ${user.email} → branch ${branch_id}`);
       return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
     }
-
-    // Assign back to branch_id for the rest of the function
-    const branch_id = requested_branch_id;
 
     // ✅ Step 1: Fetch configs (Cached in-memory)
     const CONFIGS_CACHE = globalThis.__configs_cache || (globalThis.__configs_cache = {});
@@ -133,28 +117,9 @@ Deno.serve(async (req) => {
     const filterQuery = { branch_id };
     
     if (dateRange) {
-      const formatToDateString = (dateInput) => {
-        if (!dateInput) return null;
-        const date = new Date(dateInput);
-        if (isNaN(date.getTime())) return typeof dateInput === 'string' ? dateInput.split('T')[0] : null;
-        
-        // Convert to Thailand Time (UTC+7)
-        const thaiDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-        const y = thaiDate.getUTCFullYear();
-        const m = String(thaiDate.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(thaiDate.getUTCDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      };
-
-      const fromDateStr = formatToDateString(dateRange.from);
-      const toDateStr = formatToDateString(dateRange.to);
-
-      // Base44 filter function for dates checks string prefix or full ISO, 
-      // but if the data is just "2026-03-31", $gte with "2026-03-31T00:00" might fail 
-      // depending on implementation. Let's make sure we just pass the YYYY-MM-DD prefix
       filterQuery.due_date = {
-        $gte: fromDateStr,
-        $lte: toDateStr
+        $gte: dateRange.from,
+        $lte: dateRange.to
       };
     }
 
@@ -165,13 +130,12 @@ Deno.serve(async (req) => {
     // ถ้าไม่มี = จำกัดแค่ 5,000 records ล่าสุด (เพิ่มจาก 1000)
     const fetchLimit = dateRange ? 20000 : 5000;
     
-    let paymentsData = await base44.asServiceRole.entities.Payment.filter(
+    let payments = await base44.asServiceRole.entities.Payment.filter(
       filterQuery,
       `-${sort_by}`,
       fetchLimit,
       0
     );
-    let payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.data || []);
 
     const step3Data = {
       count: payments.length,
@@ -184,17 +148,12 @@ Deno.serve(async (req) => {
 
     // ✅ Step 4: Fetch ALL rooms & tenants for this branch (Cache-friendly)
     // ⚠️ Base44 SDK ไม่รองรับ $in operator - ต้องโหลดทั้งสาขา
-    const [roomsData, tenantsData, tempBookingsData, activeBookingsData] = await Promise.all([
+    const [rooms, tenants, tempBookings, activeBookings] = await Promise.all([
       base44.asServiceRole.entities.Room.filter({ branch_id }, '-room_number', 1000),
       base44.asServiceRole.entities.Tenant.filter({ branch_id }, '-created_date', 1000),
       base44.asServiceRole.entities.TemporaryBooking.filter({ branch_id }, '-created_date', 1000),
       base44.asServiceRole.entities.Booking.filter({ branch_id, status: 'active' }, '-created_date', 1000)
     ]);
-
-    const rooms = Array.isArray(roomsData) ? roomsData : (roomsData?.data || []);
-    const tenants = Array.isArray(tenantsData) ? tenantsData : (tenantsData?.data || []);
-    const tempBookings = Array.isArray(tempBookingsData) ? tempBookingsData : (tempBookingsData?.data || []);
-    const activeBookings = Array.isArray(activeBookingsData) ? activeBookingsData : (activeBookingsData?.data || []);
 
     // ✅ Create Maps for O(1) lookup
     const roomsMap = new Map(rooms.map(r => [r.id, r]));
@@ -249,10 +208,6 @@ Deno.serve(async (req) => {
 
     // ✅ Step 6: Apply additional filters (status, search)
     let filtered = enrichedPayments;
-    
-    if (exclude_dismissed) {
-      filtered = filtered.filter(p => !p.is_dismissed);
-    }
 
     // Calculate effective status (server-side)
     if (status_filter !== 'all') {
