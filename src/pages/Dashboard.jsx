@@ -476,7 +476,7 @@ export default function Dashboard() {
       return sum + baseAmount + lateFee;
     }, 0);
 
-    const roomIds = new Set((Array.isArray(filteredRooms) ? filteredRooms : []).map(r => r.id));
+    const roomIds = new Set(filteredRooms.map(r => r.id));
     const pendingMaintenanceCount = maintenanceRequests.filter(m => 
       roomIds.has(m.room_id) && m.status === 'pending'
     ).length;
@@ -579,7 +579,7 @@ export default function Dashboard() {
       : viewMode === 'monthly'
       ? rooms.filter(r => r.room_type === 'monthly')
       : rooms;
-    const roomIds = new Set((Array.isArray(filteredRooms) ? filteredRooms : []).map(r => r.id));
+    const roomIds = new Set(filteredRooms.map(r => r.id));
 
     return maintenanceRequests
       .filter(m => m.status === 'pending' && roomIds.has(m.room_id))

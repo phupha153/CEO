@@ -52,7 +52,7 @@ export default function PaymentsPage() {
   const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [dateRangeType, setDateRangeType] = useState('all');
+  const [dateRangeType, setDateRangeType] = useState('this_month');
   const [customRange, setCustomRange] = useState({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
@@ -161,7 +161,7 @@ export default function PaymentsPage() {
   };
 
   useEffect(() => {
-    setDateRangeType('all');
+    setDateRangeType('this_month');
     setStatusFilter('all');
     setDisplayLimit(50);
     setSearchQuery('');
@@ -307,7 +307,7 @@ export default function PaymentsPage() {
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 60000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-  const roomsMap = useMemo(() => new Map((Array.isArray(rooms) ? rooms : []).map(r => [r.id, r])), [rooms]);
+  const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
   const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
@@ -318,7 +318,7 @@ export default function PaymentsPage() {
     },
     enabled: canView && !!selectedBranchId, retry: 2, staleTime: 120000, gcTime: 300000, refetchOnWindowFocus: true, placeholderData: (previousData) => previousData,
   });
-  const tenantsMap = useMemo(() => new Map((Array.isArray(tenants) ? tenants : []).map(t => [t.id, t])), [tenants]);
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
   const { data: meterReadings = [] } = useQuery({
