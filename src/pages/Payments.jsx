@@ -219,7 +219,7 @@ export default function PaymentsPage() {
         },
         search_query: '',
         page: 1,
-        limit: 5000,
+        limit: 1000,
         sort_by: 'room',
         exclude_dismissed: true
       });
@@ -900,7 +900,7 @@ export default function PaymentsPage() {
       return await base44.entities.Payment.filter(
         { branch_id: selectedBranchId },
         '-created_date',
-        5000
+        1000
       );
     },
     enabled: canView && !!selectedBranchId,
