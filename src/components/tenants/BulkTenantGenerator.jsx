@@ -12,7 +12,8 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
 
   // แสดงทุกห้อง แต่เรียงตามชั้น
   const sortedRooms = useMemo(() => {
-    return rooms
+    return (Array.isArray(rooms) ? rooms : [])
+      .slice()
       .sort((a, b) => {
         if (a.floor !== b.floor) return a.floor - b.floor;
         return a.room_number.localeCompare(b.room_number);
