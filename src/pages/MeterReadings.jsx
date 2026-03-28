@@ -135,7 +135,7 @@ export default function MeterReadings() {
       
       let allData = [];
       let skip = 0;
-      const limit = 10000; // ✅ เพิ่ม batch size เป็น 10K เพื่อลด API calls
+      const limit = 1000; // ✅ ลด batch size ลงเพื่อไม่ให้เกิด Error Decompress
       let hasMore = true;
 
       while (hasMore) {
@@ -199,7 +199,7 @@ export default function MeterReadings() {
       
       let allData = [];
       let skip = 0;
-      const limit = 10000; // ✅ เพิ่ม batch size เป็น 10K
+      const limit = 1000; // ✅ ลด batch size ลงเพื่อไม่ให้เกิด Error Decompress
       let hasMore = true;
 
       while (hasMore) {

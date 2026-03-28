@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 /**
  * สร้างข้อมูลทดสอบที่เชื่อมกันจริง 100%

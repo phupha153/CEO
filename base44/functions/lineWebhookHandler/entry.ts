@@ -71,11 +71,11 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
 
         const getConfigValue = (key, defaultValue = null) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+            if (branchConfig) return branchConfig.value;
             
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            return globalConfig ? globalConfig.value : defaultValue;
         };
 
         const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
@@ -137,17 +137,14 @@ let configCache = null;
 let configCacheTime = 0;
 const CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
 
-// ⭐ Branch-specific Config Cache (แยก cache ตามสาขา)
 const branchConfigCache = new Map();
-const BRANCH_CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
-const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000; // ⭐ จำกัดไม่ให้เกิน 1000 สาขา
-
-// ⭐ Branches Cache (ลด query ซ้ำซ้อน)
+const BRANCH_CONFIG_CACHE_DURATION = 300000;
+const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000;
 let branchesCache = null;
 let branchesCacheTime = 0;
-const BRANCHES_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
-
+const BRANCHES_CACHE_DURATION = 300000;
 async function getLineToken(base44, branchId = null) {
+    if (base44.botToken) return base44.botToken;
     try {
         const cacheKey = branchId || 'global';
         const cached = branchConfigCache.get(cacheKey);
@@ -157,8 +154,8 @@ async function getLineToken(base44, branchId = null) {
             return cached.token;
         }
 
-        const configs = await base44.asServiceRole.entities.Config.list();
-
+        const rCfg = await base44.asServiceRole.entities.Config.filter({ key: 'line_channel_access_token' }, '', 1000);
+        const configs = Array.isArray(rCfg) ? rCfg : [];
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
             if (branchToken?.value?.trim()) {
@@ -210,7 +207,7 @@ async function getBranchIdFromDestination(base44, destination) {
     try {
         const now = Date.now();
         if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
-            configCache = await base44.asServiceRole.entities.Config.list();
+            configCache = await base44.asServiceRole.entities.Config.list('', 1000);
             configCacheTime = now;
         }
 
@@ -258,7 +255,7 @@ Deno.serve(async (req) => {
             
             let destinationBranchId = queryBranchId;
             try { if (queryBranchId) { const bRes = await base44.asServiceRole.entities.Branch.filter({ id: queryBranchId }); const branch = Array.isArray(bRes) ? bRes[0] : bRes; if (branch) { const ownerEmail = branch.owner_id || branch.created_by; const defKey = ownerEmail ? 'default_communication_branch_' + ownerEmail : 'default_communication_branch'; const d = await base44.asServiceRole.entities.Config.filter({ key: defKey, branch_id: null }, '', 1); const v = Array.isArray(d) ? d[0]?.value : d?.value; if (v && v !== 'none') destinationBranchId = v; } } } catch(e) {}
-
+            base44.botToken = await getLineToken(base44, queryBranchId || (body.destination ? await getBranchIdFromDestination(base44, body.destination) : null));
             for (const event of events) {
                 const lineUserId = event.source?.userId;
                 const replyToken = event.replyToken; // ⭐ ดึง replyToken จาก event
@@ -592,7 +589,7 @@ Deno.serve(async (req) => {
                                             let pictureUrl = null;
 
                                             try {
-                                                const lineToken = await getLineToken(base44, branchId);
+                                                const lineToken = base44.botToken || await getLineToken(base44, branchId);
                                                 if (lineToken) {
                                                     const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${lineUserId}`, {
                                                         headers: { 'Authorization': `Bearer ${lineToken}` }
@@ -1286,7 +1283,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             });
             
             await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                `📸 ได้รับสลิปแล้ว!`,
                 branchId,
                 replyToken
             );
@@ -1294,28 +1291,20 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐⭐⭐ เช็คเลขบัญชีก่อนเช็คยอด (แบบเดียวกับ verifySlip - ไม่เช็คชื่อ)
-        const now2 = Date.now();
-        let configs;
-        if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
-            configs = await base44.asServiceRole.entities.Config.list();
-            configCache = configs;
-            configCacheTime = now2;
-            console.log(`✅ Refreshed config cache (${configs.length} items)`);
-        } else {
-            configs = configCache;
-            console.log(`✅ Using cached config (${configs.length} items)`);
-        }
+        // บังคับดึงข้อมูล Config ใหม่เสมอ ป้องกัน Cache และคัดกรอง config ที่ว่างทิ้ง
+        const rCfg = await base44.asServiceRole.entities.Config.list('', 2000);
+        let configs = Array.isArray(rCfg) ? rCfg : (rCfg?.data || []);
 
         const getConfigValue = (key) => {
-            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
             if (branchConfig) return branchConfig.value;
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
             return globalConfig?.value || null;
         };
 
         const expectedAccountNumber = getConfigValue('bank_account_number');
         const expectedPromptPay = getConfigValue('promptpay');
-        const expectedAccountName = getConfigValue('bank_account_name');
+        const expectedAccountName = getConfigValue('bank_account_name') || getConfigValue('bank_account_name_en');
 
         const rawRA = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account;
         const receiverAccount = typeof rawRA === 'string' ? rawRA : '';
@@ -1331,7 +1320,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const rmRes = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const roomNum = (Array.isArray(rmRes) ? rmRes[0] : rmRes)?.room_number || 'ไม่ทราบ';
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, { payment_slip_url: slipImageUrl, notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNum} - ยังไม่ได้ตั้งค่าบัญชี` });
-            await sendMessage(base44, lineUserId, `📸 ได้รับสลิปแล้ว!\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`, branchId, replyToken);
+            await sendMessage(base44, lineUserId, `📸 ได้รับสลิปแล้ว!`, branchId, replyToken);
             return;
         }
 
@@ -1952,7 +1941,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 
 async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToken = null) {
     // ดึงชื่อหอพักจากการตั้งค่า
-    const configs = await base44.asServiceRole.entities.Config.list();
+    const configs = await base44.asServiceRole.entities.Config.list('', 1000);
     const getConfigValue = (key) => {
         const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
         if (branchConfig?.value) return branchConfig.value;

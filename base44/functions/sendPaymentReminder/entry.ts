@@ -69,24 +69,24 @@ function numberToThaiText(number) {
 
 async function getLineToken(base44, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const rCfg = await base44.asServiceRole.entities.Config.filter({ key: 'line_channel_access_token' }, '', 1000);
+        const configs = Array.isArray(rCfg) ? rCfg : [];
 
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
         if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
+            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId && c.value && c.value.trim() !== '');
+            if (branchToken) {
                 console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
                 return branchToken.value.trim();
             }
 
             // ⭐ ไม่มี token ของสาขานี้
-            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
-            return null;
+            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}... falling back to global`);
         }
 
         // กรณี Global token (เผื่อไว้ แต่ระบบนี้เน้น Branch)
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
+        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id && c.value && c.value.trim() !== '');
+        if (globalToken) {
             console.log('✅ Using global token from Config database');
             return globalToken.value.trim();
         }
@@ -140,28 +140,26 @@ Deno.serve(async (req) => {
         // 🔧 Helper function: ประกาศก่อนใช้งานเพื่อป้องกัน hoisting error
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-                if (branchConfig?.value) return branchConfig.value;
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId && c.value && c.value.trim() !== '');
+                if (branchConfig) return branchConfig.value.trim();
             }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value || defaultValue;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id && c.value && c.value.trim() !== '');
+            return globalConfig ? globalConfig.value.trim() : defaultValue;
         };
 
         if (paymentId) {
             // ถ้าระบุ paymentId
-            const [paymentResults, configResults] = await Promise.all([
-                base44.asServiceRole.entities.Payment.filter({ id: paymentId }),
-                base44.asServiceRole.entities.Config.list()
-            ]);
-
+            const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
             const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
             allPayments = payment ? [payment] : [];
-            configs = configResults;
 
             if (payment) {
-                const [tenantResults, roomResults] = await Promise.all([
+                const targetBranchId = payment.branch_id;
+                const [tenantResults, roomResults, branchConfigs, globalConfigs] = await Promise.all([
                     payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
-                    payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([])
+                    payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+                    targetBranchId ? base44.asServiceRole.entities.Config.filter({ branch_id: targetBranchId }) : Promise.resolve([]),
+                    base44.asServiceRole.entities.Config.filter({ branch_id: null })
                 ]);
 
                 const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
@@ -169,11 +167,13 @@ Deno.serve(async (req) => {
 
                 allTenants = tenant ? [tenant] : [];
                 allRooms = room ? [room] : [];
+                configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
             }
         } else if (branch_id) {
             // ดึงเฉพาะ branch นั้น + Pagination
-            const [configResults, ...data] = await Promise.all([
-                base44.asServiceRole.entities.Config.list(),
+            const [branchConfigs, globalConfigs, tenantsData, roomsData] = await Promise.all([
+                base44.asServiceRole.entities.Config.filter({ branch_id }),
+                base44.asServiceRole.entities.Config.filter({ branch_id: null }),
                 (async () => {
                     const result = [];
                     let offset = 0;
@@ -202,22 +202,22 @@ Deno.serve(async (req) => {
                 })()
             ]);
 
-            configs = configResults;
-            allTenants = data[0] || [];
-            allRooms = data[1] || [];
+            configs = [...(Array.isArray(branchConfigs) ? branchConfigs : []), ...(Array.isArray(globalConfigs) ? globalConfigs : [])];
+            allTenants = tenantsData || [];
+            allRooms = roomsData || [];
 
-            // 🛡️ Safety Check: Validate Bank Config (STRICT - NO FALLBACK)
-            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branch_id);
-            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branch_id);
-            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branch_id);
+            // 🛡️ Safety Check: Validate Bank Config
+            const bankNameConf = getConfigValue('bank_name', branch_id);
+            const accNumConf = getConfigValue('bank_account_number', branch_id);
+            const accNameConf = getConfigValue('bank_account_name', branch_id);
 
-            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
-                console.error(`❌ Missing strict bank config for branch ${branch_id} - ABORT`);
+            if (!bankNameConf || !accNumConf || !accNameConf) {
+                console.error(`❌ Missing bank config for branch ${branch_id} - ABORT`);
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
-                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
@@ -394,27 +394,23 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ⭐ STRICT BANK CONFIG CHECK (NO FALLBACKS)
-            const bankNameConf = configs.find(c => c.key === 'bank_name' && c.branch_id === branchId);
-            const accNumConf = configs.find(c => c.key === 'bank_account_number' && c.branch_id === branchId);
-            const accNameConf = configs.find(c => c.key === 'bank_account_name' && c.branch_id === branchId);
-            const qrCodeConf = configs.find(c => c.key === 'payment_qr_code_url' && c.branch_id === branchId) 
-                            || configs.find(c => c.key === 'payment_qr_code_url' && !c.branch_id);
-            const qrCodeUrl = (qrCodeConf?.value && qrCodeConf.value.trim().startsWith('https')) ? qrCodeConf.value.trim() : null;
+            // ⭐ BANK CONFIG CHECK
+            const bankName = getConfigValue('bank_name', branchId);
+            const bankAccountNumber = getConfigValue('bank_account_number', branchId);
+            const bankAccountName = getConfigValue('bank_account_name', branchId);
+            const qrCodeUrlRaw = getConfigValue('payment_qr_code_url', branchId);
+            const qrCodeUrl = (qrCodeUrlRaw && qrCodeUrlRaw.trim().startsWith('https')) ? qrCodeUrlRaw.trim() : null;
 
-            if (!bankNameConf?.value || !accNumConf?.value || !accNameConf?.value) {
+            if (!bankName || !bankAccountNumber || !bankAccountName) {
+                console.error(`❌ INNER MISSING_BANK_CONFIG for payment ${payment.id}. Branch: ${branchId}. bank: ${bankName}, acc: ${bankAccountNumber}, name: ${bankAccountName}`);
                 return Response.json({
                     success: false,
                     error: 'MISSING_BANK_CONFIG',
-                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารสำหรับสาขานี้',
-                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี\n\n(ระบบไม่อนุญาตให้ใช้ข้อมูลธนาคารของสาขาอื่น)',
+                    message: '⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคาร',
+                    details: 'กรุณาไปที่ Settings → แท็บ "ธนาคาร" เพื่อตั้งค่า:\n• ชื่อธนาคาร\n• เลขที่บัญชี\n• ชื่อบัญชี',
                     action: 'กรุณาตั้งค่าก่อนส่ง reminder'
                 }, { status: 400 });
             }
-
-            const bankAccountNumber = accNumConf.value;
-            const bankAccountName = accNameConf.value;
-            const bankName = bankNameConf.value;
             const buildingName = getConfigValue('building_name', branchId, 'ที่พัก');
 
             // --- ส่วนสร้างข้อความ ---

@@ -283,21 +283,21 @@ export default function RoomsPage() {
 
   const { data: meterReadings = [] } = useQuery({
     queryKey: ['meterReadings', selectedBranchId],
-    queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 5000),
+    queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts', selectedBranchId],
-    queryFn: () => base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryFn: () => base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-created_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: tenantRatings = [] } = useQuery({
     queryKey: ['tenantRatings', selectedBranchId],
-    queryFn: () => base44.entities.TenantRating.filter({ branch_id: selectedBranchId }, '-rating_date', 5000),
+    queryFn: () => base44.entities.TenantRating.filter({ branch_id: selectedBranchId }, '-rating_date', 1000),
     enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
@@ -661,7 +661,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   const getActiveBooking = (roomId) => {
     // ⭐ หาจากทั้ง TemporaryBooking และ Booking
     // 1. ลองหาจาก TemporaryBooking ก่อน
-    const tempRoomBookings = (Array.isArray(temporaryBookings) ? temporaryBookings : []).filter(b => b.room_id === roomId);
+    const tempRoomBookings = temporaryBookings.filter(b => b.room_id === roomId);
     const tempActiveWithTenant = tempRoomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
       const tenant = getTenantInfo(b.tenant_id);
@@ -674,7 +674,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
     
     // 2. ถ้าไม่มี TemporaryBooking ลองหาจาก Booking (เก่า)
-    const oldRoomBookings = (Array.isArray(bookings) ? bookings : []).filter(b => b.room_id === roomId);
+    const oldRoomBookings = bookings.filter(b => b.room_id === roomId);
     const oldActiveWithTenant = oldRoomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
       const tenant = getTenantInfo(b.tenant_id);

@@ -203,7 +203,7 @@ export default function AccountingData() {
       // ดึงข้อมูลแบบ pagination
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 1000;
       let hasMore = true;
 
       while (hasMore) {
@@ -246,7 +246,7 @@ export default function AccountingData() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 1000;
       let hasMore = true;
 
       while (hasMore) {
@@ -287,7 +287,7 @@ export default function AccountingData() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 1000;
       let hasMore = true;
 
       while (hasMore) {
@@ -328,7 +328,7 @@ export default function AccountingData() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 1000;
       let hasMore = true;
 
       while (hasMore) {
@@ -369,7 +369,7 @@ export default function AccountingData() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 1000;
       let hasMore = true;
 
       while (hasMore) {

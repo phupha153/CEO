@@ -1,10 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
-  let user = null;
   try {
     const base44 = createClientFromRequest(req);
-    user = await base44.auth.me();
+    const user = await base44.auth.me();
 
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,7 +54,8 @@ Deno.serve(async (req) => {
     const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     
     if (!CONFIGS_CACHE.data || Date.now() - CONFIGS_CACHE.timestamp > CACHE_TTL) {
-      CONFIGS_CACHE.data = await base44.asServiceRole.entities.Config.list();
+      const configRes = await base44.asServiceRole.entities.Config.list();
+      CONFIGS_CACHE.data = Array.isArray(configRes) ? configRes : (configRes?.data || []);
       CONFIGS_CACHE.timestamp = Date.now();
     }
     const configs = CONFIGS_CACHE.data;
@@ -328,7 +328,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('❌ getFilteredPayments ERROR:', {
-      user: user?.email,
       branch_id: req.url,
       error: error.message,
       stack: error.stack?.split('\n').slice(0, 3).join('\n')

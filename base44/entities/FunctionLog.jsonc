@@ -1,0 +1,79 @@
+{
+  "name": "FunctionLog",
+  "type": "object",
+  "properties": {
+    "function_name": {
+      "type": "string",
+      "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e02\u0e2d\u0e07\u0e1f\u0e31\u0e07\u0e01\u0e4c\u0e0a\u0e31\u0e19\u0e17\u0e35\u0e48\u0e23\u0e31\u0e19"
+    },
+    "run_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e23\u0e31\u0e19"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error"
+      ],
+      "description": "\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e01\u0e32\u0e23\u0e23\u0e31\u0e19"
+    },
+    "message": {
+      "type": "string",
+      "description": "\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e2a\u0e23\u0e38\u0e1b\u0e1c\u0e25"
+    },
+    "details": {
+      "type": "object",
+      "description": "\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c\u0e41\u0e1a\u0e1a\u0e40\u0e15\u0e47m (JSON)"
+    },
+    "triggered_by": {
+      "type": "string",
+      "description": "\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e17\u0e35\u0e48\u0e21\u0e32\u0e02\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e23\u0e31\u0e19 (e.g., cron, manual)"
+    },
+    "execution_time_ms": {
+      "type": "number",
+      "description": "\u0e40\u0e27\u0e25\u0e32\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e43\u0e19\u0e01\u0e32\u0e23\u0e23\u0e31\u0e19 (\u0e21\u0e34\u0e25\u0e25\u0e34\u0e27\u0e34\u0e19\u0e32\u0e17\u0e35)"
+    },
+    "branch_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "branch_id": {
+            "type": "string"
+          },
+          "branch_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e2a\u0e32\u0e02\u0e32"
+    },
+    "total_sent": {
+      "type": "number",
+      "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14"
+    },
+    "total_failed": {
+      "type": "number",
+      "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e17\u0e35\u0e48\u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14"
+    }
+  },
+  "required": [
+    "function_name",
+    "run_timestamp",
+    "status"
+  ]
+}
