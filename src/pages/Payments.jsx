@@ -1433,7 +1433,7 @@ export default function PaymentsPage() {
       return;
     }
 
-    const paymentsSource = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
+    const paymentsSource = pendingOverduePayments;
     
     const paymentsToSend = paymentsSource.filter(p => {
       const status = getEffectiveStatus(p);

@@ -1304,7 +1304,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         const expectedAccountNumber = getConfigValue('bank_account_number');
         const expectedPromptPay = getConfigValue('promptpay');
-        const expectedAccountName = getConfigValue('bank_account_name');
+        const expectedAccountName = getConfigValue('bank_account_name') || getConfigValue('bank_account_name_en');
 
         const rawRA = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account;
         const receiverAccount = typeof rawRA === 'string' ? rawRA : '';

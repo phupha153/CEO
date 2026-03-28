@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
 
             const expectedAccountNumber = getConfigValue('bank_account_number');
             const expectedPromptPay = getConfigValue('promptpay');
-            const expectedAccountName = getConfigValue('bank_account_name');
+            const expectedAccountName = getConfigValue('bank_account_name') || getConfigValue('bank_account_name_en');
 
             // ⭐ ดึงข้อมูลจาก Slip2Go Response
             const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.account || slipData.receiver?.account || '';
