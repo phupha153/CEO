@@ -3963,8 +3963,8 @@ const tenantSchema = {
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="">เลือกห้อง</option>
-                    {rooms
-                      .filter(room => room.status === 'available' || (editingBooking && room.id === editingBooking.room_id))
+                    {(Array.isArray(rooms) ? rooms : [])
+                      .filter(room => room.status === 'available' || (editingBooking && room.id === editingBooking.room_id))
                       .sort((a, b) => {
                         if (a.floor !== b.floor) return a.floor - b.floor;
                         return a.room_number.localeCompare(b.room_number);
@@ -4410,8 +4410,8 @@ const tenantSchema = {
                             className="w-full p-2 border rounded-md"
                           >
                             <option value="">เลือกห้อง</option>
-                            {rooms
-                              .filter(room => room.status === 'available')
+                            {(Array.isArray(rooms) ? rooms : [])
+                              .filter(room => room.status === 'available')
                               .sort((a, b) => {
                                 if (a.floor !== b.floor) return a.floor - b.floor;
                                 return a.room_number.localeCompare(b.room_number);
