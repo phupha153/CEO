@@ -1327,11 +1327,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let matchMethod = '';
 
-        if (expectedAccountNumber && isAccountMatch(receiverAccount, expectedAccountNumber)) { accountMatch = true; matchMethod = 'Bank Account'; }
-        if (!accountMatch && expectedPromptPay) {
-            if (isAccountMatch(receiverPromptPay, expectedPromptPay)) { accountMatch = true; matchMethod = 'PromptPay'; }
-            else if (isAccountMatch(receiverAccount, expectedPromptPay)) { accountMatch = true; matchMethod = 'PromptPay (via receiverAccount)'; }
-        }
+        for(const[rv,ex,nm]of[[receiverAccount,expectedAccountNumber,'Bank'],[receiverAccount,expectedPromptPay,'Acc>PP'],[receiverPromptPay,expectedPromptPay,'PP'],[receiverPromptPay,expectedAccountNumber,'PP>Bank']]){if(!accountMatch&&rv&&ex&&isAccountMatch(rv,ex)){accountMatch=true;matchMethod=nm;}}
         
         if (!accountMatch && expectedAccountName && receiverName) {
             let cleanExpected = expectedAccountName.replace(/[\s\.\-]/g, '').toLowerCase();
