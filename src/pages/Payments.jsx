@@ -201,93 +201,24 @@ export default function PaymentsPage() {
   const canSendReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_receipt');
   const canDeleteTestData = userRole === 'developer';
 
-  const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
-    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
-    queryFn: async () => {
-      if (!selectedBranchId || !roomViewMonth) return [];
-      
-      const [year, month] = roomViewMonth.split('-').map(Number);
-      const monthDate = new Date(year, month - 1, 1);
-      
-      const response = await base44.functions.invoke('getFilteredPayments', {
-        branch_id: selectedBranchId,
-        status_filter: 'all',
-        date_range_type: 'custom',
-        custom_range: {
-          from: startOfMonth(monthDate),
-          to: endOfMonth(monthDate)
-        },
-        search_query: '',
-        page: 1,
-        limit: 1000,
-        sort_by: 'room',
-        exclude_dismissed: true
-      });
-      
-      return response.data?.data || [];
-    },
-    enabled: canView && !!selectedBranchId && viewMode === 'room',
-    retry: 0,
-    staleTime: 30 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
   const retryConfig = {
     retry: 0,
     retryDelay: 0,
   };
 
-  const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
+  // ✅ ดึง Payment ทั้งหมดของสาขาโดยตรง (ไม่ผ่าน getFilteredPayments)
+  const { data: allBranchPayments = [], isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
+    queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
-      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
-      
-      const response = await base44.functions.invoke('getFilteredPayments', {
-        branch_id: selectedBranchId,
-        status_filter: statusFilter,
-        date_range_type: dateRangeType,
-        custom_range: dateRangeType === 'custom' ? customRange : null,
-        search_query: searchQuery,
-        page: 1,
-        limit: displayLimit,
-        sort_by: sortBy,
-        debug: true,
-        exclude_dismissed: true
-      });
-      
-      if (response.data?.logs) {
-        setDebugLogs(response.data.logs);
-      }
-      
-      console.log('🔍 Payments Response:', {
-        data_length: response.data?.data?.length,
-        total: response.data?.total,
-        counts: response.data?.counts,
-        page: response.data?.page,
-        statusFilter,
-        dateRangeType,
-        logs: response.data?.logs
-      });
-      return response.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-due_date', 1000);
     },
-    enabled: canView && !!selectedBranchId && viewMode !== 'room',
-    ...retryConfig,
+    enabled: canView && !!selectedBranchId,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     placeholderData: (previousData) => previousData,
-  });
-
-  const payments = paymentsResponse?.data || [];
-  const totalFilteredCount = paymentsResponse?.total || 0;
-  const statusCounts = paymentsResponse?.counts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
-  
-  console.log('📊 Payments Page State:', {
-    payments_length: payments.length,
-    totalFilteredCount,
-    statusCounts,
-    statusFilter,
-    dateRangeType
   });
 
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
@@ -745,128 +676,109 @@ export default function PaymentsPage() {
 
   const getEffectiveStatus = useCallback((payment) => {
     if (!payment) return 'pending';
-    if (payment.status === 'paid') return 'paid';
-    if (payment.status === 'partial_paid') return 'partial_paid';
-    if (payment.status === 'overdue') return 'overdue';
-
+    if (payment.status === 'paid' || payment.status === 'partial_paid' || payment.status === 'overdue') return payment.status;
     if (payment.status === 'pending' && payment.due_date) {
       try {
-        const dueDate = parseISO(payment.due_date);
-        const today = getCurrentDate();
-
-        if (isNaN(dueDate.getTime()) || isNaN(today.getTime())) {
-          return payment.status;
-        }
-
-        const daysDiff = differenceInDays(today, dueDate);
-        
-        if (daysDiff > 0) {
-          return 'overdue';
-        }
-      } catch (error) {
-        console.error('Error calculating effective status:', error);
-        return payment.status;
-      }
+        const d = parseISO(payment.due_date), t = getCurrentDate();
+        if (!isNaN(d.getTime()) && !isNaN(t.getTime()) && differenceInDays(t, d) > 0) return 'overdue';
+      } catch {}
     }
-
     return payment.status || 'pending';
   }, [currentDateMemo]);
 
-  const filteredPayments = useMemo(() => {
-    if (!payments || payments.length === 0) return [];
-    
-    if (aiResult && aiResult.payments && aiResult.payments.length > 0) {
-      const aiPaymentIds = new Set(aiResult.payments.map(p => p.payment_id));
-      return payments.filter(payment => aiPaymentIds.has(payment.id));
-    }
-    
-    return payments;
-  }, [payments, aiResult]);
-
-  const displayedPayments = filteredPayments;
-
-  useEffect(() => {
-    setDisplayLimit(50);
-  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < filteredPayments.length) {
-          setDisplayLimit(prev => Math.min(prev + 50, filteredPayments.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current && viewMode !== 'room') {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
+  const processedPayments = useMemo(() => {
+    return allBranchPayments.map(p => {
+      let tName = getTenantInfo(p.tenant_id)?.full_name;
+      if (!tName && p.booking_id) {
+        const b = bookings.find(b => b.id === p.booking_id);
+        if (b?.guest_name) tName = b.guest_name + (b.is_temporary_booking ? " (จองออนไลน์)" : "");
       }
+      const t = getTenantInfo(p.tenant_id);
+      return { ...p, room_number: getRoomInfo(p.room_id)?.room_number || 'N/A', tenant_name: tName || 'N/A', tenant_phone: t?.phone, tenant_line_user_id: t?.line_user_id || null, tenant_facebook_user_id: t?.facebook_user_id || null };
+    });
+  }, [allBranchPayments, getRoomInfo, getTenantInfo, bookings]);
+
+  const { processedFilteredPayments, statusCounts } = useMemo(() => {
+    let f = processedPayments;
+    if (aiResult?.payments?.length > 0) {
+      const ids = new Set(aiResult.payments.map(p => p.payment_id));
+      f = f.filter(p => ids.has(p.id));
+    } else if (dateRange && dateRangeType !== 'all') {
+      f = f.filter(p => {
+        try { return p.due_date && isWithinInterval(parseISO(p.due_date), { start: dateRange.from, end: dateRange.to }); } catch { return false; }
+      });
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      f = f.filter(p => p.room_number?.toLowerCase().includes(q) || p.tenant_name?.toLowerCase().includes(q) || p.tenant_phone?.toLowerCase().includes(q) || p.notes?.toLowerCase().includes(q));
+    }
+    const t = getCurrentDate(); t.setHours(0, 0, 0, 0);
+    const counts = {
+      all: f.length,
+      paid: f.filter(p => p.status === 'paid').length,
+      pending: f.filter(p => { if (p.status === 'paid') return false; if (!p.due_date) return true; try { const d = parseISO(p.due_date); d.setHours(0,0,0,0); return t <= d; } catch { return true; } }).length,
+      overdue: f.filter(p => { if (p.status === 'paid') return false; if (!p.due_date) return false; try { const d = parseISO(p.due_date); d.setHours(0,0,0,0); return t > d; } catch { return false; } }).length,
+      partial_paid: f.filter(p => p.status === 'partial_paid').length,
     };
+    if (statusFilter !== 'all') {
+      f = f.filter(p => {
+        let eff = p.status;
+        if (p.status === 'pending' && p.due_date) {
+          try { const d = parseISO(p.due_date); d.setHours(0,0,0,0); if (t > d) eff = 'overdue'; } catch { }
+        }
+        return eff === statusFilter;
+      });
+    }
+    f.sort((a, b) => {
+      switch (sortBy) {
+        case 'room': return (a.room_number || '').localeCompare(b.room_number || '', 'th', { numeric: true });
+        case 'created_date': return new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime();
+        case 'amount': return (b.total_amount || 0) - (a.total_amount || 0);
+        case 'due_date': default: return new Date(b.due_date || 0).getTime() - new Date(a.due_date || 0).getTime();
+      }
+    });
+    return { processedFilteredPayments: f, statusCounts: counts };
+  }, [processedPayments, aiResult, dateRange, dateRangeType, searchQuery, statusFilter, sortBy, getCurrentDate]);
+
+  const roomViewPayments = useMemo(() => {
+    if (viewMode !== 'room' || !roomViewMonth) return [];
+    const [y, m] = roomViewMonth.split('-').map(Number);
+    const start = startOfMonth(new Date(y, m - 1, 1)), end = endOfMonth(new Date(y, m - 1, 1));
+    return processedPayments.filter(p => {
+      try { return p.due_date && isWithinInterval(parseISO(p.due_date), { start, end }); } catch { return false; }
+    }).sort((a, b) => (a.room_number || '').localeCompare(b.room_number || '', 'th', { numeric: true }));
+  }, [processedPayments, viewMode, roomViewMonth]);
+
+  const payments = processedPayments;
+  const filteredPayments = processedFilteredPayments;
+  const displayedPayments = processedFilteredPayments.slice(0, displayLimit);
+  const roomViewFetching = paymentsFetching;
+
+  useEffect(() => { setDisplayLimit(50); }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
+  useEffect(() => {
+    const obs = new IntersectionObserver(e => { if (e[0].isIntersecting) setDisplayLimit(p => Math.min(p + 50, filteredPayments.length)); }, { threshold: 0.1 });
+    if (loadMoreRef.current && viewMode !== 'room') obs.observe(loadMoreRef.current);
+    return () => { if (loadMoreRef.current) obs.unobserve(loadMoreRef.current); };
   }, [displayLimit, filteredPayments.length, viewMode]);
 
   const totalAmounts = useMemo(() => {
-    const calculateSum = (paymentsToSum) => {
-      return paymentsToSum.reduce((sum, p) => {
-        const baseAmount = parseFloat(p.total_amount) || 0;
-        const lateFee = (p.late_fee_amount && p.late_fee_amount > 0) ? 0 : calculateLateFee(p);
-        if (isNaN(baseAmount) || isNaN(lateFee)) {
-          console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
-          return sum;
-        }
-        return sum + baseAmount + lateFee;
-      }, 0);
-    };
-  
-    const paymentsForSummary = viewMode === 'room' ? roomViewPayments : filteredPayments;
-    
-    return {
-      all: calculateSum(paymentsForSummary),
-      paid: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'paid')),
-      pending: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'pending')),
-      overdue: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'overdue')),
-    };
+    const cSum = (arr) => arr.reduce((s, p) => s + (parseFloat(p.total_amount)||0) + ((p.late_fee_amount>0)?0:calculateLateFee(p)), 0);
+    const arr = viewMode === 'room' ? roomViewPayments : filteredPayments;
+    return { all: cSum(arr), paid: cSum(arr.filter(p => getEffectiveStatus(p) === 'paid')), pending: cSum(arr.filter(p => getEffectiveStatus(p) === 'pending')), overdue: cSum(arr.filter(p => getEffectiveStatus(p) === 'overdue')) };
   }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
 
   const displayCounts = useMemo(() => {
-    if (viewMode === 'room') {
-      return {
-        all: roomViewPayments.length,
-        paid: roomViewPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
-        pending: roomViewPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
-        overdue: roomViewPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
-      };
-    } else {
-      return {
-        all: filteredPayments.length,
-        paid: filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
-        pending: filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
-        overdue: filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
-      };
-    }
+    const arr = viewMode === 'room' ? roomViewPayments : filteredPayments;
+    return { all: arr.length, paid: arr.filter(p => getEffectiveStatus(p) === 'paid').length, pending: arr.filter(p => getEffectiveStatus(p) === 'pending').length, overdue: arr.filter(p => getEffectiveStatus(p) === 'overdue').length };
   }, [viewMode, roomViewPayments, filteredPayments, getEffectiveStatus]);
 
-  const pendingOverduePayments = useMemo(() => 
-    filteredPayments.filter(p => {
-      const status = getEffectiveStatus(p);
-      return status === 'pending' || status === 'overdue';
-    }),
-    [filteredPayments, getEffectiveStatus]
-  );
+  const pendingOverduePayments = useMemo(() => filteredPayments.filter(p => getEffectiveStatus(p) === 'pending' || getEffectiveStatus(p) === 'overdue'), [filteredPayments, getEffectiveStatus]);
 
   const tenantsWithLine = useMemo(() => {
-    const paymentsSource = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
-    
-    return paymentsSource.filter(p => {
-      const status = getEffectiveStatus(p);
-      if (status !== 'pending' && status !== 'overdue') return false;
-      if (p.bill_sent_date) return false;
-      return p.tenant_line_user_id || p.tenant_facebook_user_id;
+    const src = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
+    return src.filter(p => {
+      const s = getEffectiveStatus(p);
+      return (s === 'pending' || s === 'overdue') && !p.bill_sent_date && (p.tenant_line_user_id || p.tenant_facebook_user_id);
     }).length;
   }, [viewMode, roomViewPayments, pendingOverduePayments, getEffectiveStatus]);
 
