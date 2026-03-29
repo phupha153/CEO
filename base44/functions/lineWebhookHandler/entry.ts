@@ -1363,8 +1363,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const exp = ['rent_amount','water_amount','electricity_amount','internet_amount','common_fee_amount','parking_fee_amount','other_amount'].reduce((s, k) => s + Math.round((parseFloat(p[k]) || 0) * 100), 0) / 100 + late.lateFeeAmount; 
             return { ...p, expectedAmount: exp, remainingToPay: Math.round((exp - (parseFloat(p.paid_amount) || 0)) * 100) / 100, currentPaid: parseFloat(p.paid_amount || 0), lateFeeAmount: late.lateFeeAmount, daysLate: late.daysLate }; 
         });
-        const exactMatches = pList.filter(p => Math.abs(p.remainingToPay - slipAmount) < 1); const exact = exactMatches.length > 0 ? exactMatches.sort((a,b) => new Date(b.due_date) - new Date(a.due_date))[0] : null;
-        const comboPool = pList.filter(p => p.status !== 'partial_paid'); const search = (i, sub, sum) => { if (sum > 0 && Math.abs(sum - slipAmount) < 1) return sub; if (sum > slipAmount + 1 || i >= Math.min(comboPool.length, 15)) return null; const sP = [...comboPool].sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)); return search(i + 1, [...sub, sP[i]], sum + sP[i].remainingToPay) || search(i + 1, sub, sum); };
+        const exact = pList.find(p => Math.abs(p.remainingToPay - slipAmount) < 1);
+        const search = (i, sub, sum) => { if (sum > 0 && Math.abs(sum - slipAmount) < 1) return sub; if (sum > slipAmount + 1 || i >= Math.min(pList.length, 15)) return null; const sP = [...pList].sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)); return search(i + 1, [...sub, sP[i]], sum + sP[i].remainingToPay) || search(i + 1, sub, sum); };
         const processList = exact ? [exact] : (search(0, [], 0) || pList);
         let remainingSlipAmount = slipAmount, processedIds = [], partialInfo = null;
         let isExactCombo = processList.length > 0 && Math.abs(processList.reduce((sum, p) => sum + p.remainingToPay, 0) - slipAmount) < 1;
