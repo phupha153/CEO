@@ -407,21 +407,11 @@ Deno.serve(async (req) => {
                         // ลองเกิน 3 ครั้งแล้ว - ให้ตรวจสอบด้วยตนเอง
                         console.log(`   ❌ Max retries reached (${retryCount}), marking for manual review`);
 
-                        // ⭐ FIX: ลบ keyword "รอตรวจสอบ" และ "ลองครั้งที่" ออกทั้งหมด
-                        // เพื่อให้ cron รอบถัดไปไม่ดึง payment นี้มา recheck ซ้ำอีก
-                        let finalNotes = (payment.notes || '')
-                            .split('\n\n')
-                            .filter(line => 
-                                !line.includes('⏳ รอตรวจสอบ') && 
-                                !line.includes('⏳ ลองครั้งที่') &&
-                                !line.includes('⚠️ ตรวจสอบไม่สำเร็จหลังลอง')
-                            )
-                            .join('\n\n')
-                            .trim();
-
                         await entityService.Payment.update(payment.id, {
-                            notes: `${finalNotes}\n\n⚠️ ตรวจสอบอัตโนมัติไม่สำเร็จ (ลอง ${retryCount + 1} ครั้ง) - กรุณาตรวจสอบด้วยตนเอง`
+                            notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่สำเร็จหลังลอง ${retryCount + 1} ครั้ง - กรุณาตรวจสอบด้วยตนเอง`
                         });
+
+                        // ไม่ส่ง LINE แจ้งลูกค้า - รอ admin ตรวจสอบเอง
 
                         failCount++;
                     } else {
