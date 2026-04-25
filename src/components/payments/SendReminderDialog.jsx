@@ -32,12 +32,18 @@ export default function SendReminderDialog({
 
   // ⭐ เมื่อ effectiveStatus เปลี่ยน ให้อัปเดต selectedTemplate
   useEffect(() => {
+    if (!payment) return;
     if (effectiveStatus === 'overdue') {
       setSelectedTemplate('overdue');
     } else {
       setSelectedTemplate('advance');
     }
-  }, [effectiveStatus, open]);
+  }, [effectiveStatus, open, payment]);
+
+  useEffect(() => {
+    if (!payment || !open || !selectedTemplate) return;
+    setCustomMessage(getDefaultMessage());
+  }, [selectedTemplate, open]);
 
   if (!payment) return null;
 
@@ -111,11 +117,7 @@ export default function SendReminderDialog({
     }
   };
 
-  useEffect(() => {
-    if (open && selectedTemplate) {
-      setCustomMessage(getDefaultMessage());
-    }
-  }, [selectedTemplate, open]);
+  // moved above early return
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

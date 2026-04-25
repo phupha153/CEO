@@ -2340,7 +2340,7 @@ Return JSON.`;
                                       e.stopPropagation();
                                       e.preventDefault();
                                       console.log('🔘 Review Banner: Details clicked', { paymentId: p.id });
-                                      setSelectedPayment(p);
+                                      setSelectedPayment(payment);
                                       setShowDetailDialog(true);
                                     }}
                                   >

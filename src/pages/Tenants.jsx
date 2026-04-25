@@ -1149,8 +1149,8 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     onSuccess: (newContract) => {
       queryClient.invalidateQueries(['contracts', selectedBranchId]);
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      setRenewDialogOpen(false);
-      setSelectedContract(null);
+      setShowRenewDialog(false);
+      setSelectedContract && setSelectedContract(null);
       toast.success('ต่อสัญญาสำเร็จ');
       navigate(`${createPageUrl('ContractEditor')}?contractId=${newContract.id}`);
     },

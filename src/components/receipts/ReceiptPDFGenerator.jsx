@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ReactDOM from 'react-dom/client';
 import { format, parseISO } from 'date-fns';
 import { th } from 'date-fns/locale';
 import jsPDF from 'npm:jspdf@2.5.1';

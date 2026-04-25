@@ -2265,7 +2265,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       setSearchQuery('');
                       setSelectedRoomType('all');
                       setSelectedStatuses([]);
-                      setCurrentPage(1);
+                      setDisplayLimit(50);
                     }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50/50 text-[10px] md:text-xs rounded-lg h-5 px-2"
                   >

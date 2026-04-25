@@ -2580,7 +2580,7 @@ export default function TestingAdmin() {
                   <li>แนะนำเริ่มจาก 5-10 ห้องต่อสาขาก่อน แล้วค่อยเพิ่ม</li>
                   <li>ข้อมูลทั้งหมดจะมี <code className="bg-amber-100 px-1 rounded">[TEST-]</code> ในชื่อ/หมายเหตุ</li>
                   <li>สามารถลบได้ง่ายด้วยปุ่ม "ลบข้อมูลทดสอบ" ด้านล่าง</li>
-                  <li>สำหรับข้อมูลจำนวนมาก (>50 ห้อง) ให้ใช้ MASSIVE LOAD TEST แทน</li>
+                  <li>สำหรับข้อมูลจำนวนมาก ({">"}50 ห้อง) ให้ใช้ MASSIVE LOAD TEST แทน</li>
                 </ul>
               </div>
             </CardContent>
