@@ -2340,7 +2340,7 @@ Return JSON.`;
                                       e.stopPropagation();
                                       e.preventDefault();
                                       console.log('🔘 Review Banner: Details clicked', { paymentId: p.id });
-                                      setSelectedPayment(payment);
+                                      setSelectedPayment(p);
                                       setShowDetailDialog(true);
                                     }}
                                   >
@@ -2890,7 +2890,7 @@ Return JSON.`;
                                           e.stopPropagation();
                                           e.preventDefault();
                                           console.log('🔘 Card View: Details clicked');
-                                          setSelectedPayment(p);
+                                              setSelectedPayment(payment);
                                           setShowDetailDialog(true);
                                         }}
                                       >

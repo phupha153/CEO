@@ -37,7 +37,86 @@ export default function PackageSelectionPage() {
   const hasPackageAccess = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('settings_access_package_page');
 
   // ⭐ ถ้าไม่มีสิทธิ์ = แสดงหน้าไม่มีสิทธิ์
-  if (currentUser && !hasPackageAccess) {
+  const shouldShowNoAccess = currentUser && !hasPackageAccess;
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list()
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list()
+  });
+
+  // ⭐ ไม่ใช้ BranchPackage แล้ว - ดูจาก currentUser.plan_status แทน
+  const expiredPackageType = useMemo(() => {
+    if (!currentUser) return null;
+    if (currentUser.plan_status === 'trial' || !currentUser.package_id) {
+      return 'trial';
+    }
+    return 'paid';
+  }, [currentUser]);
+
+  const { data: crmPackages, isLoading: loadingPackages } = useQuery({
+    queryKey: ['crmPackages'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPackagesFromCRM', {});
+      return response.data;
+    }
+  });
+
+  const getConfigValue = (key, defaultValue = '') => {
+    const config = configs.find((c) => c.key === key && !c.branch_id);
+    return config?.value || defaultValue;
+  };
+
+  const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
+  const accountNumber = getConfigValue('bank_account_number', 'xxx-x-xxxxx-x');
+  const accountName = getConfigValue('bank_account_name', 'บริษัท...');
+  const promptpay = getConfigValue('promptpay', '0812345678');
+  const appMode = getConfigValue('app_mode', 'single_tenant');
+
+  const userAccessibleBranches = currentUser?.accessible_branches || [];
+  const purchasableBranches = useMemo(() => {
+    const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+    if (canViewAllBranches) return branches;
+    return branches.filter((b) => userAccessibleBranches.includes(b.id));
+  }, [branches, userRole, userAccessibleBranches]);
+
+  const packages = (crmPackages?.packages || [])
+    .filter((p) => p.app_system === 'dormitory')
+    .sort((a, b) => {
+      const priceA = a.pricing?.monthly || a.price_monthly || 0;
+      const priceB = b.pricing?.monthly || b.price_monthly || 0;
+      return priceA - priceB;
+    });
+
+  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+
+  const calculatePrice = useMemo(() => {
+    if (!selectedPackage || !billingCycle) return { subtotal: 0, vat: 0, total: 0, branchCount: 0, discount: 0, monthlyPrice: 0, baseMonthlyPrice: 0, discountPercent: 0, savings: 0, discountAmount: 0, finalTotal: 0 };
+    const months = parseInt(billingCycle);
+    const pricing = selectedPackage.pricing || {};
+    const hasNewStructure = pricing.monthly !== undefined;
+    let baseMonthlyPrice = hasNewStructure ? pricing.monthly || 0 : selectedPackage.price_monthly || 0;
+    let totalPrice = 0;
+    let monthlyPrice = baseMonthlyPrice;
+    let savings = 0;
+    if (months === 1) { totalPrice = baseMonthlyPrice; monthlyPrice = baseMonthlyPrice; }
+    else if (months === 3) { totalPrice = hasNewStructure ? pricing.three_months || baseMonthlyPrice * 3 : selectedPackage.price_3_months || baseMonthlyPrice * 3; monthlyPrice = hasNewStructure ? pricing.three_months_per_month || baseMonthlyPrice : totalPrice / 3; savings = baseMonthlyPrice * 3 - totalPrice; }
+    else if (months === 6) { totalPrice = hasNewStructure ? pricing.six_months || baseMonthlyPrice * 6 : selectedPackage.price_6_months || baseMonthlyPrice * 6; monthlyPrice = hasNewStructure ? pricing.six_months_per_month || baseMonthlyPrice : totalPrice / 6; savings = baseMonthlyPrice * 6 - totalPrice; }
+    else if (months === 12) { totalPrice = hasNewStructure ? pricing.yearly || baseMonthlyPrice * 12 : selectedPackage.price_yearly || baseMonthlyPrice * 12; monthlyPrice = hasNewStructure ? pricing.yearly_per_month || baseMonthlyPrice : totalPrice / 12; savings = baseMonthlyPrice * 12 - totalPrice; }
+    else if (months === 24) { totalPrice = selectedPackage.price_2_years || baseMonthlyPrice * 24; monthlyPrice = totalPrice / 24; savings = baseMonthlyPrice * 24 - totalPrice; }
+    else if (months === 36) { totalPrice = selectedPackage.price_3_years || baseMonthlyPrice * 36; monthlyPrice = totalPrice / 36; savings = baseMonthlyPrice * 36 - totalPrice; }
+    const subtotal = totalPrice;
+    const discountPercent = savings > 0 && baseMonthlyPrice > 0 ? Math.round(savings / (baseMonthlyPrice * months) * 100) : 0;
+    const discountAmount = appliedDiscount?.discount_amount || 0;
+    const finalTotal = Math.max(0, subtotal - discountAmount);
+    return { subtotal, vat: 0, total: subtotal, branchCount: selectedPackage.max_branches || 0, userCount: selectedPackage.max_users || 0, discount: discountPercent, discountPercent, savings, monthlyPrice, baseMonthlyPrice, discountAmount, finalTotal };
+  }, [selectedPackage, billingCycle, appliedDiscount]);
+
+  if (shouldShowNoAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center p-4">
         <motion.div
@@ -71,152 +150,6 @@ export default function PackageSelectionPage() {
       </div>);
 
   }
-
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list()
-  });
-
-  const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list()
-  });
-
-  // ⭐ ไม่ใช้ BranchPackage แล้ว - ดูจาก currentUser.plan_status แทน
-  const expiredPackageType = useMemo(() => {
-    if (!currentUser) return null;
-
-    // เช็คว่า package เก่าเป็น trial หรือ paid
-    if (currentUser.plan_status === 'trial' || !currentUser.package_id) {
-      return 'trial';
-    }
-    return 'paid';
-  }, [currentUser]);
-
-  const handleGoBack = () => {
-    // ⭐ กลับไปหน้าก่อนหน้า (ใช้ browser history)
-    window.history.back();
-  };
-
-  const { data: crmPackages, isLoading: loadingPackages } = useQuery({
-    queryKey: ['crmPackages'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getPackagesFromCRM', {});
-      return response.data;
-    }
-  });
-
-  const getConfigValue = (key, defaultValue = '') => {
-    const config = configs.find((c) => c.key === key && !c.branch_id);
-    return config?.value || defaultValue;
-  };
-
-  const bankName = getConfigValue('bank_name', 'ธนาคารกสิกรไทย');
-  const accountNumber = getConfigValue('bank_account_number', 'xxx-x-xxxxx-x');
-  const accountName = getConfigValue('bank_account_name', 'บริษัท...');
-  const promptpay = getConfigValue('promptpay', '0812345678');
-
-  const appMode = getConfigValue('app_mode', 'single_tenant');
-
-  const userAccessibleBranches = currentUser?.accessible_branches || [];
-  const purchasableBranches = useMemo(() => {
-    const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-    if (canViewAllBranches) return branches;
-    return branches.filter((b) => userAccessibleBranches.includes(b.id));
-  }, [branches, userRole, userAccessibleBranches]);
-
-  const packages = (crmPackages?.packages || []).
-  filter((p) => p.app_system === 'dormitory').
-  sort((a, b) => {
-    const priceA = a.pricing?.monthly || a.price_monthly || 0;
-    const priceB = b.pricing?.monthly || b.price_monthly || 0;
-    return priceA - priceB;
-  });
-
-  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-
-  const calculatePrice = useMemo(() => {
-    if (!selectedPackage || !billingCycle) return { subtotal: 0, vat: 0, total: 0, branchCount: 0, discount: 0, monthlyPrice: 0, baseMonthlyPrice: 0, discountPercent: 0, savings: 0, discountAmount: 0, finalTotal: 0 };
-
-    const months = parseInt(billingCycle);
-
-    // รองรับทั้ง 2 โครงสร้าง: pricing object และ price_* fields
-    const pricing = selectedPackage.pricing || {};
-    const hasNewStructure = pricing.monthly !== undefined;
-
-    // ดึงราคาตามโครงสร้างที่มี (ราคาจาก CRM รวม VAT แล้ว)
-    let baseMonthlyPrice = hasNewStructure ? pricing.monthly || 0 : selectedPackage.price_monthly || 0;
-    let totalPrice = 0;
-    let monthlyPrice = baseMonthlyPrice;
-    let savings = 0;
-
-    if (months === 1) {
-      totalPrice = baseMonthlyPrice;
-      monthlyPrice = baseMonthlyPrice;
-    } else if (months === 3) {
-      if (hasNewStructure) {
-        totalPrice = pricing.three_months || baseMonthlyPrice * 3;
-        monthlyPrice = pricing.three_months_per_month || baseMonthlyPrice;
-        savings = pricing.three_months_savings || 0;
-      } else {
-        totalPrice = selectedPackage.price_3_months || baseMonthlyPrice * 3;
-        monthlyPrice = totalPrice / 3;
-        savings = baseMonthlyPrice * 3 - totalPrice;
-      }
-    } else if (months === 6) {
-      if (hasNewStructure) {
-        totalPrice = pricing.six_months || baseMonthlyPrice * 6;
-        monthlyPrice = pricing.six_months_per_month || baseMonthlyPrice;
-        savings = pricing.six_months_savings || 0;
-      } else {
-        totalPrice = selectedPackage.price_6_months || baseMonthlyPrice * 6;
-        monthlyPrice = totalPrice / 6;
-        savings = baseMonthlyPrice * 6 - totalPrice;
-      }
-    } else if (months === 12) {
-      if (hasNewStructure) {
-        totalPrice = pricing.yearly || baseMonthlyPrice * 12;
-        monthlyPrice = pricing.yearly_per_month || baseMonthlyPrice;
-        savings = pricing.yearly_savings || 0;
-      } else {
-        totalPrice = selectedPackage.price_yearly || baseMonthlyPrice * 12;
-        monthlyPrice = totalPrice / 12;
-        savings = baseMonthlyPrice * 12 - totalPrice;
-      }
-    } else if (months === 24) {
-      const price2y = selectedPackage.price_2_years || (hasNewStructure ? pricing.two_years : null) || baseMonthlyPrice * 24;
-      totalPrice = price2y;
-      monthlyPrice = totalPrice / 24;
-      savings = baseMonthlyPrice * 24 - totalPrice;
-    } else if (months === 36) {
-      const price3y = selectedPackage.price_3_years || (hasNewStructure ? pricing.three_years : null) || baseMonthlyPrice * 36;
-      totalPrice = price3y;
-      monthlyPrice = totalPrice / 36;
-      savings = baseMonthlyPrice * 36 - totalPrice;
-    }
-
-    const subtotal = totalPrice;
-    const discountPercent = savings > 0 && baseMonthlyPrice > 0 ? Math.round(savings / (baseMonthlyPrice * months) * 100) : 0;
-
-    // คำนวณส่วนลดจากโค้ด
-    const discountAmount = appliedDiscount?.discount_amount || 0;
-    const finalTotal = Math.max(0, subtotal - discountAmount);
-
-    return {
-      subtotal,
-      vat: 0,
-      total: subtotal,
-      branchCount: selectedPackage.max_branches || 0,
-      userCount: selectedPackage.max_users || 0,
-      discount: discountPercent,
-      discountPercent,
-      savings,
-      monthlyPrice,
-      baseMonthlyPrice,
-      discountAmount,
-      finalTotal
-    };
-  }, [selectedPackage, billingCycle, appliedDiscount]);
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) {
