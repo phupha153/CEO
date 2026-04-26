@@ -684,11 +684,13 @@ export default function PrintReceipts() {
                     ) : receiptData.recipient?.lessor_name ? (
                       <>
                         <p className="font-medium text-slate-800">{receiptData.recipient.lessor_name}</p>
+                        {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
                         <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
                         {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
                       </>
                     ) : receiptData.recipient?.building_address ? (
                       <>
+                        {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
                         <p>{receiptData.recipient.building_address}</p>
                         {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
                       </>
