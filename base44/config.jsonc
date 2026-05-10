@@ -1,0 +1,9 @@
+{
+  "name": "\u0e2b\u0e25\u0e31\u0e07\u0e2b\u0e2d\u0e1e\u0e31\u0e01",
+  "site": {
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "serveCommand": "npm run dev",
+    "outputDirectory": "./dist"
+  }
+}
