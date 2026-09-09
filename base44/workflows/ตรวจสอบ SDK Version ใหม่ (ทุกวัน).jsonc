@@ -1,0 +1,44 @@
+{
+  "name": "\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a SDK Version \u0e43\u0e2b\u0e21\u0e48 (\u0e17\u0e38\u0e01\u0e27\u0e31\u0e19)",
+  "description": "\u0e40\u0e0a\u0e47\u0e04\u0e40\u0e27\u0e2d\u0e23\u0e4c\u0e0a\u0e31\u0e19 SDK \u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14\u0e08\u0e32\u0e01 npm \u0e41\u0e25\u0e30\u0e2a\u0e48\u0e07 LINE \u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e21\u0e35\u0e40\u0e27\u0e2d\u0e23\u0e4c\u0e0a\u0e31\u0e19\u0e43\u0e2b\u0e21\u0e48",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 2 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sdk_version",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkSDKVersion",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "checkSDKVersion"
+  }
+}

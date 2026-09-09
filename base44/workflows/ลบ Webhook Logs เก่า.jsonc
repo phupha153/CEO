@@ -1,0 +1,44 @@
+{
+  "name": "\u0e25\u0e1a Webhook Logs \u0e40\u0e01\u0e48\u0e32",
+  "description": "\u0e25\u0e1a webhook logs \u0e17\u0e35\u0e48\u0e40\u0e01\u0e48\u0e32\u0e01\u0e27\u0e48\u0e32 30 \u0e27\u0e31\u0e19 (\u0e23\u0e31\u0e19\u0e17\u0e38\u0e01\u0e27\u0e31\u0e19\u0e40\u0e27\u0e25\u0e32 03:00)",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 20 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "webhook_logs",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "cleanupOldWebhookLogs",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "cleanupOldWebhookLogs"
+  }
+}
