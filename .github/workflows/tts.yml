@@ -1,7 +1,7 @@
 name: tts
 on:
   push:
-    paths: ["jobs/**"]
+    paths: ["jobs/**", "scripts/**", ".github/workflows/**"]
   workflow_dispatch:
 permissions:
   contents: write
@@ -13,8 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: Render voice
+      - run: pip install edge-tts
+      - name: Edge TTS (no key)
+        run: python scripts/edge.py
+      - name: Gemini TTS (only if GEMINI_API_KEY secret exists)
         env: { GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}" }
+        if: env.GEMINI_API_KEY != ''
         run: python scripts/tts.py
       - name: Commit audio
         run: |
