@@ -1,0 +1,10 @@
+wrote out/myelin_ep01/gtts/00.mp3
+wrote out/myelin_ep01/gtts/01.mp3
+wrote out/myelin_ep01/gtts/02.mp3
+wrote out/myelin_ep01/gtts/03.mp3
+wrote out/myelin_ep01/gtts/04.mp3
+wrote out/myelin_ep01/gtts/05.mp3
+wrote out/myelin_ep01/gtts/06.mp3
+wrote out/myelin_ep01/gtts/07.mp3
+wrote out/myelin_ep01/gtts/08.mp3
+wrote out/myelin_ep01/gtts/09.mp3
