@@ -13,14 +13,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install edge-tts
+      - run: pip install -U edge-tts 2>&1 | tail -2
       - name: Edge TTS (no key)
-        run: python scripts/edge.py
+        run: |
+          mkdir -p out
+          python scripts/edge.py > out/edge_log.txt 2>&1 || echo "EXIT $?" >> out/edge_log.txt
+          tail -30 out/edge_log.txt
       - name: Gemini TTS (only if GEMINI_API_KEY secret exists)
         env: { GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}" }
         if: env.GEMINI_API_KEY != ''
-        run: python scripts/tts.py
+        run: python scripts/tts.py > out/gemini_log.txt 2>&1 || true
       - name: Commit audio
+        if: always()
         run: |
           git config user.name "media-bridge-bot"
           git config user.email "media-bridge-bot@users.noreply.github.com"
