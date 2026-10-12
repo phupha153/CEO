@@ -1,0 +1,22 @@
+retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=6b9adc5da6904bac8b94415c90d988a9&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=befa771325a948f69a722e802d44819e&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=5248cc50289a4c4294ad27b1f43bf7ed&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=284ec1d151ab438e84fa6e61bc8b945b&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
+Traceback (most recent call last):
+  File "/home/runner/work/CEO/CEO/scripts/edge.py", line 26, in <module>
+    asyncio.run(main())
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/runner/work/CEO/CEO/scripts/edge.py", line 24, in main
+    await one(line, voice, job.get("rate", "+0%"), job.get("pitch", "+0Hz"), fn)
+  File "/home/runner/work/CEO/CEO/scripts/edge.py", line 13, in one
+    raise RuntimeError(fn)
+RuntimeError: out/myelin_ep01/th-TH-NiwatNeural/00.mp3
+EXIT 1
