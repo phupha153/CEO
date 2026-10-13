@@ -162,14 +162,14 @@ if __name__ == "__main__":
     C["hand_L"].location = ball_c + Vector((0.135, 0.015, -0.075))
     C["hand_R"].location = ball_c + Vector((-0.135, 0.015, -0.075))
     if STAND:
-        C["foot_L"].location = (0.13, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.13, -0.02, rb["foot_R"].head_local.z)
+        C["foot_L"].location = (0.16, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.16, -0.02, rb["foot_R"].head_local.z)
         hz = rb["thigh_L"].head_local.z - 0.05
         for s_, sg_ in (("L", 1), ("R", -1)):
             sh = rb[f"upperarm_{s_}"].head_local; Lr = rb[f"upperarm_{s_}"].length + rb[f"lowerarm_{s_}"].length
-            C[f"hand_{s_}"].location = sh + Vector((0.085 * sg_, -0.06, -Lr * 0.94))
+            C[f"hand_{s_}"].location = sh + Vector((0.12 * sg_, -0.06, -Lr * 0.95))
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
-            C[f"elbow_{s}"].location = Vector((0.3 * sg, 0.5, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
+            C[f"elbow_{s}"].location = Vector((rb[f"upperarm_{s}"].head_local.x + 0.10 * sg, 0.7, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
         C[f"elbow_{s}"].location = Vector((0.60 * sg, 0.15, rb["spine01"].head_local.z + 0.05))
         C[f"knee_{s}"].location = Vector((0.40 * sg, -0.8, rb["calf_L"].head_local.z))
     pl = arm.pose.bones["pelvis"]; pl.rotation_mode = "QUATERNION"

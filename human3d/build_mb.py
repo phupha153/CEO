@@ -23,9 +23,9 @@ verts = json.load(open(f"{MB}/vertices/{CH}_verts.json"))
 for v, co in zip(body.data.vertices, verts): v.co = co
 # --- athletic physique via MB-Lab body morphs (mass/tone corners + size sliders) ---
 MASS, TONE = float(os.environ.get("MB_MASS", 0.75)), float(os.environ.get("MB_TONE", 1.0))
-SLIDERS = {"Torso_Vshape": 0.9, "Shoulders_SizeX": 1.0, "Shoulders_Size": 1.0, "Chest_Girth": 0.82, "Chest_SizeY": 0.65, "Chest_SizeX": 0.75, "Arms_UpperarmSize": 0.75, "Legs_KneeSize": 0.25, "Legs_KneeProminence": 0.3, "Torso_Length": 0.25,
-           "Neck_TrapeziousSize": 0.3, "Shoulders_PosZ": 0.25, "Neck_Length": 0.5, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.7, "Arms_ForearmSize": 0.45,
-           "Waist_Size": 0.2, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.5, "Legs_LowerThighGirth": 0.5, "Head_Size": 0.6,
+SLIDERS = {"Torso_Vshape": 0.9, "Shoulders_SizeX": 1.0, "Shoulders_Size": 0.6, "Chest_Girth": 0.82, "Chest_SizeY": 0.65, "Chest_SizeX": 0.75, "Arms_UpperarmSize": 0.75, "Legs_KneeSize": 0.25, "Legs_KneeProminence": 0.3, "Torso_Length": 0.25,
+           "Neck_TrapeziousSize": 0.3, "Shoulders_PosZ": 0.0, "Neck_Length": 0.85, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.7, "Arms_ForearmSize": 0.45,
+           "Waist_Size": 0.2, "Legs_CalfGirth": 0.8, "Legs_UpperThighGirth": 0.62, "Legs_LowerThighGirth": 0.62, "Head_Size": 0.7,
            "Legs_UpperlegLength": 0.8, "Legs_LowerlegLength": 0.78, "Arms_UpperarmLength": 0.82, "Arms_ForearmLength": 0.78,
            "Torso_Dorsi": 0.75, "Pelvis_GluteusSize": 0.55}
 MORPHS = json.load(open(f"{MB}/morphs/human_male_morphs.json"))
@@ -39,7 +39,7 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.6, "Neck": 0.55, "Arms": 0.62, "Hands": 0.45}
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.55, "Arms": 0.62, "Hands": 0.45}
             mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
             v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
             w *= axis_w(sd, v)
@@ -710,7 +710,7 @@ def build_shorts2(margin=0.026, voxel=0.0045):
     for sg in (1, -1):
         rings = []
         for z in [z for z in zs_all if z < crotch_z - 0.015]:
-            xi = min(0.004 + max(0.0, crotch_z - z) * 0.40, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
+            xi = min(0.004 + max(0.0, crotch_z - 0.04 - z) * 0.30, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
             xi = max(0.004, xi)
             xo = XO[z] + 0.012 + 0.025 * ss(crotch_z, Z_HEM, z)
             y0, y1 = depth(z, sg); y0 -= 0.012 + 0.015 * ss(crotch_z, Z_HEM, z); y1 += 0.01; y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
