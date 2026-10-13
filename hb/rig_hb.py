@@ -20,6 +20,7 @@ sc = bpy.context.scene
 with bpy.data.libraries.load(SRC) as (src, dst):
     dst.objects = ["GEO-body_male_realistic", "GEO-body_male_realistic.eye.L", "GEO-body_male_realistic.eye.R"]
 for o in dst.objects: sc.collection.objects.link(o)
+bpy.context.view_layer.update()
 body = bpy.data.objects["GEO-body_male_realistic"]; body.name = "Body"
 eyes = [bpy.data.objects["GEO-body_male_realistic.eye.L"], bpy.data.objects["GEO-body_male_realistic.eye.R"]]
 for e, n in zip(eyes, ("Eye.L", "Eye.R")):
