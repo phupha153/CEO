@@ -1,7 +1,7 @@
-retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=e13f9f1908824c0fba9a5486db60e891&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
-retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=42bb3a7fe2564bd6a8c97684e7c16fed&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
-retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=1fddd31b9df6491eba88cb7e21b32a94&Sec-MS-GEC=923D2A6223475876B7F32AE1DB4403ADB981EA55D91F9FF98364930673C6B1DA&Sec-MS-GEC-Version=1-143.0.3650.75'
-retry out/myelin_ep01/th-TH-NiwatNeural/00.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=268fa20bfbd543ee88180b3230ba6a97&Sec-MS-GEC=EAFABD08872D826C5A53C4BC76F11FDB77C02FA6121E3A577D08CB0E33FFFC3D&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/01.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=4cd1e4d025764646b9de0b4749e9659c&Sec-MS-GEC=EE666739D7B2138CA610C0526DFFD11A7D3E75D2590E705407397AB5DF17D2F8&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/01.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=f4a794471e844b5bac4293b437452c13&Sec-MS-GEC=EE666739D7B2138CA610C0526DFFD11A7D3E75D2590E705407397AB5DF17D2F8&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/01.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=4e01b01ae2ab40dea6370542a8252623&Sec-MS-GEC=EE666739D7B2138CA610C0526DFFD11A7D3E75D2590E705407397AB5DF17D2F8&Sec-MS-GEC-Version=1-143.0.3650.75'
+retry out/myelin_ep01/th-TH-NiwatNeural/01.mp3 403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=97604755701b404592ee66645ad9fe37&Sec-MS-GEC=EE666739D7B2138CA610C0526DFFD11A7D3E75D2590E705407397AB5DF17D2F8&Sec-MS-GEC-Version=1-143.0.3650.75'
 Traceback (most recent call last):
   File "/home/runner/work/CEO/CEO/scripts/edge.py", line 26, in <module>
     asyncio.run(main())
@@ -18,5 +18,5 @@ Traceback (most recent call last):
     await one(line, voice, job.get("rate", "+0%"), job.get("pitch", "+0Hz"), fn)
   File "/home/runner/work/CEO/CEO/scripts/edge.py", line 13, in one
     raise RuntimeError(fn)
-RuntimeError: out/myelin_ep01/th-TH-NiwatNeural/00.mp3
+RuntimeError: out/myelin_ep01/th-TH-NiwatNeural/01.mp3
 EXIT 1
