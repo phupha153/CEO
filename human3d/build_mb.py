@@ -22,10 +22,10 @@ for o in (body, arm):
 verts = json.load(open(f"{MB}/vertices/{CH}_verts.json"))
 for v, co in zip(body.data.vertices, verts): v.co = co
 # --- athletic physique via MB-Lab body morphs (mass/tone corners + size sliders) ---
-MASS, TONE = float(os.environ.get("MB_MASS", 0.68)), float(os.environ.get("MB_TONE", 1.0))
+MASS, TONE = float(os.environ.get("MB_MASS", 0.75)), float(os.environ.get("MB_TONE", 1.0))
 SLIDERS = {"Torso_Vshape": 0.9, "Shoulders_SizeX": 1.0, "Shoulders_Size": 1.0, "Chest_Girth": 0.82, "Chest_SizeY": 0.65, "Chest_SizeX": 0.75, "Arms_UpperarmSize": 0.75, "Legs_KneeSize": 0.25, "Legs_KneeProminence": 0.3, "Torso_Length": 0.25,
-           "Neck_TrapeziousSize": 0.5, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.72, "Arms_ForearmSize": 0.65,
-           "Waist_Size": 0.35, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.5, "Legs_LowerThighGirth": 0.5, "Head_Size": 0.42,
+           "Neck_TrapeziousSize": 0.3, "Shoulders_PosZ": 0.25, "Neck_Length": 0.75, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.85, "Arms_ForearmSize": 0.65,
+           "Waist_Size": 0.2, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.5, "Legs_LowerThighGirth": 0.5, "Head_Size": 0.42,
            "Legs_UpperlegLength": 0.8, "Legs_LowerlegLength": 0.78, "Arms_UpperarmLength": 0.82, "Arms_ForearmLength": 0.78,
            "Torso_Dorsi": 0.75, "Pelvis_GluteusSize": 0.55}
 MORPHS = json.load(open(f"{MB}/morphs/human_male_morphs.json"))
@@ -39,7 +39,9 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            v = MASS if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.6, "Neck": 0.55}
+            mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
+            v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
             w *= axis_w(sd, v)
         addm(k, w)
 for nm, v in SLIDERS.items():
@@ -453,13 +455,13 @@ def Zi(z): return _pl(z, _NEW, _OLD)       # new -> old
 XS = rb["upperarm_L"].head_local.x / 0.172
 def to_old(c): return Vector((c.x / XS, c.y, Zi(c.z)))
 print("landmarks", [round(v, 3) for v in _NEW], "XS", round(XS, 3))
-def xa_f(z): return 0.112 + 0.075 * (1 - math.sqrt(ss(1.235, 1.415, z)))
-def nl_f(x, y): return (1.385 + 1.2 * abs(x)) if y < 0 else 1.47 + 0.075 * (abs(x) / 0.075) ** 2
+def xa_f(z): return 0.108 + 0.10 * (1 - math.sqrt(ss(1.21, 1.415, z)))
+def nl_f(x, y): return (1.365 + 1.35 * abs(x)) if y < 0 else 1.47 + 0.075 * (abs(x) / 0.075) ** 2
 def jersey_pred(c, d):
     if any(d.startswith(k) for k in ARMB): return False
     if c.z < 0.94: return False
     ax = abs(c.x)
-    xa = 0.112 + 0.075 * (1 - math.sqrt(ss(1.235, 1.415, c.z)))      # armhole curve
+    xa = xa_f(c.z)      # armhole curve
     if ax > xa: return False
     nl = nl_f(c.x, c.y)  # neckline
     if c.z > nl: return False
@@ -518,12 +520,12 @@ def _cy(pts, z0=0.3, z1=1.7):
         f = (z - z0) / 0.01; i = max(0, min(len(raw) - 2, int(f))); t = max(0.0, min(1.0, f - i))
         return (0.0, raw[i] * (1 - t) + raw[i + 1] * t)
     return c
-ENV_T = Envelope(tor_pts, crotch_z - 0.02, arm_z + 0.12, _cy(tor_pts), hang_from=Zm(1.26), taper=-0.18, zsmooth=16)
+ENV_T = Envelope(tor_pts, crotch_z - 0.02, arm_z + 0.12, _cy(tor_pts), hang_from=Zm(1.30), taper=-0.25, zsmooth=16)
 def jersey_env_disp(p, n):
     q0 = jersey_disp(p, n)
     w = ss(arm_z + 0.02, arm_z - 0.06, p.z)          # 0 at armpit/straps -> 1 below
     if w <= 0: return q0
-    x, y, z = ENV_T.project(p.x, p.y, max(p.z, Zm(0.915)), 0.022 + 0.014 * ss(1.0, 0.94, Zi(p.z)))
+    x, y, z = ENV_T.project(p.x, p.y, max(p.z, Zm(0.915)), 0.022 + 0.04 * ss(1.04, 0.92, Zi(p.z)))
     return q0.lerp(Vector((x, y, z)), w)
 pel_pts = [tuple(VC[i]) for i in range(len(VC)) if dom.get(i, "").startswith(("pelvis", "thigh", "spine01")) and abs(VC[i].x) < 0.26 * XS]
 ENV_P = Envelope(pel_pts, crotch_z - 0.14, Zm(1.0), _cy(pel_pts), hang_from=Zm(0.93), taper=0.0)
@@ -989,7 +991,7 @@ for m in body.data.materials:
         warm = nt.nodes.new("ShaderNodeMix"); warm.data_type = "RGBA"; warm.blend_type = "MULTIPLY"
         warm.inputs[0].default_value = 1.0; warm.inputs[7].default_value = tuple(float(x) for x in os.environ.get("SKIN_TINT", "0.92,0.74,0.58").split(",")) + (1,)
         nt.links.new(alb.outputs["Color"], warm.inputs[6]); nt.links.new(warm.outputs[2], pr.inputs["Base Color"])
-        pr.inputs["Roughness"].default_value = 0.5; pr.inputs["Specular IOR Level"].default_value = 0.4
+        pr.inputs["Roughness"].default_value = 0.6; pr.inputs["Specular IOR Level"].default_value = 0.3
         hp = nt.nodes.new("ShaderNodeBsdfPrincipled")
         hp.inputs["Base Color"].default_value = (0.010, 0.008, 0.007, 1); hp.inputs["Roughness"].default_value = 0.75
         hb2 = nt.nodes.new("ShaderNodeBump"); hb2.inputs["Strength"].default_value = 0.35
