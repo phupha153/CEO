@@ -490,14 +490,14 @@ def shorts_disp(p, n):
     th = rb["thigh_L" if s_ > 0 else "thigh_R"]
     A = th.head_local; B = th.tail_local; ax = (B - A).normalized()
     t = (p - A).dot(ax); foot_ = A + ax * t; r = p - foot_; rl = r.length
-    radial = foot_ + r.normalized() * max(rl + 0.02, 0.124) if rl > 1e-6 else p
+    radial = foot_ + r.normalized() * max(rl + 0.018, 0.112) if rl > 1e-6 else p
     if s_ * radial.x < 0.004: radial.x = 0.004 * s_
     w = 1 - ss(0.88, 0.99, Zi(p.z))
     q = (p + n * 0.016) * (1 - w) + radial * w
     # bridge the gap between the legs (fabric spans front & back instead of hugging the crotch)
     zo = Zi(p.z)
     if abs(q.x) < 0.12 * XS and 0.62 < zo < 0.99:
-        R_ = 0.124 + 0.02
+        R_ = 0.112 + 0.02
         yf = A.y - R_ * 0.92; yb = A.y + R_ * 0.92
         k = ss(0.12 * XS, 0.02, abs(q.x)) * ss(0.62, 0.70, zo)
         if q.y < A.y: q.y = q.y + (min(q.y, yf) - q.y) * k

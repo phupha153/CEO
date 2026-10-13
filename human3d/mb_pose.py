@@ -66,20 +66,80 @@ def grip(arm, s, ball_c, R, palm_off=0.035, fdir=Vector((0, -0.3, 1))):
                 c = cost()
                 if c < best[0]: best = (c, (x, y, z))
     hb.rotation_euler = tuple(math.radians(v) for v in best[1]); vl.update()
+    # spread fingers like a real ball hold (index toward thumb, pinky away)
+    W = arm.matrix_world
+    kn = (W @ arm.pose.bones[f"index01_{s}"].head - W @ arm.pose.bones[f"pinky01_{s}"].head).normalized()
+    pb0 = arm.pose.bones[f"middle01_{s}"]; pb0.rotation_mode = "XYZ"; t0 = (W @ arm.pose.bones[f"middle03_{s}"].tail).copy()
+    pb0.rotation_euler = (0, 0, math.radians(10)); vl.update()
+    zsign = 1 if (W @ arm.pose.bones[f"middle03_{s}"].tail - t0).dot(kn) > 0 else -1   # +zsign spreads toward index side
+    pb0.rotation_euler = (0, 0, 0); vl.update()
+    SPREAD = {"index": 9, "middle": 0, "ring": -9, "pinky": -18}
     # per-finger curl
     for f in ("index", "middle", "ring", "pinky", "thumb"):
         chain = [f"{f}0{k}_{s}" for k in ((2, 3) if f == "thumb" else (1, 2, 3))]
         tip = chain[-1]; bc = (1e9, 0)
         for d in range(-10, 75, 5):
             for n in chain:
-                pb = arm.pose.bones[n]; pb.rotation_mode = "XYZ"; pb.rotation_euler = (math.radians(d), 0, 0)
+                pb = arm.pose.bones[n]; pb.rotation_mode = "XYZ"
+                spr = math.radians(SPREAD.get(f, 0)) * zsign if n == chain[0] else 0.0
+                pb.rotation_euler = (-math.radians(d * (0.5 if n == chain[0] else 1.0)), 0, spr)
             vl.update()
             dist = (_tip(arm, tip) - ball_c).length
             c = abs(dist - R - 0.004) + (0.05 if dist < R - 0.002 else 0)
             if c < bc[0]: bc = (c, d)
-        for n in chain: arm.pose.bones[n].rotation_euler = (math.radians(bc[1]), 0, 0)
+        for n in chain:
+            spr = math.radians(SPREAD.get(f, 0)) * zsign if n == chain[0] else 0.0
+            arm.pose.bones[n].rotation_euler = (-math.radians(bc[1] * (0.5 if n == chain[0] else 1.0)), 0, spr)
     vl.update()
     print("grip", s, best, round(cost(), 3))
+
+def relax_hand(arm, s):
+    """Natural hanging hand: fingers point down, palm faces the thigh, soft finger curl."""
+    vl = bpy.context.view_layer; sg = 1 if s == "L" else -1
+    W = arm.matrix_world
+    # close the rest-pose finger spread: align each finger with the middle finger
+    def fdirv(n): b = arm.pose.bones[n]; return ((W @ b.tail) - (W @ b.head)).normalized()
+    for f in ("index", "ring", "pinky"):
+        b = arm.pose.bones[f"{f}01_{s}"]; b.rotation_mode = "XYZ"; bestz = (9, 0)
+        for z in range(-30, 31, 2):
+            b.rotation_euler = (0, 0, math.radians(z)); vl.update()
+            a = fdirv(f"{f}01_{s}").angle(fdirv(f"middle01_{s}"))
+            if a < bestz[0]: bestz = (a, z)
+        keep = {"index": 0.25, "ring": 0.25, "pinky": 0.35}[f]       # leave a little natural spread
+        b.rotation_euler = (0, 0, math.radians(bestz[1] * (1 - keep))); vl.update()
+    # thumb: tuck toward the index finger
+    tb = arm.pose.bones[f"thumb01_{s}"]; tb.rotation_mode = "XYZ"; bt = (9, (0, 0, 0))
+    for x in range(-40, 41, 10):
+        for z in range(-40, 41, 10):
+            tb.rotation_euler = (math.radians(x), 0, math.radians(z)); vl.update()
+            d_ = ((W @ arm.pose.bones[f"thumb03_{s}"].tail) - (W @ arm.pose.bones[f"index02_{s}"].head)).length
+            if abs(d_ - 0.03) < bt[0]: bt = (abs(d_ - 0.03), (x, 0, z))
+    tb.rotation_euler = tuple(math.radians(v) for v in bt[1]); vl.update()
+    CURL = {"index": 14, "middle": 20, "ring": 26, "pinky": 30}
+    for f, d in CURL.items():
+        for k in (1, 2, 3):
+            pb = arm.pose.bones[f"{f}0{k}_{s}"]; pb.rotation_mode = "XYZ"; pb.rotation_euler = (-math.radians(d * (0.6 if k == 1 else 1.0)), 0, pb.rotation_euler[2] if k == 1 else 0)
+
+    hb = arm.pose.bones[f"hand_{s}"]; hb.rotation_mode = "XYZ"
+    def cost():
+        wr = W @ hb.head; md = W @ arm.pose.bones[f"middle01_{s}"].head
+        th = W @ arm.pose.bones[f"thumb03_{s}"].tail; pk = W @ arm.pose.bones[f"pinky01_{s}"].head
+        ix = W @ arm.pose.bones[f"index01_{s}"].head
+        c = (1 - (md - wr).normalized().dot(Vector((0.0, -0.05, -1)).normalized()))
+        c += (1 - (ix - pk).normalized().dot(Vector((0, -1, 0)))) * 0.8      # knuckle line points forward -> palm faces thigh
+        n_ = (ix - wr).cross(pk - wr).normalized(); palm = -n_ if s == "L" else n_
+        c += (1 - palm.dot(Vector((-sg, 0.45, 0)).normalized())) * 1.5          # palm faces the thigh
+        return c
+    best = (1e9, None)
+    for x in range(-90, 91, 15):
+        for y in range(-90, 91, 15):
+            for z in range(-90, 91, 15):
+                hb.rotation_euler = tuple(math.radians(v) for v in (x, y, z)); vl.update()
+                c = cost()
+                if c < best[0]: best = (c, (x, y, z))
+    hb.rotation_euler = tuple(math.radians(v) for v in best[1]); vl.update()
+    wr = W @ hb.head; ix = W @ arm.pose.bones[f"index01_{s}"].head; pk = W @ arm.pose.bones[f"pinky01_{s}"].head
+    n_ = (ix - wr).cross(pk - wr).normalized(); print("relax", s, best, "palm", tuple(round(v, 2) for v in (-n_ if s == "L" else n_)))
 
 def rot_bone(arm, name, axis, deg):
     pb = arm.pose.bones[name]; pb.rotation_mode = "QUATERNION"
@@ -95,24 +155,23 @@ if __name__ == "__main__":
     # stance: feet shoulder width, slight knee bend, ball held at waist in front
     C["foot_L"].location = (0.17, -0.07, rb["foot_L"].head_local.z)
     C["foot_R"].location = (-0.16, 0.05, rb["foot_R"].head_local.z)
-    ball_c = Vector((0.02, -0.34, rb["spine03"].head_local.z - 0.12))
+    ball_c = Vector((0.0, -0.30, rb["spine03"].head_local.z - 0.05))
     STAND = os.environ.get("POSE") == "stand"
     if STAND: ball_c = Vector((0, 3.0, -3.0))
-    C["hand_L"].location = ball_c + Vector((0.135, 0.05, -0.085))
-    C["hand_R"].location = ball_c + Vector((-0.135, 0.05, -0.085))
+    C["foot_L"].location = (0.14, -0.03, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.14, -0.03, rb["foot_R"].head_local.z)
+    C["hand_L"].location = ball_c + Vector((0.135, 0.015, -0.075))
+    C["hand_R"].location = ball_c + Vector((-0.135, 0.015, -0.075))
     if STAND:
         C["foot_L"].location = (0.13, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.13, -0.02, rb["foot_R"].head_local.z)
         hz = rb["thigh_L"].head_local.z - 0.05
-        C["hand_L"].location = (0.31, -0.01, hz); C["hand_R"].location = (-0.31, -0.01, hz)
+        C["hand_L"].location = (0.30, -0.01, hz + 0.02); C["hand_R"].location = (-0.30, -0.01, hz + 0.02)
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
             C[f"elbow_{s}"].location = Vector((0.3 * sg, 0.5, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
-        C[f"elbow_{s}"].location = Vector((0.40 * sg, 0.35, rb["spine01"].head_local.z - 0.19))
+        C[f"elbow_{s}"].location = Vector((0.28 * sg, 0.30, rb["spine01"].head_local.z - 0.10))
         C[f"knee_{s}"].location = Vector((0.40 * sg, -0.8, rb["calf_L"].head_local.z))
     pl = arm.pose.bones["pelvis"]; pl.rotation_mode = "QUATERNION"
-    pl.matrix = Matrix.Translation((0, 0.01, -0.03)) @ pl.matrix
-    if STAND: pl.matrix = Matrix.Translation((0, -0.01, 0.03)) @ pl.matrix
-    else: rot_bone(arm, "spine01", (1, 0, 0), 6); rot_bone(arm, "spine02", (1, 0, 0), 3)
+    if not STAND: pl.matrix = Matrix.Translation((0, 0.0, -0.015)) @ pl.matrix
     if os.environ.get("POSE") != "stand": rot_bone(arm, "head", (1, 0, 0), -4)
     # keep feet flat on the floor regardless of IK leg rotation
     for s in ("L", "R"):
@@ -120,11 +179,8 @@ if __name__ == "__main__":
         fe.matrix_world = arm.matrix_world @ arm.data.bones[f"foot_{s}"].matrix_local
         cr = arm.pose.bones[f"foot_{s}"].constraints.new("COPY_ROTATION"); cr.target = fe
     bpy.context.view_layer.update()
-    if not STAND: grip(arm, "L", ball_c, 0.12); grip(arm, "R", ball_c, 0.12)
-    else:
-        for pb in arm.pose.bones:
-            if pb.name[:-2] in [f"{f}0{k}" for f in ("index", "middle", "ring", "pinky") for k in (1, 2, 3)]:
-                pb.rotation_mode = "XYZ"; pb.rotation_euler = (math.radians(14), 0, 0)
+    if not STAND: grip(arm, "L", ball_c, 0.12, fdir=Vector((0, -0.45, 1))); grip(arm, "R", ball_c, 0.12, fdir=Vector((0, -0.45, 1)))
+    else: relax_hand(arm, "L"); relax_hand(arm, "R")
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.12, location=ball_c)
     ball = bpy.context.object; bpy.ops.object.shade_smooth()
     mb = bpy.data.materials.new("ball"); mb.use_nodes = True
@@ -135,7 +191,7 @@ if __name__ == "__main__":
     nt_.links.new(vz.outputs["Distance"], bpn.inputs["Height"]); nt_.links.new(bpn.outputs["Normal"], nt_.nodes["Principled BSDF"].inputs["Normal"])
     ball.data.materials.append(mb)
     for rot in ((0, 0, 0), (math.pi / 2, 0, 0), (0, math.pi / 2, 0)):
-        bpy.ops.mesh.primitive_torus_add(major_radius=0.1205, minor_radius=0.004, rotation=rot, location=ball_c)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.1203, minor_radius=0.0025, rotation=rot, location=ball_c)
         t = bpy.context.object; ms = bpy.data.materials.get("seam") or bpy.data.materials.new("seam")
         ms.use_nodes = True; ms.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.02, 0.02, 0.02, 1)
         t.data.materials.append(ms)
@@ -159,6 +215,6 @@ if __name__ == "__main__":
     mf.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.03, 0.22, 0.75, 1)
     fl.data.materials.append(mf)
     cd = bpy.data.cameras.new("c"); cam = bpy.data.objects.new("c", cd); sc.collection.objects.link(cam); sc.camera = cam
-    for name, loc, tgt, lens in [x for x in (("full", (0.7, -4.6, 1.0), (0, 0, 0.95), 45), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.68), (0, 0, 1.66), 70)) if x[0] in sys.argv[-1].split(",")]:
+    for name, loc, tgt, lens in [x for x in (("full", (0.0, -4.8, 1.0), (0, 0, 0.95), 45), ("handf", (0.0, -1.6, 0.95), (0, 0, 0.9), 55), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("hands", (0.45, -1.3, 1.05), (0, -0.1, 1.0), 50), ("ball", (0.25, -1.5, 1.35), (0, -0.2, 1.22), 55), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.68), (0, 0, 1.66), 70)) if x[0] in sys.argv[-1].split(",")]:
         cam.location = loc; cam.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); cd.lens = lens
         sc.render.filepath = f"/tmp/pose_{name}.png"; bpy.ops.render.render(write_still=True)
