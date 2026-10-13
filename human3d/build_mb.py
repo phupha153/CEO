@@ -20,6 +20,31 @@ for o in (body, arm):
 # --- character shape ---
 verts = json.load(open(f"{MB}/vertices/{CH}_verts.json"))
 for v, co in zip(body.data.vertices, verts): v.co = co
+# --- athletic physique via MB-Lab body morphs (mass/tone corners + size sliders) ---
+MASS, TONE = float(os.environ.get("MB_MASS", 0.62)), float(os.environ.get("MB_TONE", 0.9))
+SLIDERS = {"Torso_Vshape": 0.72, "Shoulders_SizeX": 0.75, "Shoulders_Size": 0.65, "Chest_Girth": 0.7, "Chest_SizeY": 0.6,
+           "Neck_TrapeziousSize": 0.6, "Neck_Size": 0.6, "Arms_UpperarmGirth": 0.62, "Arms_ForearmSize": 0.65,
+           "Waist_Size": 0.35, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.62, "Legs_LowerThighGirth": 0.6,
+           "Legs_UpperlegLength": 0.65, "Legs_LowerlegLength": 0.65, "Arms_UpperarmLength": 0.6, "Arms_ForearmLength": 0.6,
+           "Torso_Dorsi": 0.75, "Pelvis_GluteusSize": 0.55}
+MORPHS = json.load(open(f"{MB}/morphs/human_male_morphs.json"))
+def axis_w(side, v): return max(0.0, (v - 0.5) * 2) if side == "max" else max(0.0, (0.5 - v) * 2)
+delta = collections.defaultdict(lambda: Vector((0, 0, 0)))
+def addm(name, w):
+    if w <= 1e-4 or name not in MORPHS: return
+    for i, dx, dy, dz in MORPHS[name]: delta[i] += Vector((dx, dy, dz)) * w
+for k in MORPHS:
+    base, _, sides = k.rpartition("_")
+    if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
+        axes = base.split("_", 1)[1].split("-"); w = 1.0
+        for ax, sd in zip(axes, sides.split("-")):
+            v = MASS if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
+            w *= axis_w(sd, v)
+        addm(k, w)
+for nm, v in SLIDERS.items():
+    addm(f"{nm}_max", axis_w("max", v)); addm(f"{nm}_min", axis_w("min", v))
+for i, d in delta.items(): verts[i] = [verts[i][0] + d.x, verts[i][1] + d.y, verts[i][2] + d.z]
+for v, co in zip(body.data.vertices, verts): v.co = co
 body.data.update()
 VC = [Vector(c) for c in verts]
 
@@ -283,7 +308,7 @@ hipz = rb["thigh_L"].head_local.z
 import mathutils, bmesh
 skin_slots = {i for i, sl in enumerate(body.material_slots) if sl.material and (sl.material.name.startswith("MBLab_skin") or sl.material.name == "MBlab_generic")}
 NRM = [v.normal.copy() for v in body.data.vertices]
-def garment(name, face_pred, disp, m, thick=0.004, trim_w=0.018, attr_fn=None, hems=(), snap=None, subd=2, smooth_it=10, smooth_w=0):
+def garment(name, face_pred, disp, m, thick=0.004, trim_w=0.018, attr_fn=None, hems=(), snap=None, subd=2, smooth_it=10, smooth_w=0, relax=0):
     sel = {p.index for p in body.data.polygons if p.material_index in skin_slots and face_pred(cen(list(p.vertices)), fdom(list(p.vertices)))}
     vs_ = {i for pi in sel for i in body.data.polygons[pi].vertices}
     grow = [p for p in body.data.polygons if p.material_index in skin_slots and any(i in vs_ for i in p.vertices)]
@@ -356,6 +381,15 @@ def garment(name, face_pred, disp, m, thick=0.004, trim_w=0.018, attr_fn=None, h
         trims.append(t_)
     for v in bm.verts:
         v.co = disp(v.co, nrm[v])
+    if relax:
+        inner = [v for v in bm.verts if not any(e.is_boundary for e in v.link_edges)]
+        bm.normal_update()
+        before = {v: v.co.copy() for v in inner}
+        for _ in range(relax):
+            bmesh.ops.smooth_vert(bm, verts=inner, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+        for v in inner:                       # never let fabric sink below where it started (no shrink into body)
+            d_ = v.co - before[v]
+            if d_.dot(v.normal) < 0: v.co = v.co - v.normal * d_.dot(v.normal)
     bm.to_mesh(me); bm.free()
     ta = me.color_attributes.new("trim", "FLOAT_COLOR", "POINT")
     for i, t_ in enumerate(trims): ta.data[i].color = (t_, t_, t_, 1)
@@ -390,6 +424,20 @@ def garment(name, face_pred, disp, m, thick=0.004, trim_w=0.018, attr_fn=None, h
 def ss(a, b, x):
     t = max(0.0, min(1.0, (x - a) / (b - a))); return t * t * (3 - 2 * t)
 ARMB = ("upperarm", "lowerarm", "hand", "neck", "head", "thigh", "calf", "foot", "toes")
+# ---- map garment design constants (authored on the 1.75 m base) onto the current body ----
+_OLD = [0.0, 0.099, 0.507, 0.943, 1.041, 1.247, 1.407, 1.483, 1.747]
+_NEW = [0.0, rb["foot_L"].head_local.z, rb["calf_L"].head_local.z, rb["thigh_L"].head_local.z, rb["spine01"].head_local.z,
+        rb["spine03"].head_local.z, rb["upperarm_L"].head_local.z, rb["neck"].head_local.z, rb["head"].tail_local.z]
+def _pl(z, A, B):
+    if z <= A[0]: return B[0] + (z - A[0])
+    for k in range(len(A) - 1):
+        if z <= A[k + 1]: return B[k] + (z - A[k]) * (B[k + 1] - B[k]) / (A[k + 1] - A[k])
+    return B[-1] + (z - A[-1])
+def Zm(z): return _pl(z, _OLD, _NEW)       # old -> new
+def Zi(z): return _pl(z, _NEW, _OLD)       # new -> old
+XS = rb["upperarm_L"].head_local.x / 0.172
+def to_old(c): return Vector((c.x / XS, c.y, Zi(c.z)))
+print("landmarks", [round(v, 3) for v in _NEW], "XS", round(XS, 3))
 def xa_f(z): return 0.112 + 0.075 * (1 - math.sqrt(ss(1.235, 1.415, z)))
 def nl_f(x, y): return (1.385 + 1.2 * abs(x)) if y < 0 else 1.47 + 0.075 * (abs(x) / 0.075) ** 2
 def jersey_pred(c, d):
@@ -405,29 +453,55 @@ def jersey_disp(p, n):
     o = 0.010 + 0.008 * (1 - ss(1.12, 1.30, p.z))                     # looser at belly
     q = p + n * o
     return q
+def jersey_disp_new(p, n):
+    po = to_old(p)
+    o = 0.010 + 0.008 * (1 - ss(1.12, 1.30, po.z))
+    q = p + n * o
+    # hang straight from the chest: below the pecs, don't follow the waist inward
+    if po.z < 1.27 and CH_R:
+        ang = math.atan2(p.y - CH_C[1], p.x); k_ = int((ang + math.pi) / (2 * math.pi) * len(CH_R)) % len(CH_R)
+        rr = math.hypot(q.x, q.y - CH_C[1]); tgt = CH_R[k_] * (0.985 - 0.06 * ss(1.27, 0.95, po.z))
+        hang = ss(1.27, 1.12, po.z)
+        if rr < tgt:
+            f_ = (rr + (tgt - rr) * hang) / max(rr, 1e-6)
+            q = Vector((q.x * f_, CH_C[1] + (q.y - CH_C[1]) * f_, q.z))
+    return q
 def jersey_snap(p0, q):
     if p0.z < 1.15: return q
     dxa = abs(abs(p0.x) - xa_f(p0.z)); dnl = abs(p0.z - nl_f(p0.x, p0.y))
     if dnl < dxa * 1.5 and abs(p0.x) < 0.13: q.z += nl_f(p0.x, p0.y) - p0.z
     else: q.x += math.copysign(xa_f(p0.z), p0.x) - p0.x
     return q
-garment("Jersey", jersey_pred, jersey_disp, M_J, 0.004, 0.016, attr_fn=lambda p, t: t if p.z > 1.15 else 0.0, hems=((0.7, 1.05, 0.95),))
+_cz = Zm(1.25)
+_sl = [(VC[i].x, VC[i].y) for i in range(len(VC)) if abs(VC[i].z - _cz) < 0.012 and abs(VC[i].x) < 0.2 * XS and not dom.get(i, "").startswith(("upperarm", "lowerarm", "hand"))]
+CH_C = (0.0, sum(q[1] for q in _sl) / len(_sl))
+_N = 64; CH_R = [0.0] * _N
+for x_, y_ in _sl:
+    a_ = math.atan2(y_ - CH_C[1], x_); k_ = int((a_ + math.pi) / (2 * math.pi) * _N) % _N
+    CH_R[k_] = max(CH_R[k_], math.hypot(x_, y_ - CH_C[1]) + 0.016)
+for _ in range(3): CH_R = [max(CH_R[k], 0.5 * (CH_R[k - 1] + CH_R[(k + 1) % _N])) for k in range(_N)]
+for _ in range(12): CH_R = [(CH_R[k - 1] + 2 * CH_R[k] + CH_R[(k + 1) % _N]) / 4 for k in range(_N)]
+garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), lambda p, n: jersey_disp_new(p, n), M_J, 0.004, 0.016, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.95)),), relax=30)
 def shorts_pred(c, d):
     if any(d.startswith(k) for k in ("spine02", "spine03", "upperarm", "lowerarm", "hand", "calf", "foot", "toes")): return False
-    return 0.535 < c.z < 0.995
+    return 0.575 < c.z < 0.995
 def shorts_disp(p, n):
     s_ = 1 if p.x >= 0 else -1
     th = rb["thigh_L" if s_ > 0 else "thigh_R"]
     A = th.head_local; B = th.tail_local; ax = (B - A).normalized()
     t = (p - A).dot(ax); foot_ = A + ax * t; r = p - foot_; rl = r.length
-    radial = foot_ + r.normalized() * max(rl + 0.016, 0.118) if rl > 1e-6 else p
+    radial = foot_ + r.normalized() * max(rl + 0.02, 0.124) if rl > 1e-6 else p
     if s_ * radial.x < 0.004: radial.x = 0.004 * s_
-    w = 1 - ss(0.80, 0.93, p.z)
+    w = 1 - ss(0.88, 0.99, Zi(p.z))
     q = (p + n * 0.016) * (1 - w) + radial * w
-    # front panel hangs flat from the waistband (hides crotch bulge)
-    if q.y < -0.02 and abs(q.x) < 0.13 and 0.70 < p.z < 1.0:
-        k = ss(0.13, 0.06, abs(q.x)) * ss(0.70, 0.80, p.z)
-        q.y = q.y + (min(q.y, -0.158) - q.y) * k
+    # bridge the gap between the legs (fabric spans front & back instead of hugging the crotch)
+    zo = Zi(p.z)
+    if abs(q.x) < 0.12 * XS and 0.62 < zo < 0.99:
+        R_ = 0.124 + 0.02
+        yf = A.y - R_ * 0.92; yb = A.y + R_ * 0.92
+        k = ss(0.12 * XS, 0.02, abs(q.x)) * ss(0.62, 0.70, zo)
+        if q.y < A.y: q.y = q.y + (min(q.y, yf) - q.y) * k
+        else: q.y = q.y + (max(q.y, yb) - q.y) * k * 0.8
     return q
 def hull_ring(pts2, cx, cy, margin, N=48):
     bins = [0.0] * N
@@ -514,7 +588,15 @@ def build_shorts():
     sb = ob.modifiers.new("sub", "SUBSURF"); sb.levels = 0; sb.render_levels = 1
     me2.materials.append(M_S)
     return ob
-garment("Shorts", shorts_pred, shorts_disp, M_S, 0.004, 0.02, attr_fn=lambda p, t: max(t if p.z < 0.7 else 0.0, 1.0 if (abs(p.x) > 0.12 and -0.045 < p.y < -0.01 and p.z < 0.95) else 0.0), hems=((0.45, 0.6, 0.54),), smooth_w=25)
+def shorts_attr(p, t):
+    sg = 1 if p.x >= 0 else -1
+    th = rb["thigh_L" if sg > 0 else "thigh_R"]
+    A = th.head_local; B = th.tail_local; ax = (B - A).normalized()
+    foot_ = A + ax * (p - A).dot(ax); r = p - foot_
+    ang = math.degrees(math.atan2(r.y, r.x * sg))          # 0 = straight outward
+    stripe = 1.0 if (abs(ang + 6) < 13 and Zi(p.z) < 0.97) else 0.0
+    return max(t if Zi(p.z) < 0.7 else 0.0, stripe)
+garment("Shorts", lambda c, d: shorts_pred(to_old(c), d), shorts_disp, M_S, 0.004, 0.02, attr_fn=shorts_attr, hems=((Zm(0.45), Zm(0.64), Zm(0.585)),), smooth_w=25, relax=25)
 # --- sneakers: offset shell of the foot, rubber sole band ---
 M_SH = mat("shoe", (0.82, 0.82, 0.80), rough=0.45, sheen=0.0, trim=True)
 M_SH.node_tree.nodes["Mix"].inputs[7].default_value = (0.03, 0.03, 0.035, 1)
@@ -527,12 +609,12 @@ def shoe_disp(p, n):
 def build_shoe(side):
     sg = 1 if side == "L" else -1
     pts = [VC[i] for i in range(len(VC)) if (dom.get(i, "").startswith(("foot_" + side, "toes_" + side))
-           or (dom.get(i, "") == "calf_" + side and VC[i].z < 0.16)) and VC[i].x * sg > 0]
+           or (dom.get(i, "") == "calf_" + side and Zi(VC[i].z) < 0.16)) and VC[i].x * sg > 0]
     fb = rb[f"foot_{side}"]; tb = rb[f"toes_{side}"]
     f = Vector((tb.tail_local.x - fb.head_local.x, tb.tail_local.y - fb.head_local.y, 0)).normalized()
     l = f.cross(Vector((0, 0, 1))).normalized()
     o = Vector((fb.head_local.x, fb.head_local.y, 0))
-    loc = [((p - o).dot(f), (p - o).dot(l), p.z) for p in pts if p.z < 0.135]
+    loc = [((p - o).dot(f), (p - o).dot(l), p.z) for p in pts if Zi(p.z) < 0.135]
     s0 = min(q[0] for q in loc); s1 = max(q[0] for q in loc)
     bm = bmesh.new(); rings = []
     N = 32; st = s0
@@ -569,7 +651,7 @@ def build_shoe(side):
     ob.matrix_parent_inverse = (arm.matrix_world @ fb.matrix_local @ Matrix.Translation((0, fb.length, 0))).inverted()
 build_shoe("L"); build_shoe("R")
 M_SK = mat("socks", (0.006, 0.006, 0.007), rough=0.9, sheen=0.05)
-garment("Socks", lambda c, d: d.startswith("calf") and 0.10 < c.z < 0.245, lambda p, n: p + n * 0.004, M_SK, 0.002, 0.0)
+garment("Socks", lambda c, d: d.startswith("calf") and 0.10 < Zi(c.z) < 0.245, lambda p, n: p + n * 0.004, M_SK, 0.002, 0.0)
 # skin params: young, smooth
 for m in body.data.materials:
     if m and m.name.startswith("MBLab_skin"):

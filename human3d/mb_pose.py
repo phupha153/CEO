@@ -95,23 +95,36 @@ if __name__ == "__main__":
     # stance: feet shoulder width, slight knee bend, ball held at waist in front
     C["foot_L"].location = (0.17, -0.07, rb["foot_L"].head_local.z)
     C["foot_R"].location = (-0.16, 0.05, rb["foot_R"].head_local.z)
-    ball_c = Vector((0.02, -0.33, 1.13))
+    ball_c = Vector((0.02, -0.34, rb["spine03"].head_local.z - 0.12))
+    STAND = os.environ.get("POSE") == "stand"
+    if STAND: ball_c = Vector((0, 3.0, -3.0))
     C["hand_L"].location = ball_c + Vector((0.135, 0.05, -0.085))
     C["hand_R"].location = ball_c + Vector((-0.135, 0.05, -0.085))
+    if STAND:
+        C["foot_L"].location = (0.13, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.13, -0.02, rb["foot_R"].head_local.z)
+        hz = rb["thigh_L"].head_local.z - 0.05
+        C["hand_L"].location = (0.31, -0.01, hz); C["hand_R"].location = (-0.31, -0.01, hz)
     for s, sg in (("L", 1), ("R", -1)):
-        C[f"elbow_{s}"].location = Vector((0.40 * sg, 0.35, 0.85))
-        C[f"knee_{s}"].location = Vector((0.18 * sg, -0.8, 0.5))
+        if STAND:
+            C[f"elbow_{s}"].location = Vector((0.3 * sg, 0.5, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
+        C[f"elbow_{s}"].location = Vector((0.40 * sg, 0.35, rb["spine01"].head_local.z - 0.19))
+        C[f"knee_{s}"].location = Vector((0.40 * sg, -0.8, rb["calf_L"].head_local.z))
     pl = arm.pose.bones["pelvis"]; pl.rotation_mode = "QUATERNION"
     pl.matrix = Matrix.Translation((0, 0.01, -0.03)) @ pl.matrix
-    rot_bone(arm, "spine01", (1, 0, 0), 6); rot_bone(arm, "spine02", (1, 0, 0), 3)
-    rot_bone(arm, "head", (1, 0, 0), -4)
+    if STAND: pl.matrix = Matrix.Translation((0, -0.01, 0.03)) @ pl.matrix
+    else: rot_bone(arm, "spine01", (1, 0, 0), 6); rot_bone(arm, "spine02", (1, 0, 0), 3)
+    if os.environ.get("POSE") != "stand": rot_bone(arm, "head", (1, 0, 0), -4)
     # keep feet flat on the floor regardless of IK leg rotation
     for s in ("L", "R"):
         fe = bpy.data.objects.new(f"footrot_{s}", None); bpy.context.collection.objects.link(fe)
         fe.matrix_world = arm.matrix_world @ arm.data.bones[f"foot_{s}"].matrix_local
         cr = arm.pose.bones[f"foot_{s}"].constraints.new("COPY_ROTATION"); cr.target = fe
     bpy.context.view_layer.update()
-    grip(arm, "L", ball_c, 0.12); grip(arm, "R", ball_c, 0.12)
+    if not STAND: grip(arm, "L", ball_c, 0.12); grip(arm, "R", ball_c, 0.12)
+    else:
+        for pb in arm.pose.bones:
+            if pb.name[:-2] in [f"{f}0{k}" for f in ("index", "middle", "ring", "pinky") for k in (1, 2, 3)]:
+                pb.rotation_mode = "XYZ"; pb.rotation_euler = (math.radians(14), 0, 0)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.12, location=ball_c)
     ball = bpy.context.object; bpy.ops.object.shade_smooth()
     mb = bpy.data.materials.new("ball"); mb.use_nodes = True
@@ -127,6 +140,8 @@ if __name__ == "__main__":
         ms.use_nodes = True; ms.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.02, 0.02, 0.02, 1)
         t.data.materials.append(ms)
     bpy.context.view_layer.update()
+    if os.environ.get("HIDE"):
+        for n_ in os.environ["HIDE"].split(","): bpy.data.objects[n_].hide_render = True
     sc.render.engine = "CYCLES"; sc.cycles.samples = 24; sc.cycles.use_denoising = True
     sc.render.resolution_x = 540; sc.render.resolution_y = 810; sc.render.use_persistent_data=True; sc.cycles.tile_size=512
     sc.view_settings.view_transform = "AgX"; sc.view_settings.look = "AgX - Medium High Contrast"
@@ -144,6 +159,6 @@ if __name__ == "__main__":
     mf.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.03, 0.22, 0.75, 1)
     fl.data.materials.append(mf)
     cd = bpy.data.cameras.new("c"); cam = bpy.data.objects.new("c", cd); sc.collection.objects.link(cam); sc.camera = cam
-    for name, loc, tgt, lens in [x for x in (("full", (1.1, -3.9, 1.05), (0, 0, 0.92), 42), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.6), (0, 0, 1.58), 70)) if x[0] in sys.argv[-1].split(",")]:
+    for name, loc, tgt, lens in [x for x in (("full", (0.7, -4.6, 1.0), (0, 0, 0.95), 45), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.68), (0, 0, 1.66), 70)) if x[0] in sys.argv[-1].split(",")]:
         cam.location = loc; cam.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); cd.lens = lens
         sc.render.filepath = f"/tmp/pose_{name}.png"; bpy.ops.render.render(write_still=True)
