@@ -24,8 +24,8 @@ for v, co in zip(body.data.vertices, verts): v.co = co
 # --- athletic physique via MB-Lab body morphs (mass/tone corners + size sliders) ---
 MASS, TONE = float(os.environ.get("MB_MASS", 0.75)), float(os.environ.get("MB_TONE", 1.0))
 SLIDERS = {"Torso_Vshape": 0.9, "Shoulders_SizeX": 1.0, "Shoulders_Size": 1.0, "Chest_Girth": 0.82, "Chest_SizeY": 0.65, "Chest_SizeX": 0.75, "Arms_UpperarmSize": 0.75, "Legs_KneeSize": 0.25, "Legs_KneeProminence": 0.3, "Torso_Length": 0.25,
-           "Neck_TrapeziousSize": 0.3, "Shoulders_PosZ": 0.25, "Neck_Length": 0.75, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.85, "Arms_ForearmSize": 0.65,
-           "Waist_Size": 0.2, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.5, "Legs_LowerThighGirth": 0.5, "Head_Size": 0.42,
+           "Neck_TrapeziousSize": 0.3, "Shoulders_PosZ": 0.25, "Neck_Length": 0.5, "Neck_Size": 0.66, "Arms_UpperarmGirth": 0.7, "Arms_ForearmSize": 0.45,
+           "Waist_Size": 0.2, "Legs_CalfGirth": 0.65, "Legs_UpperThighGirth": 0.5, "Legs_LowerThighGirth": 0.5, "Head_Size": 0.6,
            "Legs_UpperlegLength": 0.8, "Legs_LowerlegLength": 0.78, "Arms_UpperarmLength": 0.82, "Arms_ForearmLength": 0.78,
            "Torso_Dorsi": 0.75, "Pelvis_GluteusSize": 0.55}
 MORPHS = json.load(open(f"{MB}/morphs/human_male_morphs.json"))
@@ -39,7 +39,7 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.6, "Neck": 0.55}
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.6, "Neck": 0.55, "Arms": 0.62, "Hands": 0.45}
             mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
             v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
             w *= axis_w(sd, v)
@@ -525,7 +525,7 @@ def jersey_env_disp(p, n):
     q0 = jersey_disp(p, n)
     w = ss(arm_z + 0.02, arm_z - 0.06, p.z)          # 0 at armpit/straps -> 1 below
     if w <= 0: return q0
-    x, y, z = ENV_T.project(p.x, p.y, max(p.z, Zm(0.915)), 0.022 + 0.04 * ss(1.04, 0.92, Zi(p.z)))
+    x, y, z = ENV_T.project(p.x, p.y, max(p.z, Zm(0.915)), 0.022 + 0.03 * ss(1.06, 0.92, Zi(p.z)))
     return q0.lerp(Vector((x, y, z)), w)
 pel_pts = [tuple(VC[i]) for i in range(len(VC)) if dom.get(i, "").startswith(("pelvis", "thigh", "spine01")) and abs(VC[i].x) < 0.26 * XS]
 ENV_P = Envelope(pel_pts, crotch_z - 0.14, Zm(1.0), _cy(pel_pts), hang_from=Zm(0.93), taper=0.0)
@@ -660,7 +660,7 @@ def shorts_attr(p, t):
     stripe = 1.0 if (abs(ang + 6) < 13 and Zi(p.z) < 0.97) else 0.0
     return max(t if Zi(p.z) < 0.7 else 0.0, stripe)
 def build_shorts2(margin=0.026, voxel=0.0045):
-    Z_TOP, Z_HEM = Zm(0.93), rb['calf_L'].head_local.z + 0.045
+    Z_TOP, Z_HEM = Zm(0.95), rb['calf_L'].head_local.z + 0.045
     bm = bmesh.new(); NA = 96
     def ring(env, z, m, sg=0):
         cx, cy = env.center(z); r = []
@@ -704,7 +704,7 @@ def build_shorts2(margin=0.026, voxel=0.0045):
         return y0 - margin, y1 + margin
     up = []
     for z in [z for z in zs_all if z > crotch_z - 0.03]:
-        y0, y1 = depth(max(z, crotch_z + 0.01)); xo = XO[z]
+        y0, y1 = depth(max(z, crotch_z + 0.01)); xo = XO[z] + 0.012 * ss(Z_TOP - 0.02, crotch_z, z)
         up.append((z, se(0.0, (y0 + y1) / 2, xo, (y1 - y0) / 2, n=3.0)))
     tube(up)
     for sg in (1, -1):
@@ -712,8 +712,8 @@ def build_shorts2(margin=0.026, voxel=0.0045):
         for z in [z for z in zs_all if z < crotch_z - 0.015]:
             xi = min(0.004 + max(0.0, crotch_z - z) * 0.40, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
             xi = max(0.004, xi)
-            xo = XO[z] + 0.012 * ss(crotch_z, Z_HEM, z)
-            y0, y1 = depth(z, sg); y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
+            xo = XO[z] + 0.012 + 0.025 * ss(crotch_z, Z_HEM, z)
+            y0, y1 = depth(z, sg); y0 -= 0.012 + 0.015 * ss(crotch_z, Z_HEM, z); y1 += 0.01; y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
             rings.append((z, se(sg * (xi + xo) / 2, (y0 + y1) / 2, (xo - xi) / 2, (y1 - y0) / 2)))
         tube(rings)
     me = bpy.data.meshes.new("Shorts"); bm.to_mesh(me); bm.free()
@@ -762,12 +762,14 @@ def build_shorts2(margin=0.026, voxel=0.0045):
         for g in W:
             w_ = W[g][i] / tot
             if w_ > 0.005: groups[g].add([i], w_, "REPLACE")
+    MAXX = collections.defaultdict(float)
+    for v in me2.vertices: MAXX[round(v.co.z, 2)] = max(MAXX[round(v.co.z, 2)], abs(v.co.x))
     ta = me2.color_attributes.new("trim", "FLOAT_COLOR", "POINT")
     for v in me2.vertices:
         t_ = 1.0 if v.co.z < Z_HEM + 0.018 else 0.0
         if v.co.z > Z_HEM + 0.018:
-            zk = min(XO, key=lambda zz: abs(zz - v.co.z))
-            t_ = 1.0 if abs(v.co.x) > XO[zk] - 0.006 and v.co.z < Z_TOP - 0.03 else 0.0
+            zb_ = round(v.co.z, 2)
+            t_ = 1.0 if abs(v.co.x) > MAXX.get(zb_, 9) - 0.011 and v.co.z < Z_TOP - 0.03 else 0.0
         ta.data[v.index].color = (t_, t_, t_, 1)
     for p in me2.polygons: p.use_smooth = True
     ob.parent = arm
@@ -984,14 +986,14 @@ for m in body.data.materials:
         pr.inputs["Subsurface Weight"].default_value = 0.18
         pr.inputs["Subsurface Radius"].default_value = (1.0, 0.4, 0.25)
         pr.inputs["Subsurface Scale"].default_value = 0.012
-        pr.inputs["Coat Weight"].default_value = 0.05
+        pr.inputs["Coat Weight"].default_value = 0.0
         bmp = [n for n in nt.nodes if n.type == "TEX_IMAGE" and n.name.endswith("skn_bump")][0]
         bp = nt.nodes.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.04
         nt.links.new(bmp.outputs["Color"], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], pr.inputs["Normal"])
         warm = nt.nodes.new("ShaderNodeMix"); warm.data_type = "RGBA"; warm.blend_type = "MULTIPLY"
         warm.inputs[0].default_value = 1.0; warm.inputs[7].default_value = tuple(float(x) for x in os.environ.get("SKIN_TINT", "0.92,0.74,0.58").split(",")) + (1,)
         nt.links.new(alb.outputs["Color"], warm.inputs[6]); nt.links.new(warm.outputs[2], pr.inputs["Base Color"])
-        pr.inputs["Roughness"].default_value = 0.6; pr.inputs["Specular IOR Level"].default_value = 0.3
+        pr.inputs["Roughness"].default_value = 0.68; pr.inputs["Specular IOR Level"].default_value = 0.22
         hp = nt.nodes.new("ShaderNodeBsdfPrincipled")
         hp.inputs["Base Color"].default_value = (0.010, 0.008, 0.007, 1); hp.inputs["Roughness"].default_value = 0.75
         hb2 = nt.nodes.new("ShaderNodeBump"); hb2.inputs["Strength"].default_value = 0.35

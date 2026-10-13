@@ -166,7 +166,7 @@ if __name__ == "__main__":
         hz = rb["thigh_L"].head_local.z - 0.05
         for s_, sg_ in (("L", 1), ("R", -1)):
             sh = rb[f"upperarm_{s_}"].head_local; Lr = rb[f"upperarm_{s_}"].length + rb[f"lowerarm_{s_}"].length
-            C[f"hand_{s_}"].location = sh + Vector((0.075 * sg_, -0.03, -Lr * 0.965))
+            C[f"hand_{s_}"].location = sh + Vector((0.085 * sg_, -0.06, -Lr * 0.94))
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
             C[f"elbow_{s}"].location = Vector((0.3 * sg, 0.5, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
