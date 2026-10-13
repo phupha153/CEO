@@ -1,0 +1,28 @@
+name: fetch-assets
+on:
+  push:
+    paths: ["assets/fetch.txt", ".github/workflows/fetch.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download listed URLs (url<TAB>outname)
+        run: |
+          mkdir -p assets/dl
+          while IFS=$'\t' read -r url out; do
+            [ -z "$url" ] && continue
+            [ -f "assets/dl/$out" ] && continue
+            curl -fsSL -A "Mozilla/5.0" -o "assets/dl/$out" "$url" && ls -la "assets/dl/$out" || echo "FAIL $url"
+          done < assets/fetch.txt
+          # split anything >95MB
+          for f in assets/dl/*; do s=$(stat -c%s "$f"); if [ $s -gt 95000000 ]; then split -b 90m -d "$f" "$f.part"; rm "$f"; fi; done
+          ls -la assets/dl
+      - name: Commit
+        run: |
+          git config user.name "media-bridge-bot"; git config user.email "media-bridge-bot@users.noreply.github.com"
+          git add assets/dl
+          git diff --cached --quiet || (git commit -m "assets: fetched" && git pull --rebase -q && git push)
