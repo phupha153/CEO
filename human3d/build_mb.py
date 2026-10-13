@@ -483,7 +483,7 @@ def xa_f(z): return 0.108 + 0.10 * (1 - math.sqrt(ss(1.21, 1.415, z)))
 def nl_f(x, y): return (1.365 + 1.35 * abs(x)) if y < 0 else 1.47 + 0.075 * (abs(x) / 0.075) ** 2
 def jersey_pred(c, d):
     if any(d.startswith(k) for k in ARMB): return False
-    if c.z < 0.88: return False
+    if c.z < 0.94: return False
     ax = abs(c.x)
     xa = xa_f(c.z)      # armhole curve
     if ax > xa: return False
@@ -549,9 +549,9 @@ def jersey_env_disp(p, n):
     q0 = jersey_disp(p, n)
     w = ss(arm_z + 0.02, arm_z - 0.06, p.z)          # 0 at armpit/straps -> 1 below
     if w <= 0: return q0
-    pz = max(p.z, Zm(0.885))
-    x, y, z = ENV_T.project(p.x, p.y, pz, 0.022 + 0.01 * ss(1.02, 0.87, Zi(p.z)))
-    k_ = ss(Zm(0.96), Zm(0.905), pz)
+    pz = max(p.z, Zm(0.955))
+    x, y, z = ENV_T.project(p.x, p.y, pz, 0.012 + 0.01 * ss(1.02, 0.87, Zi(p.z)))
+    k_ = ss(Zm(1.04), Zm(0.975), pz)
     if k_ > 0 and pz >= ENV_P.z0:
         cx, cy = ENV_T.center(pz); th = math.atan2(p.y - cy, p.x - cx)
         x2, y2, _ = ENV_P.project(p.x, p.y, pz, float(os.environ.get('SH_MARGIN', 0.022)) + 0.016)
@@ -576,7 +576,7 @@ def shorts_env_disp(p, n):
     q = Vector(up).lerp(Vector(lg), w)
     if w > 0.5 and sg * q.x < 0.006: q.x = 0.006 * sg
     return q
-garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.013, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.885)),), relax=6, smooth_w=20, smooth_it=40)
+garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.013, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.955)),), relax=6, smooth_w=20, smooth_it=40)
 def shorts_pred(c, d):
     if any(d.startswith(k) for k in ("spine02", "spine03", "upperarm", "lowerarm", "hand", "calf", "foot", "toes")): return False
     return 0.575 < c.z < 0.995
@@ -692,7 +692,7 @@ def shorts_attr(p, t):
     stripe = 1.0 if (abs(ang + 6) < 13 and Zi(p.z) < 0.97) else 0.0
     return max(t if Zi(p.z) < 0.7 else 0.0, stripe)
 def build_shorts2(margin=float(os.environ.get('SH_MARGIN', 0.026)), voxel=0.0045):
-    Z_TOP, Z_HEM = Zm(0.90), rb['calf_L'].head_local.z + float(os.environ.get('SH_HEM', 0.045))
+    Z_TOP, Z_HEM = Zm(0.97), rb['calf_L'].head_local.z + float(os.environ.get('SH_HEM', 0.045))
     bm = bmesh.new(); NA = 96
     def ring(env, z, m, sg=0):
         cx, cy = env.center(z); r = []
@@ -744,7 +744,7 @@ def build_shorts2(margin=float(os.environ.get('SH_MARGIN', 0.026)), voxel=0.0045
         for z in [z for z in zs_all if z < crotch_z - 0.015]:
             xi = min(0.004 + max(0.0, crotch_z + float(os.environ.get("SH_INSEAM", 0.0)) - z) * 0.30, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
             xi = max(0.004, xi)
-            xo = XO[z] + 0.012 + 0.04 * ss(crotch_z, Z_HEM, z)
+            xo = XO[z] + 0.012 + 0.015 * ss(crotch_z, Z_HEM, z)
             y0, y1 = depth(z, sg); y0 -= 0.012 + 0.015 * ss(crotch_z, Z_HEM, z); y1 += 0.01; y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
             rings.append((z, se(sg * (xi + xo) / 2, (y0 + y1) / 2, (xo - xi) / 2, (y1 - y0) / 2, n=3.4)))
         tube(rings)

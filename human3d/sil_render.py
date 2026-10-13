@@ -29,3 +29,8 @@ cd = bpy.data.cameras.new("c"); cam = bpy.data.objects.new("c", cd); sc.collecti
 cam.location = (0.0, -6.0, 1.0); cd.lens = 92
 cam.rotation_euler = (Vector((0, 0, 0.94)) - cam.location).to_track_quat("-Z", "Y").to_euler()
 sc.render.filepath = sys.argv[-1]; bpy.ops.render.render(write_still=True)
+bpy.context.view_layer.update()
+_tip = (arm.matrix_world @ arm.pose.bones["middle03_L"].tail).z
+_top = max((bpy.data.objects["Body"].matrix_world @ v.co).z for v in bpy.data.objects["Body"].data.vertices)
+_el = (arm.matrix_world @ arm.pose.bones["lowerarm_L"].head).z; _wr = (arm.matrix_world @ arm.pose.bones["hand_L"].head).z
+print("ARM fingertip_from_top %.3f elbow %.3f wrist %.3f" % ((_top - _tip) / _top, (_top - _el) / _top, (_top - _wr) / _top))

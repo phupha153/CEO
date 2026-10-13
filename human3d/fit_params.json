@@ -8,8 +8,8 @@
   "Torso_Vshape": 0.8,
   "Chest_Girth": 0.91,
   "Arms_UpperarmGirth": 0.4,
-  "Arms_UpperarmLength": 0.85,
-  "Arms_ForearmLength": 0.9,
+  "Arms_UpperarmLength": 0.68,
+  "Arms_ForearmLength": 0.58,
   "Legs_UpperlegLength": 0.9,
   "Legs_LowerlegLength": 0.85,
   "Legs_UpperThighGirth": 0.75,
@@ -26,12 +26,12 @@
  },
  "env": {
   "SH_MARGIN": 0.022,
-  "SH_HEM": 0.035,
+  "SH_HEM": 0.12,
   "SH_INSEAM": 0.018
  },
  "pose": {
   "foot_x": 0.142,
-  "hand_dx": 0.11,
+  "hand_dx": 0.125,
   "hand_L": 0.965,
   "hand_dy": -0.0744
  }
