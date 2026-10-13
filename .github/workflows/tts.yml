@@ -1,7 +1,7 @@
 name: tts
 on:
   push:
-    paths: ["jobs/**", "scripts/**", ".github/workflows/**"]
+    paths: ["jobs/**", "scripts/tts.py", "scripts/edge.py", "scripts/gtts_run.py", ".github/workflows/tts.yml"]
   workflow_dispatch:
 permissions:
   contents: write
