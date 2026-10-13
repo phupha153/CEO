@@ -1,5 +1,5 @@
 """IK posing helpers for the MB-Lab character + a relaxed 'holding ball' stance still."""
-import bpy, math, sys, os
+import bpy, math, sys, os, json
 from mathutils import Vector, Quaternion, Matrix
 
 def setup_ik(arm):
@@ -146,7 +146,7 @@ def rot_bone(arm, name, axis, deg):
     pb.rotation_quaternion = Quaternion(axis, math.radians(deg)) @ pb.rotation_quaternion
 
 if __name__ == "__main__":
-    bpy.ops.wm.open_mainfile(filepath=os.environ.get("MB_OUT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "mb_human.blend")))
+    bpy.ops.wm.open_mainfile(filepath="/home/claude/human/mb_human.blend")
     sc = bpy.context.scene
     arm = bpy.data.objects["RIG"]
     C = setup_ik(arm)
@@ -166,7 +166,8 @@ if __name__ == "__main__":
         hz = rb["thigh_L"].head_local.z - 0.05
         for s_, sg_ in (("L", 1), ("R", -1)):
             sh = rb[f"upperarm_{s_}"].head_local; Lr = rb[f"upperarm_{s_}"].length + rb[f"lowerarm_{s_}"].length
-            C[f"hand_{s_}"].location = sh + Vector((0.12 * sg_, -0.06, -Lr * 0.95))
+            _fp = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fit_params.json')))['pose']
+            C[f"hand_{s_}"].location = sh + Vector((_fp['hand_dx'] * sg_, _fp['hand_dy'], -Lr * _fp['hand_L']))
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
             C[f"elbow_{s}"].location = Vector((rb[f"upperarm_{s}"].head_local.x + 0.10 * sg, 0.7, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue

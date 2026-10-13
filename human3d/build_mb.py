@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mathutils import Vector, Matrix
 
 MB = "/tmp/mblab/data"
-OUT = os.environ.get("MB_OUT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "mb_human.blend"))
+OUT = os.environ.get("MB_OUT", "/home/claude/human/mb_human.blend")
 CH = "m_as01"
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -28,6 +28,11 @@ SLIDERS = {"Torso_Vshape": 0.9, "Shoulders_SizeX": 1.0, "Shoulders_Size": 0.6, "
            "Waist_Size": 0.2, "Legs_CalfGirth": 0.8, "Legs_UpperThighGirth": 0.62, "Legs_LowerThighGirth": 0.62, "Head_Size": 0.7,
            "Legs_UpperlegLength": 0.8, "Legs_LowerlegLength": 0.78, "Arms_UpperarmLength": 0.82, "Arms_ForearmLength": 0.78,
            "Torso_Dorsi": 0.75, "Pelvis_GluteusSize": 0.55}
+_FIT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fit_params.json")
+if os.path.exists(_FIT) and not os.environ.get("MB_NOFIT"):
+    _fp = json.load(open(_FIT)); SLIDERS.update(_fp["sliders"])
+    for _k, _v in _fp["env"].items(): os.environ.setdefault(_k, str(_v))
+SLIDERS.update(json.loads(os.environ.get("MB_SLIDERS", "{}")))
 MORPHS = json.load(open(f"{MB}/morphs/human_male_morphs.json"))
 def axis_w(side, v): return max(0.0, (v - 0.5) * 2) if side == "max" else max(0.0, (0.5 - v) * 2)
 delta = collections.defaultdict(lambda: Vector((0, 0, 0)))
@@ -39,7 +44,8 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.55, "Arms": 0.62, "Hands": 0.45}
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.65, "Arms": 0.85, "Shoulders": 0.85, "Hands": 0.45}
+            REG.update(json.loads(os.environ.get("MB_REG", "{}")))
             mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
             v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
             w *= axis_w(sd, v)
@@ -136,7 +142,7 @@ for k, i in enumerate(_bv): _kd.insert(VC[i], k)
 _kd.balance()
 cap_p = [p for p in body.data.polygons if all(mask[i] > 0.5 for i in p.vertices)]
 areas = [p.area for p in cap_p]; tot = sum(areas)
-NS = 90000
+NS = int(os.environ.get("MB_HAIR", 90000))
 hc = bpy.data.hair_curves.new("Hair")
 SEG = 7
 pos = []; rad = []
@@ -459,7 +465,7 @@ def xa_f(z): return 0.108 + 0.10 * (1 - math.sqrt(ss(1.21, 1.415, z)))
 def nl_f(x, y): return (1.365 + 1.35 * abs(x)) if y < 0 else 1.47 + 0.075 * (abs(x) / 0.075) ** 2
 def jersey_pred(c, d):
     if any(d.startswith(k) for k in ARMB): return False
-    if c.z < 0.94: return False
+    if c.z < 0.88: return False
     ax = abs(c.x)
     xa = xa_f(c.z)      # armhole curve
     if ax > xa: return False
@@ -520,12 +526,20 @@ def _cy(pts, z0=0.3, z1=1.7):
         f = (z - z0) / 0.01; i = max(0, min(len(raw) - 2, int(f))); t = max(0.0, min(1.0, f - i))
         return (0.0, raw[i] * (1 - t) + raw[i + 1] * t)
     return c
-ENV_T = Envelope(tor_pts, crotch_z - 0.02, arm_z + 0.12, _cy(tor_pts), hang_from=Zm(1.30), taper=-0.25, zsmooth=16)
+ENV_T = Envelope(tor_pts, crotch_z - 0.02, arm_z + 0.12, _cy(tor_pts), hang_from=Zm(1.30), taper=-0.16, zsmooth=16)
 def jersey_env_disp(p, n):
     q0 = jersey_disp(p, n)
     w = ss(arm_z + 0.02, arm_z - 0.06, p.z)          # 0 at armpit/straps -> 1 below
     if w <= 0: return q0
-    x, y, z = ENV_T.project(p.x, p.y, max(p.z, Zm(0.915)), 0.022 + 0.03 * ss(1.06, 0.92, Zi(p.z)))
+    pz = max(p.z, Zm(0.865))
+    x, y, z = ENV_T.project(p.x, p.y, pz, 0.022 + 0.01 * ss(1.02, 0.87, Zi(p.z)))
+    k_ = ss(Zm(0.95), Zm(0.88), pz)
+    if k_ > 0 and pz >= ENV_P.z0:
+        cx, cy = ENV_T.center(pz); th = math.atan2(p.y - cy, p.x - cx)
+        x2, y2, _ = ENV_P.project(p.x, p.y, pz, 0.016 + 0.022)
+        r1 = math.hypot(x - cx, y - cy); r2 = math.hypot(x2 - cx, y2 - cy)
+        r = r1 + max(0.0, r2 - r1) * k_
+        x, y = cx + r * math.cos(th), cy + r * math.sin(th)
     return q0.lerp(Vector((x, y, z)), w)
 pel_pts = [tuple(VC[i]) for i in range(len(VC)) if dom.get(i, "").startswith(("pelvis", "thigh", "spine01")) and abs(VC[i].x) < 0.26 * XS]
 ENV_P = Envelope(pel_pts, crotch_z - 0.14, Zm(1.0), _cy(pel_pts), hang_from=Zm(0.93), taper=0.0)
@@ -544,7 +558,7 @@ def shorts_env_disp(p, n):
     q = Vector(up).lerp(Vector(lg), w)
     if w > 0.5 and sg * q.x < 0.006: q.x = 0.006 * sg
     return q
-garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.016, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.915)),), relax=0, smooth_w=20)
+garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.016, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.865)),), relax=0, smooth_w=20)
 def shorts_pred(c, d):
     if any(d.startswith(k) for k in ("spine02", "spine03", "upperarm", "lowerarm", "hand", "calf", "foot", "toes")): return False
     return 0.575 < c.z < 0.995
@@ -659,8 +673,8 @@ def shorts_attr(p, t):
     ang = math.degrees(math.atan2(r.y, r.x * sg))          # 0 = straight outward
     stripe = 1.0 if (abs(ang + 6) < 13 and Zi(p.z) < 0.97) else 0.0
     return max(t if Zi(p.z) < 0.7 else 0.0, stripe)
-def build_shorts2(margin=0.026, voxel=0.0045):
-    Z_TOP, Z_HEM = Zm(0.95), rb['calf_L'].head_local.z + 0.045
+def build_shorts2(margin=float(os.environ.get('SH_MARGIN', 0.026)), voxel=0.0045):
+    Z_TOP, Z_HEM = Zm(0.90), rb['calf_L'].head_local.z + float(os.environ.get('SH_HEM', 0.045))
     bm = bmesh.new(); NA = 96
     def ring(env, z, m, sg=0):
         cx, cy = env.center(z); r = []
@@ -989,7 +1003,13 @@ for m in body.data.materials:
         pr.inputs["Coat Weight"].default_value = 0.0
         bmp = [n for n in nt.nodes if n.type == "TEX_IMAGE" and n.name.endswith("skn_bump")][0]
         bp = nt.nodes.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.04
-        nt.links.new(bmp.outputs["Color"], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], pr.inputs["Normal"])
+        nt.links.new(bmp.outputs["Color"], bp.inputs["Height"])
+        # muscle definition from MB-Lab displacement map, layered under the fine skin bump
+        dtx = nt.nodes.new("ShaderNodeTexImage"); dtx.image = img("human_male_displacement.png", True)
+        uvn = nt.nodes.new("ShaderNodeUVMap"); uvn.uv_map = "UVMap"; nt.links.new(uvn.outputs[0], dtx.inputs["Vector"])
+        bpd = nt.nodes.new("ShaderNodeBump"); bpd.inputs["Strength"].default_value = float(os.environ.get("MUSCLE_BUMP", 0.3)); bpd.inputs["Distance"].default_value = 0.02
+        nt.links.new(dtx.outputs["Color"], bpd.inputs["Height"]); nt.links.new(bpd.outputs["Normal"], bp.inputs["Normal"])
+        nt.links.new(bp.outputs["Normal"], pr.inputs["Normal"])
         warm = nt.nodes.new("ShaderNodeMix"); warm.data_type = "RGBA"; warm.blend_type = "MULTIPLY"
         warm.inputs[0].default_value = 1.0; warm.inputs[7].default_value = tuple(float(x) for x in os.environ.get("SKIN_TINT", "0.92,0.74,0.58").split(",")) + (1,)
         nt.links.new(alb.outputs["Color"], warm.inputs[6]); nt.links.new(warm.outputs[2], pr.inputs["Base Color"])
