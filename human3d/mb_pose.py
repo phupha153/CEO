@@ -155,20 +155,22 @@ if __name__ == "__main__":
     # stance: feet shoulder width, slight knee bend, ball held at waist in front
     C["foot_L"].location = (0.17, -0.07, rb["foot_L"].head_local.z)
     C["foot_R"].location = (-0.16, 0.05, rb["foot_R"].head_local.z)
-    ball_c = Vector((0.0, -0.30, rb["spine03"].head_local.z - 0.05))
+    ball_c = Vector((0.0, -0.30, rb["spine01"].head_local.z + 0.07))
     STAND = os.environ.get("POSE") == "stand"
     if STAND: ball_c = Vector((0, 3.0, -3.0))
-    C["foot_L"].location = (0.14, -0.03, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.14, -0.03, rb["foot_R"].head_local.z)
+    C["foot_L"].location = (0.21, -0.03, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.21, -0.03, rb["foot_R"].head_local.z)
     C["hand_L"].location = ball_c + Vector((0.135, 0.015, -0.075))
     C["hand_R"].location = ball_c + Vector((-0.135, 0.015, -0.075))
     if STAND:
         C["foot_L"].location = (0.13, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.13, -0.02, rb["foot_R"].head_local.z)
         hz = rb["thigh_L"].head_local.z - 0.05
-        C["hand_L"].location = (0.30, -0.01, hz + 0.02); C["hand_R"].location = (-0.30, -0.01, hz + 0.02)
+        for s_, sg_ in (("L", 1), ("R", -1)):
+            sh = rb[f"upperarm_{s_}"].head_local; Lr = rb[f"upperarm_{s_}"].length + rb[f"lowerarm_{s_}"].length
+            C[f"hand_{s_}"].location = sh + Vector((0.075 * sg_, -0.03, -Lr * 0.965))
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
             C[f"elbow_{s}"].location = Vector((0.3 * sg, 0.5, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
-        C[f"elbow_{s}"].location = Vector((0.28 * sg, 0.30, rb["spine01"].head_local.z - 0.10))
+        C[f"elbow_{s}"].location = Vector((0.60 * sg, 0.15, rb["spine01"].head_local.z + 0.05))
         C[f"knee_{s}"].location = Vector((0.40 * sg, -0.8, rb["calf_L"].head_local.z))
     pl = arm.pose.bones["pelvis"]; pl.rotation_mode = "QUATERNION"
     if not STAND: pl.matrix = Matrix.Translation((0, 0.0, -0.015)) @ pl.matrix
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.12, location=ball_c)
     ball = bpy.context.object; bpy.ops.object.shade_smooth()
     mb = bpy.data.materials.new("ball"); mb.use_nodes = True
-    mb.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.55, 0.13, 0.025, 1)
+    mb.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.2, 0.045, 0.01, 1)
     mb.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.65
     nt_ = mb.node_tree; vz = nt_.nodes.new("ShaderNodeTexVoronoi"); vz.inputs["Scale"].default_value = 260
     bpn = nt_.nodes.new("ShaderNodeBump"); bpn.inputs["Strength"].default_value = 0.35; bpn.invert = True
@@ -198,23 +200,23 @@ if __name__ == "__main__":
     bpy.context.view_layer.update()
     if os.environ.get("HIDE"):
         for n_ in os.environ["HIDE"].split(","): bpy.data.objects[n_].hide_render = True
-    sc.render.engine = "CYCLES"; sc.cycles.samples = 24; sc.cycles.use_denoising = True
-    sc.render.resolution_x = 540; sc.render.resolution_y = 810; sc.render.use_persistent_data=True; sc.cycles.tile_size=512
+    sc.render.engine = "CYCLES"; sc.cycles.samples = int(os.environ.get('SPP', 24)); sc.cycles.use_denoising = True
+    sc.render.resolution_x = int(os.environ.get('RX', 540)); sc.render.resolution_y = int(os.environ.get('RY', 810)); sc.render.use_persistent_data=True; sc.cycles.tile_size=512
     sc.view_settings.view_transform = "AgX"; sc.view_settings.look = "AgX - Medium High Contrast"
     w = bpy.data.worlds.new("w"); sc.world = w; w.use_nodes = True
-    w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.05, 0.28, 0.80, 1)
+    w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.01, 0.16, 0.75, 1)
     w.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.35
     def area(loc, tgt, e, s=3, c=(1, 1, 1)):
         L = bpy.data.lights.new("a", "AREA"); L.energy = e; L.size = s; L.color = c
         o = bpy.data.objects.new("a", L); o.location = loc
         o.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); sc.collection.objects.link(o)
-    area((1.6, -2.6, 2.4), (0, 0, 1.3), 380, 2.5, (1, .96, .92)); area((-2.2, -1.6, 1.5), (0, 0, 1.2), 90, 3, (.85, .92, 1))
+    area((-1.6, -3.0, 2.7), (0, 0, 1.3), 750, 0.9, (1, .95, .88)); area((2.6, -2.2, 1.5), (0, 0, 1.2), 90, 3, (.85, .92, 1)); area((-2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8); area((2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8)
     area((0.3, 2.2, 2.6), (0, 0, 1.5), 220, 2)
     bpy.ops.mesh.primitive_plane_add(size=20); fl = bpy.context.object
     mf = bpy.data.materials.new("floor"); mf.use_nodes = True
     mf.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.03, 0.22, 0.75, 1)
     fl.data.materials.append(mf)
     cd = bpy.data.cameras.new("c"); cam = bpy.data.objects.new("c", cd); sc.collection.objects.link(cam); sc.camera = cam
-    for name, loc, tgt, lens in [x for x in (("full", (0.0, -4.8, 1.0), (0, 0, 0.95), 45), ("handf", (0.0, -1.6, 0.95), (0, 0, 0.9), 55), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("hands", (0.45, -1.3, 1.05), (0, -0.1, 1.0), 50), ("ball", (0.25, -1.5, 1.35), (0, -0.2, 1.22), 55), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.68), (0, 0, 1.66), 70)) if x[0] in sys.argv[-1].split(",")]:
+    for name, loc, tgt, lens in [x for x in (("full", (0.0, -4.8, 1.0), (0, 0, 0.95), 45), ("ref", (0.0, -6.0, 1.0), (0, 0, 0.94), 92), ("handf", (0.0, -1.6, 0.95), (0, 0, 0.9), 55), ("face", (0.35, -1.0, 1.62), (0, 0, 1.6), 62), ("hip", (0.3, -1.6, 0.85), (0, 0, 0.85), 50), ("hands", (0.45, -1.3, 1.05), (0, -0.1, 1.0), 50), ("ball", (0.25, -1.5, 1.35), (0, -0.2, 1.22), 55), ("feet", (0.5, -1.2, 0.35), (0, -0.05, 0.08), 45), ("front", (0.0, -1.05, 1.68), (0, 0, 1.66), 70)) if x[0] in sys.argv[-1].split(",")]:
         cam.location = loc; cam.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); cd.lens = lens
         sc.render.filepath = f"/tmp/pose_{name}.png"; bpy.ops.render.render(write_still=True)
