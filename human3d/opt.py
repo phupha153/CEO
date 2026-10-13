@@ -9,9 +9,9 @@ PARAMS = {  # name: (kind, start, step, lo, hi)
  "Chest_Girth": ("sl", 0.82, 0.15, 0, 1), "Arms_UpperarmGirth": ("sl", 0.7, 0.15, 0, 1), "Arms_UpperarmLength": ("sl", 0.82, 0.15, 0, 1),
  "Arms_ForearmLength": ("sl", 0.78, 0.15, 0, 1), "Legs_UpperlegLength": ("sl", 0.8, 0.15, 0, 1), "Legs_LowerlegLength": ("sl", 0.78, 0.15, 0, 1),
  "Legs_UpperThighGirth": ("sl", 0.62, 0.15, 0, 1), "Legs_CalfGirth": ("sl", 0.8, 0.15, 0, 1), "Head_Size": ("sl", 0.7, 0.15, 0, 1),
- "Torso_Length": ("sl", 0.25, 0.15, 0, 1), "Waist_Size": ("sl", 0.2, 0.15, 0, 1),
- "SH_MARGIN": ("env", 0.026, 0.01, 0.005, 0.06), "SH_HEM": ("env", 0.045, 0.03, -0.05, 0.15),
- "foot_x": ("pose", 0.16, 0.03, 0.08, 0.26), "hand_dx": ("pose", 0.12, 0.04, -0.02, 0.25), "hand_L": ("pose", 0.95, 0.02, 0.85, 0.99),
+ "Torso_Length": ("sl", 0.25, 0.15, 0, 1), "Waist_Size": ("sl", 0.2, 0.15, 0, 1), "Neck_Size": ("sl", 0.7, 0.15, 0, 1), "Head_SizeX": ("sl", 0.5, 0.15, 0, 1), "Head_SizeZ": ("sl", 0.5, 0.15, 0, 1), "Body_Size": ("sl", 0.5, 0.15, 0, 1),
+ "SH_INSEAM": ("env", 0.0, 0.03, -0.06, 0.08), "SH_MARGIN": ("env", 0.026, 0.01, 0.02, 0.06), "SH_HEM": ("env", 0.045, 0.03, -0.05, 0.15),
+ "foot_x": ("pose", 0.16, 0.03, 0.08, 0.26), "hand_dx": ("pose", 0.12, 0.02, -0.02, 0.25), "hand_L": ("pose", 0.95, 0.02, 0.85, 0.99),
  "hand_dy": ("pose", -0.06, 0.04, -0.2, 0.1),
 }
 def load():
@@ -25,11 +25,18 @@ def evaluate(x, tag, need_build=True):
     env["POSE_JSON"] = json.dumps({k: v for k, v in x.items() if PARAMS[k][0] == "pose"})
     key = json.dumps({k: v for k, v in x.items() if PARAMS[k][0] != "pose"}, sort_keys=True)
     if need_build or S.get("built") != key:
-        subprocess.run(["python3", "build_mb.py"], cwd=D, env=env, capture_output=True); S["built"] = key
+        r = subprocess.run(["python3", "build_mb.py"], cwd=D, env=env, capture_output=True, text=True); S["built"] = key
+        import re; mm = re.search(r"height ([0-9.]+)", r.stdout); S["height"] = float(mm.group(1)) if mm else 1.85
     out = f"/tmp/opt_{tag}.png"
     subprocess.run(["python3", "sil_render.py", out], cwd=D, env=env, capture_output=True)
     l, w = score(out)
-    return l + 2 * w
+    from ratios import ratios, R as RR
+    from PIL import Image
+    M = ratios(Image.open(out))
+    WT = {"chin": 3, "neck": 3, "head_w": 3, "neck_w": 1.5, "sh_w": 2, "sh_y": 1, "crotch": 1.5}
+    rerr = sum(WT[k] * abs(M[k] - RR[k]) / RR[k] for k in WT)
+    herr = abs(S.get("height", 1.85) - 1.86) / 1.86
+    return l + 2 * w + 0.5 * rerr + 3 * herr
 if __name__ == '__main__':
     T0 = time.time(); BUDGET = float(sys.argv[1]) if len(sys.argv) > 1 else 540
     S = load()

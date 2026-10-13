@@ -1,33 +1,36 @@
 {
  "sliders": {
-  "Shoulders_PosZ": 0.392,
-  "Neck_TrapeziousSize": 0.62,
-  "Neck_Length": 0.91,
-  "Shoulders_SizeX": 0.85,
-  "Shoulders_Size": 0.592,
-  "Torso_Vshape": 0.75,
-  "Chest_Girth": 0.964,
-  "Arms_UpperarmGirth": 0.8,
-  "Arms_UpperarmLength": 0.814,
-  "Arms_ForearmLength": 0.774,
-  "Legs_UpperlegLength": 0.95,
-  "Legs_LowerlegLength": 1,
-  "Legs_UpperThighGirth": 0.77,
-  "Legs_CalfGirth": 0.65,
-  "Head_Size": 0.55,
+  "Shoulders_PosZ": 0.192,
+  "Neck_TrapeziousSize": 0.892,
+  "Neck_Length": 0.406,
+  "Shoulders_SizeX": 0.7,
+  "Shoulders_Size": 0.272,
+  "Torso_Vshape": 0.8,
+  "Chest_Girth": 0.91,
+  "Arms_UpperarmGirth": 0.4,
+  "Arms_UpperarmLength": 0.85,
+  "Arms_ForearmLength": 0.9,
+  "Legs_UpperlegLength": 0.9,
+  "Legs_LowerlegLength": 0.85,
+  "Legs_UpperThighGirth": 0.75,
+  "Legs_CalfGirth": 0.56,
+  "Head_Size": 0.7,
   "Torso_Length": 0.1,
-  "Waist_Size": 0.2,
-  "Neck_Size": 0.7,
-  "Arms_ForearmSize": 0.6
+  "Waist_Size": 0.05,
+  "Neck_Size": 0.61,
+  "Head_SizeX": 0.25,
+  "Head_SizeZ": 0.5,
+  "Body_Size": 0.5
  },
  "env": {
-  "SH_MARGIN": 0.016,
-  "SH_HEM": 0.02
+  "SH_MARGIN": 0.022,
+  "SH_HEM": 0.087,
+  "SH_INSEAM": 0.018
  },
  "pose": {
-  "foot_x": 0.16,
-  "hand_dx": 0.12,
-  "hand_L": 0.938,
-  "hand_dy": -0.0344
+  "foot_x": 0.142,
+  "hand_dx": 0.092,
+  "hand_L": 0.965,
+  "hand_dy": -0.0744
  }
 }

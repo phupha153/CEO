@@ -162,7 +162,8 @@ if __name__ == "__main__":
     C["hand_L"].location = ball_c + Vector((0.135, 0.015, -0.075))
     C["hand_R"].location = ball_c + Vector((-0.135, 0.015, -0.075))
     if STAND:
-        C["foot_L"].location = (0.16, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-0.16, -0.02, rb["foot_R"].head_local.z)
+        _fx = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fit_params.json")))["pose"]["foot_x"]
+        C["foot_L"].location = (_fx, -0.02, rb["foot_L"].head_local.z); C["foot_R"].location = (-_fx, -0.02, rb["foot_R"].head_local.z)
         hz = rb["thigh_L"].head_local.z - 0.05
         for s_, sg_ in (("L", 1), ("R", -1)):
             sh = rb[f"upperarm_{s_}"].head_local; Lr = rb[f"upperarm_{s_}"].length + rb[f"lowerarm_{s_}"].length

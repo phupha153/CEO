@@ -44,7 +44,7 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.65, "Arms": 0.85, "Shoulders": 0.85, "Hands": 0.45}
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.65, "Arms": 0.72, "Shoulders": 0.7, "Hands": 0.45}
             REG.update(json.loads(os.environ.get("MB_REG", "{}")))
             mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
             v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
@@ -533,7 +533,7 @@ def jersey_env_disp(p, n):
     if w <= 0: return q0
     pz = max(p.z, Zm(0.865))
     x, y, z = ENV_T.project(p.x, p.y, pz, 0.022 + 0.01 * ss(1.02, 0.87, Zi(p.z)))
-    k_ = ss(Zm(0.95), Zm(0.88), pz)
+    k_ = ss(Zm(0.93), Zm(0.875), pz)
     if k_ > 0 and pz >= ENV_P.z0:
         cx, cy = ENV_T.center(pz); th = math.atan2(p.y - cy, p.x - cx)
         x2, y2, _ = ENV_P.project(p.x, p.y, pz, 0.016 + 0.022)
@@ -724,7 +724,7 @@ def build_shorts2(margin=float(os.environ.get('SH_MARGIN', 0.026)), voxel=0.0045
     for sg in (1, -1):
         rings = []
         for z in [z for z in zs_all if z < crotch_z - 0.015]:
-            xi = min(0.004 + max(0.0, crotch_z - 0.04 - z) * 0.30, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
+            xi = min(0.004 + max(0.0, crotch_z + float(os.environ.get("SH_INSEAM", 0.0)) - z) * 0.30, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
             xi = max(0.004, xi)
             xo = XO[z] + 0.012 + 0.025 * ss(crotch_z, Z_HEM, z)
             y0, y1 = depth(z, sg); y0 -= 0.012 + 0.015 * ss(crotch_z, Z_HEM, z); y1 += 0.01; y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
