@@ -4,7 +4,7 @@
   "Neck_TrapeziousSize": 0.892,
   "Neck_Length": 0.406,
   "Shoulders_SizeX": 0.7,
-  "Shoulders_Size": 0.272,
+  "Shoulders_Size": 0.4,
   "Torso_Vshape": 0.8,
   "Chest_Girth": 0.91,
   "Arms_UpperarmGirth": 0.4,
@@ -20,16 +20,18 @@
   "Neck_Size": 0.61,
   "Head_SizeX": 0.25,
   "Head_SizeZ": 0.5,
-  "Body_Size": 0.5
+  "Body_Size": 0.5,
+  "Arms_ForearmSize": 0.5,
+  "Arms_UpperarmSize": 0.5
  },
  "env": {
   "SH_MARGIN": 0.022,
-  "SH_HEM": 0.087,
+  "SH_HEM": 0.035,
   "SH_INSEAM": 0.018
  },
  "pose": {
   "foot_x": 0.142,
-  "hand_dx": 0.092,
+  "hand_dx": 0.11,
   "hand_L": 0.965,
   "hand_dy": -0.0744
  }

@@ -171,7 +171,7 @@ if __name__ == "__main__":
             C[f"hand_{s_}"].location = sh + Vector((_fp['hand_dx'] * sg_, _fp['hand_dy'], -Lr * _fp['hand_L']))
     for s, sg in (("L", 1), ("R", -1)):
         if STAND:
-            C[f"elbow_{s}"].location = Vector((rb[f"upperarm_{s}"].head_local.x + 0.10 * sg, 0.7, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
+            C[f"elbow_{s}"].location = Vector((rb[f"upperarm_{s}"].head_local.x + 0.15 * sg, 0.7, rb["spine01"].head_local.z + 0.05)); C[f"knee_{s}"].location = Vector((0.15 * sg, -0.8, rb["calf_L"].head_local.z)); continue
         C[f"elbow_{s}"].location = Vector((0.60 * sg, 0.15, rb["spine01"].head_local.z + 0.05))
         C[f"knee_{s}"].location = Vector((0.40 * sg, -0.8, rb["calf_L"].head_local.z))
     pl = arm.pose.bones["pelvis"]; pl.rotation_mode = "QUATERNION"
@@ -207,12 +207,12 @@ if __name__ == "__main__":
     sc.view_settings.view_transform = "AgX"; sc.view_settings.look = "AgX - Medium High Contrast"
     w = bpy.data.worlds.new("w"); sc.world = w; w.use_nodes = True
     w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.01, 0.16, 0.75, 1)
-    w.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.35
+    w.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.3
     def area(loc, tgt, e, s=3, c=(1, 1, 1)):
         L = bpy.data.lights.new("a", "AREA"); L.energy = e; L.size = s; L.color = c
         o = bpy.data.objects.new("a", L); o.location = loc
         o.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); sc.collection.objects.link(o)
-    area((-1.6, -3.0, 2.7), (0, 0, 1.3), 750, 0.9, (1, .95, .88)); area((2.6, -2.2, 1.5), (0, 0, 1.2), 90, 3, (.85, .92, 1)); area((-2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8); area((2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8)
+    area((-1.4, -2.6, 3.2), (0, 0, 1.3), 900, 0.7, (1, .95, .88)); area((2.6, -2.2, 1.5), (0, 0, 1.2), 30, 3, (.85, .92, 1)); area((-2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8); area((2.0, 1.0, 2.2), (0, 0, 1.4), 350, 0.8)
     area((0.3, 2.2, 2.6), (0, 0, 1.5), 220, 2)
     bpy.ops.mesh.primitive_plane_add(size=20); fl = bpy.context.object
     mf = bpy.data.materials.new("floor"); mf.use_nodes = True

@@ -44,7 +44,7 @@ for k in MORPHS:
     if "-" in sides:                                    # combined e.g. Torso_Mass-Tone_max-min
         axes = base.split("_", 1)[1].split("-"); w = 1.0
         for ax, sd in zip(axes, sides.split("-")):
-            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.65, "Arms": 0.72, "Shoulders": 0.7, "Hands": 0.45}
+            REG = {"Abdomen": 0.35, "Torso": 0.5, "Pelvis": 0.45, "Legs": 0.7, "Neck": 0.65, "Arms": 0.58, "Shoulders": 0.7, "Hands": 0.45}
             REG.update(json.loads(os.environ.get("MB_REG", "{}")))
             mreg = next((v_ for k_, v_ in REG.items() if k.startswith(k_)), MASS)
             v = mreg if ("Mass" in ax and "Breast" not in ax) else TONE if "Tone" in ax else 0.5
@@ -79,7 +79,12 @@ for name, lst in vg.items():
     for i, w in lst: g.add([i], w, "REPLACE")
 body.parent = arm
 md = body.modifiers.new("arm", "ARMATURE"); md.object = arm
-sub = body.modifiers.new("sub", "SUBSURF"); sub.levels = 0; sub.render_levels = 1
+sub = body.modifiers.new("sub", "SUBSURF"); sub.levels = 0; sub.render_levels = 2
+# real muscle relief: MB-Lab displacement map applied on the subdivided body (head/hands excluded)
+_dimg = bpy.data.images.load(f"{MB}/textures/human_male_displacement.png"); _dimg.colorspace_settings.name = "Non-Color"
+_dtex = bpy.data.textures.new("musc", "IMAGE"); _dtex.image = _dimg
+_dvg = body.vertex_groups.new(name="muscle_disp")
+DISP_STR = float(os.environ.get("MUSCLE_DISP", 0.03))
 
 # --- skin textures ---
 def img(fn, noncolor=False):
@@ -399,6 +404,19 @@ def garment(name, face_pred, disp, m, thick=0.004, trim_w=0.018, attr_fn=None, h
         trims.append(t_)
     for v in bm.verts:
         v.co = disp(v.co, nrm[v])
+    # post-displacement: smooth open edges again (clean trim) and re-flatten hems
+    for _ in range(smooth_it):
+        newc = {}
+        for v in bm.verts:
+            be = [e for e in v.link_edges if e.is_boundary]
+            if len(be) == 2:
+                a_, b_ = (e.other_vert(v).co for e in be)
+                newc[v] = v.co * 0.5 + (a_ + b_) * 0.25
+        for v, c in newc.items(): v.co = c
+    for v in bm.verts:
+        if any(e.is_boundary for e in v.link_edges):
+            for lo, hi, zz in hems:
+                if lo - 0.1 < rest[v].z < hi: v.co.z = zz
     if relax:
         inner = [v for v in bm.verts if not any(e.is_boundary for e in v.link_edges)]
         bm.normal_update()
@@ -531,12 +549,12 @@ def jersey_env_disp(p, n):
     q0 = jersey_disp(p, n)
     w = ss(arm_z + 0.02, arm_z - 0.06, p.z)          # 0 at armpit/straps -> 1 below
     if w <= 0: return q0
-    pz = max(p.z, Zm(0.865))
+    pz = max(p.z, Zm(0.885))
     x, y, z = ENV_T.project(p.x, p.y, pz, 0.022 + 0.01 * ss(1.02, 0.87, Zi(p.z)))
-    k_ = ss(Zm(0.93), Zm(0.875), pz)
+    k_ = ss(Zm(0.96), Zm(0.905), pz)
     if k_ > 0 and pz >= ENV_P.z0:
         cx, cy = ENV_T.center(pz); th = math.atan2(p.y - cy, p.x - cx)
-        x2, y2, _ = ENV_P.project(p.x, p.y, pz, 0.016 + 0.022)
+        x2, y2, _ = ENV_P.project(p.x, p.y, pz, float(os.environ.get('SH_MARGIN', 0.022)) + 0.016)
         r1 = math.hypot(x - cx, y - cy); r2 = math.hypot(x2 - cx, y2 - cy)
         r = r1 + max(0.0, r2 - r1) * k_
         x, y = cx + r * math.cos(th), cy + r * math.sin(th)
@@ -558,7 +576,7 @@ def shorts_env_disp(p, n):
     q = Vector(up).lerp(Vector(lg), w)
     if w > 0.5 and sg * q.x < 0.006: q.x = 0.006 * sg
     return q
-garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.016, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.865)),), relax=0, smooth_w=20)
+garment("Jersey", lambda c, d: jersey_pred(to_old(c), d), jersey_env_disp, M_J, 0.004, 0.013, attr_fn=lambda p, t: t if Zi(p.z) > 1.15 else 0.0, hems=((Zm(0.7), Zm(1.05), Zm(0.885)),), relax=6, smooth_w=20, smooth_it=40)
 def shorts_pred(c, d):
     if any(d.startswith(k) for k in ("spine02", "spine03", "upperarm", "lowerarm", "hand", "calf", "foot", "toes")): return False
     return 0.575 < c.z < 0.995
@@ -726,9 +744,9 @@ def build_shorts2(margin=float(os.environ.get('SH_MARGIN', 0.026)), voxel=0.0045
         for z in [z for z in zs_all if z < crotch_z - 0.015]:
             xi = min(0.004 + max(0.0, crotch_z + float(os.environ.get("SH_INSEAM", 0.0)) - z) * 0.30, ext(z, sg)[3] - 0.014) if z < crotch_z - 0.01 else 0.004
             xi = max(0.004, xi)
-            xo = XO[z] + 0.012 + 0.025 * ss(crotch_z, Z_HEM, z)
+            xo = XO[z] + 0.012 + 0.04 * ss(crotch_z, Z_HEM, z)
             y0, y1 = depth(z, sg); y0 -= 0.012 + 0.015 * ss(crotch_z, Z_HEM, z); y1 += 0.01; y0 = max(min(y0, depth(crotch_z + 0.01)[0] + 0.012), depth(crotch_z + 0.01)[0] + 0.006); y1 = min(max(y1, depth(crotch_z + 0.01)[1] - 0.02), depth(crotch_z + 0.01)[1] - 0.006)
-            rings.append((z, se(sg * (xi + xo) / 2, (y0 + y1) / 2, (xo - xi) / 2, (y1 - y0) / 2)))
+            rings.append((z, se(sg * (xi + xo) / 2, (y0 + y1) / 2, (xo - xi) / 2, (y1 - y0) / 2, n=3.4)))
         tube(rings)
     me = bpy.data.meshes.new("Shorts"); bm.to_mesh(me); bm.free()
     ob = bpy.data.objects.new("Shorts", me); bpy.context.collection.objects.link(ob)
@@ -924,6 +942,13 @@ def build_shoe2(side):
 build_shoe2("L"); build_shoe2("R")
 M_SK = mat("socks", (0.006, 0.006, 0.007), rough=0.9, sheen=0.05)
 garment("Socks", lambda c, d: (d.startswith("calf") and 0.07 < Zi(c.z) < 0.245) or (d.startswith("foot") and Zi(c.z) > 0.075), lambda p, n: p + n * 0.004, M_SK, 0.002, 0.0)
+# fill muscle_disp group: everything except head/neck/hands/feet
+for v in body.data.vertices:
+    d_ = dom.get(v.index, "")
+    w_ = 0.0 if d_.startswith(("head", "neck", "hand", "thumb", "index", "middle", "ring", "pinky", "foot", "toes")) else 1.0
+    if w_: _dvg.add([v.index], w_, "REPLACE")
+_dm = body.modifiers.new("musc", "DISPLACE"); _dm.texture = _dtex; _dm.texture_coords = "UV"; _dm.uv_layer = "UVMap"
+_dm.strength = DISP_STR; _dm.mid_level = 0.5; _dm.vertex_group = "muscle_disp"
 # skin params: young, smooth
 for m in body.data.materials:
     if m and m.name.startswith("MBLab_skin"):
@@ -1007,11 +1032,11 @@ for m in body.data.materials:
         # muscle definition from MB-Lab displacement map, layered under the fine skin bump
         dtx = nt.nodes.new("ShaderNodeTexImage"); dtx.image = img("human_male_displacement.png", True)
         uvn = nt.nodes.new("ShaderNodeUVMap"); uvn.uv_map = "UVMap"; nt.links.new(uvn.outputs[0], dtx.inputs["Vector"])
-        bpd = nt.nodes.new("ShaderNodeBump"); bpd.inputs["Strength"].default_value = float(os.environ.get("MUSCLE_BUMP", 0.3)); bpd.inputs["Distance"].default_value = 0.02
+        bpd = nt.nodes.new("ShaderNodeBump"); bpd.inputs["Strength"].default_value = float(os.environ.get("MUSCLE_BUMP", 0.15)); bpd.inputs["Distance"].default_value = 0.02
         nt.links.new(dtx.outputs["Color"], bpd.inputs["Height"]); nt.links.new(bpd.outputs["Normal"], bp.inputs["Normal"])
         nt.links.new(bp.outputs["Normal"], pr.inputs["Normal"])
         warm = nt.nodes.new("ShaderNodeMix"); warm.data_type = "RGBA"; warm.blend_type = "MULTIPLY"
-        warm.inputs[0].default_value = 1.0; warm.inputs[7].default_value = tuple(float(x) for x in os.environ.get("SKIN_TINT", "0.92,0.74,0.58").split(",")) + (1,)
+        warm.inputs[0].default_value = 1.0; warm.inputs[7].default_value = tuple(float(x) for x in os.environ.get("SKIN_TINT", "0.8,0.58,0.42").split(",")) + (1,)
         nt.links.new(alb.outputs["Color"], warm.inputs[6]); nt.links.new(warm.outputs[2], pr.inputs["Base Color"])
         pr.inputs["Roughness"].default_value = 0.68; pr.inputs["Specular IOR Level"].default_value = 0.22
         hp = nt.nodes.new("ShaderNodeBsdfPrincipled")
