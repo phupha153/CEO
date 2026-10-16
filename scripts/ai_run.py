@@ -33,6 +33,29 @@ def gemini_image(st):
         last = "no image in response"
     raise RuntimeError(last)
 
+def gemini_tts(st):
+    import wave
+    body = {"contents": [{"parts": [{"text": st["text"]}]}],
+            "generationConfig": {"responseModalities": ["AUDIO"],
+                                 "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": st.get("voice", "Charon")}}}}}
+    last = None
+    for m in ([st["model"]] if st.get("model") else ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"]):
+        r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
+                          headers={"x-goog-api-key": GEM, "Content-Type": "application/json"}, json=body, timeout=300)
+        print("tts", m, r.status_code)
+        if r.status_code != 200: last = r.text[:800]; print(last); continue
+        for c in r.json().get("candidates", []):
+            for p in c.get("content", {}).get("parts", []):
+                d = p.get("inline_data") or p.get("inlineData")
+                if d:
+                    pcm = base64.b64decode(d["data"]); rate = 24000
+                    mt = d.get("mime_type") or d.get("mimeType") or ""
+                    if "rate=" in mt: rate = int(mt.split("rate=")[1].split(";")[0])
+                    w = wave.open(st["out"], "wb"); w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(pcm); w.close()
+                    print("saved", st["out"], mt); return
+        last = "no audio in response"
+    raise RuntimeError(last)
+
 def fal_upload(path):
     import fal_client
     return fal_client.upload_file(path)
@@ -67,10 +90,14 @@ for jf in sorted(glob.glob("ai/jobs/*.json")):
             if st["type"] == "gemini_image":
                 if not GEM: print("NO GEMINI_API_KEY secret"); break
                 gemini_image(st)
+            elif st["type"] == "gemini_tts":
+                if not GEM: print("NO GEMINI_API_KEY secret"); break
+                gemini_tts(st)
             elif st["type"] == "fal":
                 if not FAL: print("NO FAL_KEY secret"); break
                 fal(st)
         except Exception:
-            traceback.print_exc(); break      # later steps depend on earlier ones
+            traceback.print_exc()
+            if not job.get("independent"): break      # later steps depend on earlier ones
         log.flush()
     sys.stdout = sys.__stdout__; log.close()
